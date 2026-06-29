@@ -6,7 +6,9 @@ This repository starts a research workflow for testing whether operational deman
 
 ## Core Problem Statement
 
-Demand planning systems are usually benchmarked on forecast error, yet operational teams execute plans under capacity, procurement, labor, and coordination constraints. A forecast can be statistically accurate while producing unstable order, staffing, or inventory recommendations that are expensive to execute. This project studies a stability-aware decision layer that converts forecasts into operational plans and evaluates the combined system on both accuracy and execution stability.
+Existing forecasting research usually evaluates models by prediction error. However, real operational planning systems do not only need accurate forecasts; they also need stable and executable planning signals. A numerically better forecast may require frequent model switching, large plan changes, or infrastructure updates that the operation cannot absorb. This creates a planning-infrastructure gap: the forecasting layer can adapt faster than the execution system.
+
+This project studies a stability-aware decision layer that converts forecasts into operational plans and evaluates the combined system on both accuracy and execution stability.
 
 ## First Research Questions
 

@@ -2,15 +2,17 @@
 
 ## Working Claim
 
-Operational planning quality is not equivalent to forecast accuracy. In many settings, teams need plans that are accurate enough, stable enough, and feasible enough to execute. This paper studies a simple decision layer that sits after the forecasting model and explicitly exposes the accuracy-stability tradeoff.
+Operational planning quality is not equivalent to forecast accuracy. In many settings, teams need plans that are accurate enough, stable enough, and feasible enough to execute. This paper studies a simple decision layer that sits after the forecasting model and explicitly exposes the accuracy-stability-executability tradeoff.
 
 ## Motivation
 
-Forecasting research often optimizes point accuracy metrics such as MAE, RMSE, MAPE, or WAPE. In operational demand planning, however, the forecast is usually an input to downstream decisions: purchase orders, replenishment quantities, production schedules, labor plans, or allocation decisions. Frequent forecast-driven changes can create execution churn even when average error decreases.
+Forecasting research often optimizes point accuracy metrics such as MAE, RMSE, MAPE, or WAPE. In operational demand planning, however, the forecast is usually an input to downstream decisions: purchase orders, replenishment quantities, production schedules, labor plans, or allocation decisions.
+
+Real planning systems do not only need accurate forecasts. They also need stable and executable planning signals. A numerically better forecast can still require frequent model switching, large plan changes, or infrastructure updates that the operation cannot absorb.
 
 ## Research Gap
 
-Existing operational planning workflows often treat execution stability as an implicit planner judgment rather than an explicit optimization or evaluation target. This makes it hard to compare a more accurate forecast with a more stable and operationally useful plan.
+Existing operational planning workflows often treat execution stability as an implicit planner judgment rather than an explicit optimization or evaluation target. This creates a planning-infrastructure gap: the forecasting layer can adapt faster than the execution system. As a result, standard forecast benchmarks can favor models whose outputs are difficult to execute.
 
 ## Proposed Framework
 
@@ -25,6 +27,7 @@ Existing operational planning workflows often treat execution stability as an im
 - H1: Lower forecast error does not always imply lower decision cost.
 - H2: Stability-aware decision layers can materially reduce plan variation while preserving acceptable service-level performance.
 - H3: Reporting an accuracy-stability frontier can reveal tradeoffs that are hidden by forecast metrics alone.
+- H4: Forecasting improvements are most operationally valuable when their update frequency and plan volatility remain within the execution system's absorption capacity.
 
 ## Experimental Design
 
