@@ -1,0 +1,28 @@
+{
+  "synthetic_demo": {
+    "type": "synthetic",
+    "n_items": 8,
+    "n_periods": 180,
+    "seed": 7,
+    "description": "Generated daily panel demand with trend, weekly seasonality, noise, and shocks."
+  },
+  "uci_bike_sharing_day": {
+    "type": "zip_csv",
+    "url": "https://archive.ics.uci.edu/static/public/275/bike+sharing+dataset.zip",
+    "filename": "bike_sharing_dataset.zip",
+    "member": "day.csv",
+    "recipe": "uci_bike_day",
+    "description": "Daily bike rental count from the UCI Bike Sharing dataset.",
+    "citation": "Fanaee-T, H. (2013). Bike Sharing [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5W894"
+  },
+  "uci_online_retail": {
+    "type": "zip_excel",
+    "url": "https://archive.ics.uci.edu/static/public/352/online+retail.zip",
+    "filename": "online_retail.zip",
+    "member": "Online Retail.xlsx",
+    "recipe": "uci_online_retail",
+    "top_items": 50,
+    "description": "Product-level daily demand from the UCI Online Retail transaction table.",
+    "citation": "Chen, D. (2015). Online Retail [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5BW33"
+  }
+}
