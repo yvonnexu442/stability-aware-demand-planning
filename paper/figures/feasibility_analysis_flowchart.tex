@@ -1,0 +1,49 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=0.95cm and 1.05cm,
+    stage/.style={
+        draw,
+        rounded corners=2pt,
+        align=center,
+        minimum width=2.7cm,
+        minimum height=0.82cm,
+        fill=blue!5,
+        line width=0.45pt
+    },
+    decision/.style={
+        draw,
+        diamond,
+        aspect=2.0,
+        align=center,
+        inner sep=1.2pt,
+        fill=orange!10,
+        line width=0.45pt
+    },
+    output/.style={
+        draw,
+        rounded corners=2pt,
+        align=center,
+        minimum width=2.7cm,
+        minimum height=0.82cm,
+        fill=green!7,
+        line width=0.45pt
+    },
+    arrow/.style={-{Stealth[length=2.0mm]}, line width=0.45pt}
+]
+\node[stage] (data) {Operational\\demand data};
+\node[stage, right=of data] (forecasts) {Candidate\\forecasts};
+\node[stage, right=of forecasts] (signals) {Planning signal\\conversion};
+\node[decision, below=of forecasts] (decision) {Feasibility-aware\\decision layer};
+\node[stage, left=of decision] (capacity) {Execution capacity\\scenarios};
+\node[output, right=of decision] (outputs) {Tradeoff tables\\and figures};
+
+\draw[arrow] (data) -- (forecasts);
+\draw[arrow] (forecasts) -- (signals);
+\draw[arrow] (signals) -- (decision);
+\draw[arrow] (capacity) -- (decision);
+\draw[arrow] (decision) -- (outputs);
+\end{tikzpicture}
+\caption{Feasibility-aware demand-planning analysis workflow.}
+\label{fig:feasibility-analysis-flowchart}
+\end{figure}

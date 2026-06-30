@@ -82,6 +82,8 @@ PYTHONPATH=src python3 scripts/export_latex_assets.py
 
 Major result tables should be saved as both `.csv` and `.tex`. Research figures should be saved as PDF for LaTeX compatibility, with optional PNG copies for quick viewing. The LaTeX manuscript can then import generated assets from `paper/tables/` and `paper/figures/`.
 
+Paper-ready figure and table conventions are documented in `docs/figure_style_guide.md`.
+
 ## Raw Data Workflow
 
 Raw benchmark datasets are stored under `data/raw/` with one directory per source:

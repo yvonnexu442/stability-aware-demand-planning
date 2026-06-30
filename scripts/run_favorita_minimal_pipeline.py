@@ -16,6 +16,10 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+try:
+    import seaborn as sns
+except ImportError:
+    sns = None
 
 from data_loaders.favorita_loader import load_favorita_modeling_table
 from evaluation.forecast_metrics import (
@@ -31,6 +35,16 @@ from planning_environment.planning_actions import forecast_to_inventory_target
 from reporting.latex_export import export_summary_table, write_asset_manifest
 from utils.config import load_config, save_config_snapshot
 from utils.logging_utils import setup_logger
+from visualization.plots import (
+    apply_paper_style,
+    format_axis,
+    palette_for_strategies,
+    place_legend,
+    save_paper_figure,
+    strategy_color,
+    strategy_linestyle,
+    strategy_marker,
+)
 
 
 MODEL_FEATURE_MAP = {
@@ -1511,6 +1525,7 @@ def _make_figures(
     paper_figure_dir: Path,
 ) -> List[Path]:
     """Create PNG figures for quick viewing and PDF figures for LaTeX."""
+    apply_paper_style()
     output_figure_dir.mkdir(parents=True, exist_ok=True)
     paper_figure_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1519,7 +1534,7 @@ def _make_figures(
         merged,
         x_column="weighted_absolute_percentage_error",
         y_column="total_inventory_cost",
-        title="Favorita Accuracy Versus Inventory Cost",
+        title="Accuracy vs. Inventory Cost",
         x_label="Weighted Absolute Percentage Error",
         y_label="Total Inventory Cost",
         png_path=output_figure_dir / "favorita_accuracy_vs_inventory_cost.png",
@@ -1529,7 +1544,7 @@ def _make_figures(
         merged,
         x_column="weighted_absolute_percentage_error",
         y_column="mean_plan_change_pct",
-        title="Favorita Accuracy Versus Planning Volatility",
+        title="Accuracy vs. Planning Volatility",
         x_label="Weighted Absolute Percentage Error",
         y_label="Mean Planning Signal Change",
         png_path=output_figure_dir / "favorita_accuracy_vs_volatility.png",
@@ -1555,6 +1570,7 @@ def _make_prompt3_figures(
     paper_figure_dir: Path,
 ) -> List[Path]:
     """Create Prompt 3 tradeoff figures for outputs and the LaTeX paper."""
+    apply_paper_style()
     output_figure_dir.mkdir(parents=True, exist_ok=True)
     paper_figure_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1564,7 +1580,7 @@ def _make_prompt3_figures(
         base_weight_slice,
         metric_column="total_planning_loss",
         y_label="Total Planning Loss",
-        title="Weight Sensitivity: Total Planning Loss",
+        title="Weight Sensitivity: Total Loss",
         png_path=output_figure_dir / "plot_weight_sensitivity_total_loss.png",
         pdf_path=paper_figure_dir / "plot_weight_sensitivity_total_loss.pdf",
     )
@@ -1583,7 +1599,7 @@ def _make_prompt3_figures(
         capacity_results,
         metric_column="total_planning_loss",
         y_label="Total Planning Loss",
-        title="Execution Capacity Versus Total Planning Loss",
+        title="Execution Capacity vs. Total Loss",
         png_path=output_figure_dir / "execution_capacity_vs_total_loss.png",
         pdf_path=paper_figure_dir / "execution_capacity_vs_total_loss.pdf",
     )
@@ -1592,7 +1608,7 @@ def _make_prompt3_figures(
         capacity_results,
         metric_column="execution_violation_rate",
         y_label="Execution Violation Rate",
-        title="Execution Capacity Versus Violation Rate",
+        title="Execution Capacity vs. Violation Rate",
         png_path=output_figure_dir / "execution_capacity_vs_violation_rate.png",
         pdf_path=paper_figure_dir / "execution_capacity_vs_violation_rate.pdf",
     )
@@ -1601,7 +1617,7 @@ def _make_prompt3_figures(
         capacity_results,
         metric_column="total_inventory_cost",
         y_label="Inventory Cost",
-        title="Execution Capacity Versus Inventory Cost",
+        title="Execution Capacity vs. Inventory Cost",
         png_path=output_figure_dir / "execution_capacity_vs_inventory_cost.png",
         pdf_path=paper_figure_dir / "execution_capacity_vs_inventory_cost.pdf",
     )
@@ -1613,7 +1629,7 @@ def _make_prompt3_figures(
         y_column="execution_adaptation_penalty_total",
         x_label="Weighted Absolute Percentage Error",
         y_label="Execution Penalty",
-        title="Pareto: Accuracy Versus Execution Penalty",
+        title="Pareto Tradeoff: Accuracy and Execution",
         png_path=output_figure_dir / "pareto_accuracy_vs_execution_penalty.png",
         pdf_path=paper_figure_dir / "pareto_accuracy_vs_execution_penalty.pdf",
     )
@@ -1624,7 +1640,7 @@ def _make_prompt3_figures(
         y_column="planning_signal_volatility_total",
         x_label="Weighted Absolute Percentage Error",
         y_label="Planning Volatility",
-        title="Pareto: Accuracy Versus Planning Volatility",
+        title="Pareto Tradeoff: Accuracy and Volatility",
         png_path=output_figure_dir / "pareto_accuracy_vs_planning_volatility.png",
         pdf_path=paper_figure_dir / "pareto_accuracy_vs_planning_volatility.pdf",
     )
@@ -1635,7 +1651,7 @@ def _make_prompt3_figures(
         y_column="execution_adaptation_penalty_total",
         x_label="Inventory Cost",
         y_label="Execution Penalty",
-        title="Pareto: Inventory Cost Versus Execution Penalty",
+        title="Pareto Tradeoff: Inventory and Execution",
         png_path=output_figure_dir / "pareto_inventory_cost_vs_execution_penalty.png",
         pdf_path=paper_figure_dir / "pareto_inventory_cost_vs_execution_penalty.pdf",
     )
@@ -1666,27 +1682,27 @@ def _save_weight_sensitivity_plot(
     pdf_path: Path,
 ) -> None:
     """Save a line plot over execution weight for key strategies."""
-    fig, ax = plt.subplots(figsize=(7.4, 4.8))
-    for strategy in PAPER_STRATEGY_ORDER:
+    fig, ax = plt.subplots(figsize=(7.25, 4.35))
+    for index, strategy in enumerate(PAPER_STRATEGY_ORDER):
         strategy_data = data[data["strategy"] == strategy].sort_values("lambda_execution")
         if strategy_data.empty:
             continue
         ax.plot(
             strategy_data["lambda_execution"],
             strategy_data[metric_column],
-            marker="o",
-            linewidth=1.8,
+            marker=strategy_marker(strategy),
+            markersize=5.0,
+            markeredgecolor="white",
+            markeredgewidth=0.55,
+            color=strategy_color(strategy, index),
+            linestyle=strategy_linestyle(strategy),
+            linewidth=1.9,
             label=_short_strategy_label(strategy),
         )
-    ax.set_title(title)
-    ax.set_xlabel("Execution Weight")
-    ax.set_ylabel(y_label)
-    ax.grid(True, alpha=0.25)
-    ax.legend(loc="best", fontsize=8)
-    fig.tight_layout()
-    fig.savefig(png_path, dpi=180)
-    fig.savefig(pdf_path)
-    plt.close(fig)
+    ax.margins(x=0.03)
+    format_axis(ax, x_label="Execution Weight", y_label=y_label)
+    place_legend(ax, columns=3)
+    save_paper_figure(fig, png_path, pdf_path)
 
 
 def _save_capacity_stress_plot(
@@ -1700,8 +1716,14 @@ def _save_capacity_stress_plot(
     """Save a scenario line plot for execution-capacity stress testing."""
     scenario_order = list(_execution_capacity_scenarios({}).keys())
     scenario_positions = {scenario: position for position, scenario in enumerate(scenario_order)}
-    fig, ax = plt.subplots(figsize=(7.8, 4.8))
-    for strategy in PAPER_STRATEGY_ORDER:
+    scenario_labels = {
+        "high_capacity": "High",
+        "medium_capacity": "Medium",
+        "low_capacity": "Low",
+        "severe_constraint": "Severe",
+    }
+    fig, ax = plt.subplots(figsize=(7.25, 4.35))
+    for index, strategy in enumerate(PAPER_STRATEGY_ORDER):
         strategy_data = data[data["strategy"] == strategy].copy()
         if strategy_data.empty:
             continue
@@ -1710,21 +1732,24 @@ def _save_capacity_stress_plot(
         ax.plot(
             strategy_data["scenario_position"],
             strategy_data[metric_column],
-            marker="o",
-            linewidth=1.8,
+            marker=strategy_marker(strategy),
+            markersize=5.0,
+            markeredgecolor="white",
+            markeredgewidth=0.55,
+            color=strategy_color(strategy, index),
+            linestyle=strategy_linestyle(strategy),
+            linewidth=1.9,
             label=_short_strategy_label(strategy),
         )
-    ax.set_title(title)
-    ax.set_xlabel("Execution Capacity Scenario")
-    ax.set_ylabel(y_label)
     ax.set_xticks(list(scenario_positions.values()))
-    ax.set_xticklabels([label.replace("_", "\n") for label in scenario_order])
-    ax.grid(True, alpha=0.25)
-    ax.legend(loc="best", fontsize=8)
-    fig.tight_layout()
-    fig.savefig(png_path, dpi=180)
-    fig.savefig(pdf_path)
-    plt.close(fig)
+    ax.set_xticklabels([scenario_labels.get(label, label.replace("_", " ").title()) for label in scenario_order])
+    if "rate" in metric_column:
+        upper = max(0.05, float(data[metric_column].max()) * 1.15)
+        ax.set_ylim(bottom=0.0, top=min(1.0, upper))
+    ax.margins(x=0.03)
+    format_axis(ax, x_label="Execution Capacity Scenario", y_label=y_label)
+    place_legend(ax, columns=3)
+    save_paper_figure(fig, png_path, pdf_path)
 
 
 def _save_pareto_plot(
@@ -1738,28 +1763,34 @@ def _save_pareto_plot(
     pdf_path: Path,
 ) -> None:
     """Save a Pareto scatter plot with dominated methods shown separately."""
-    fig, ax = plt.subplots(figsize=(7.2, 4.8))
-    dominated = data[~data["pareto_efficient"]]
-    efficient = data[data["pareto_efficient"]]
-    ax.scatter(dominated[x_column], dominated[y_column], color="#999999", s=42, label="Dominated")
-    ax.scatter(efficient[x_column], efficient[y_column], color="#2f6f8f", s=58, label="Pareto Efficient")
-    for row in data.itertuples(index=False):
-        ax.annotate(
-            _short_strategy_label(getattr(row, "strategy")),
-            (getattr(row, x_column), getattr(row, y_column)),
-            textcoords="offset points",
-            xytext=(5, 4),
-            fontsize=8,
+    fig, ax = plt.subplots(figsize=(7.25, 4.35))
+    plot_data = data.dropna(subset=[x_column, y_column]).copy()
+    plot_data["pareto_status"] = np.where(plot_data["pareto_efficient"], "Pareto Efficient", "Dominated")
+    if sns is not None:
+        sns.scatterplot(
+            data=plot_data,
+            x=x_column,
+            y=y_column,
+            hue="pareto_status",
+            style="pareto_status",
+            hue_order=["Pareto Efficient", "Dominated"],
+            style_order=["Pareto Efficient", "Dominated"],
+            palette={"Pareto Efficient": "#0072B2", "Dominated": "#A6A6A6"},
+            markers={"Pareto Efficient": "D", "Dominated": "o"},
+            s=72,
+            edgecolor="white",
+            linewidth=0.6,
+            ax=ax,
         )
-    ax.set_title(title)
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
-    ax.grid(True, alpha=0.25)
-    ax.legend(loc="best", fontsize=8)
-    fig.tight_layout()
-    fig.savefig(png_path, dpi=180)
-    fig.savefig(pdf_path)
-    plt.close(fig)
+    else:
+        dominated = plot_data[~plot_data["pareto_efficient"]]
+        efficient = plot_data[plot_data["pareto_efficient"]]
+        ax.scatter(dominated[x_column], dominated[y_column], color="#A6A6A6", s=58, label="Dominated")
+        ax.scatter(efficient[x_column], efficient[y_column], color="#0072B2", s=72, label="Pareto Efficient")
+    _annotate_strategy_points(ax, plot_data, x_column=x_column, y_column=y_column)
+    format_axis(ax, x_label=x_label, y_label=y_label, grid_axis="both")
+    place_legend(ax, columns=2)
+    save_paper_figure(fig, png_path, pdf_path)
 
 
 def _save_scatter_figure(
@@ -1773,24 +1804,41 @@ def _save_scatter_figure(
     pdf_path: Path,
 ) -> None:
     """Save a labeled scatter plot for strategy tradeoffs."""
-    fig, ax = plt.subplots(figsize=(7.0, 4.8))
-    ax.scatter(data[x_column], data[y_column], color="#2f6f8f", s=45)
-    for row in data.itertuples(index=False):
-        ax.annotate(
-            _short_strategy_label(getattr(row, "strategy")),
-            (getattr(row, x_column), getattr(row, y_column)),
-            textcoords="offset points",
-            xytext=(5, 4),
-            fontsize=8,
+    fig, ax = plt.subplots(figsize=(7.0, 4.25))
+    plot_data = data.dropna(subset=[x_column, y_column]).copy()
+    strategy_order = list(dict.fromkeys(plot_data["strategy"].tolist()))
+    if sns is not None:
+        sns.scatterplot(
+            data=plot_data,
+            x=x_column,
+            y=y_column,
+            hue="strategy",
+            style="strategy",
+            hue_order=strategy_order,
+            style_order=strategy_order,
+            palette=palette_for_strategies(strategy_order),
+            markers={strategy: strategy_marker(strategy) for strategy in strategy_order},
+            s=70,
+            edgecolor="white",
+            linewidth=0.6,
+            legend=False,
+            ax=ax,
         )
-    ax.set_title(title)
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
-    ax.grid(True, alpha=0.25)
-    fig.tight_layout()
-    fig.savefig(png_path, dpi=180)
-    fig.savefig(pdf_path)
-    plt.close(fig)
+    else:
+        for index, row in enumerate(plot_data.itertuples(index=False)):
+            strategy = getattr(row, "strategy")
+            ax.scatter(
+                getattr(row, x_column),
+                getattr(row, y_column),
+                color=strategy_color(strategy, index),
+                marker=strategy_marker(strategy),
+                edgecolor="white",
+                linewidth=0.6,
+                s=70,
+            )
+    _annotate_strategy_points(ax, plot_data, x_column=x_column, y_column=y_column)
+    format_axis(ax, x_label=x_label, y_label=y_label, grid_axis="both")
+    save_paper_figure(fig, png_path, pdf_path)
 
 
 def _save_example_planning_signal(decisions: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
@@ -1801,36 +1849,57 @@ def _save_example_planning_signal(decisions: pd.DataFrame, png_path: Path, pdf_p
     example_series = totals.index[0]
     plot_data = candidate[candidate["series_id"] == example_series].copy()
 
-    fig, ax = plt.subplots(figsize=(8.0, 4.8))
+    fig, ax = plt.subplots(figsize=(7.8, 4.4))
     actual = plot_data[plot_data["strategy"] == strategy_subset[0]].sort_values("date")
-    ax.plot(actual["date"], actual["actual"], color="#333333", linewidth=2.0, label="Actual Demand")
-    colors = {
-        "global_best_model": "#2f6f8f",
-        "family_best_model": "#8f5f2f",
-        "stability_aware_selector": "#6f8f2f",
-        "feasibility_aware_selector": "#7f4f9f",
-    }
-    for strategy in strategy_subset:
+    ax.plot(actual["date"], actual["actual"], color="#222222", linewidth=2.2, label="Actual Demand")
+    for index, strategy in enumerate(strategy_subset):
         strategy_data = plot_data[plot_data["strategy"] == strategy].sort_values("date")
         if strategy_data.empty:
             continue
         ax.plot(
             strategy_data["date"],
             strategy_data["planning_signal"],
-            linewidth=1.8,
+            linewidth=1.85,
             label=_short_strategy_label(strategy),
-            color=colors[strategy],
+            color=strategy_color(strategy, index),
+            linestyle=strategy_linestyle(strategy),
         )
-    ax.set_title("Favorita Example Planning Signal")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Units")
-    ax.legend(loc="best", fontsize=8)
-    ax.grid(True, alpha=0.25)
+    format_axis(ax, x_label="Date", y_label="Units")
+    place_legend(ax, columns=3)
     fig.autofmt_xdate()
-    fig.tight_layout()
-    fig.savefig(png_path, dpi=180)
-    fig.savefig(pdf_path)
-    plt.close(fig)
+    save_paper_figure(fig, png_path, pdf_path)
+
+
+def _annotate_strategy_points(ax, data: pd.DataFrame, x_column: str, y_column: str) -> None:
+    """Add compact strategy labels to sparse tradeoff scatter plots."""
+    offsets = {
+        "individual_global_lightgbm": (8, 13, "left"),
+        "individual_global_xgboost": (10, 10, "left"),
+        "global_best_model": (10, -7, "left"),
+        "family_best_model": (8, -14, "left"),
+        "stability_aware_selector": (10, 5, "left"),
+        "feasibility_aware_selector": (8, -12, "left"),
+        "individual_moving_average": (-8, 17, "right"),
+        "moving_average_baseline": (-8, 17, "right"),
+        "individual_exponential_smoothing": (10, 18, "left"),
+        "individual_naive_last_value": (-8, -12, "right"),
+        "individual_seasonal_naive": (-12, 10, "right"),
+    }
+    for index, row in enumerate(data.itertuples(index=False)):
+        strategy = getattr(row, "strategy")
+        x_offset, y_offset, horizontal_alignment = offsets.get(
+            strategy,
+            (5 if index % 2 == 0 else -5, 4 if index % 3 != 0 else -8, "left" if index % 2 == 0 else "right"),
+        )
+        ax.annotate(
+            _short_strategy_label(strategy),
+            (getattr(row, x_column), getattr(row, y_column)),
+            textcoords="offset points",
+            xytext=(x_offset, y_offset),
+            ha=horizontal_alignment,
+            fontsize=7.2,
+            color="#222222",
+        )
 
 
 def _short_strategy_label(strategy: str) -> str:
