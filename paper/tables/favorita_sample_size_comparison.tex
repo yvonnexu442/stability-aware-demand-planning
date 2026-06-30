@@ -1,0 +1,34 @@
+\begin{table}
+\centering
+\caption{Favorita sample-size comparison across quick, medium, and full reproducibility runs.}
+\label{tab:favorita-sample-size-comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrlrrrrrr}
+\toprule
+   Run Mode &  Series &   Rows &            Method &  WAPE &  Inventory Cost &  Planning Volatility &  Execution Penalty &  Violation Rate &  Total Planning Loss \\
+\midrule
+ quick\_mode &     100 & 168400 &       Global Best & 0.109 &     3010924.926 &              414.964 &         546133.345 &           0.284 &          4936997.873 \\
+ quick\_mode &     100 & 168400 &          LightGBM & 0.109 &     3010924.926 &              414.964 &         546133.345 &           0.284 &          4936997.873 \\
+ quick\_mode &     100 & 168400 &           XGBoost & 0.111 &     3084473.829 &              402.688 &         503760.533 &           0.269 &          4994470.667 \\
+ quick\_mode &     100 & 168400 &   Stability-Aware & 0.113 &     3251369.903 &              384.274 &         402775.817 &           0.258 &          5091782.931 \\
+ quick\_mode &     100 & 168400 & Feasibility-Aware & 0.116 &     3375551.068 &              364.328 &         365116.914 &           0.232 &          5219396.697 \\
+ quick\_mode &     100 & 168400 &       Moving Avg. & 0.188 &     5263648.540 &               14.814 &              0.000 &           0.000 &          7650785.842 \\
+ quick\_mode &     100 & 168400 &       Family Best & 0.110 &     3064462.341 &              411.535 &         537406.724 &           0.279 &          4998825.419 \\
+ quick\_mode &     100 & 168400 &          Seasonal & 0.157 &     4085181.846 &              516.778 &         782783.410 &           0.379 &          6864692.331 \\
+ quick\_mode &     100 & 168400 &       Exp. Smooth & 0.194 &     5430867.016 &              135.826 &           4315.721 &           0.008 &          7903747.742 \\
+ quick\_mode &     100 & 168400 &             Naive & 0.208 &     5414019.631 &              495.346 &         705809.932 &           0.351 &          8757856.880 \\
+medium\_mode &     500 & 842000 &       Global Best & 0.131 &     6532904.970 &             2108.599 &         914083.346 &           0.278 &         10307160.048 \\
+medium\_mode &     500 & 842000 &          LightGBM & 0.133 &     6471247.895 &             2114.424 &         978247.388 &           0.276 &         10348997.357 \\
+medium\_mode &     500 & 842000 &           XGBoost & 0.131 &     6532904.970 &             2108.599 &         914083.346 &           0.278 &         10307160.048 \\
+medium\_mode &     500 & 842000 &   Stability-Aware & 0.139 &     7398675.707 &             1868.837 &         583902.762 &           0.240 &         11025796.548 \\
+medium\_mode &     500 & 842000 & Feasibility-Aware & 0.142 &     7537773.459 &             1743.854 &         538852.777 &           0.216 &         11170374.338 \\
+medium\_mode &     500 & 842000 &       Moving Avg. & 0.206 &    10288279.636 &               90.445 &            979.046 &           0.000 &         14783767.586 \\
+medium\_mode &     500 & 842000 &       Family Best & 0.131 &     6486783.041 &             2121.285 &         966377.497 &           0.278 &         10305871.903 \\
+medium\_mode &     500 & 842000 &          Seasonal & 0.177 &     8253897.110 &             3043.931 &        1756705.003 &           0.421 &         13871275.840 \\
+medium\_mode &     500 & 842000 &       Exp. Smooth & 0.213 &    10581789.542 &              782.966 &          35239.138 &           0.021 &         15255480.459 \\
+medium\_mode &     500 & 842000 &             Naive & 0.234 &    11032927.993 &             2964.251 &        1645490.582 &           0.404 &         17788805.211 \\
+\bottomrule
+\end{tabular}
+}
+
+\end{table}

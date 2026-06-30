@@ -97,6 +97,16 @@ reduce planning volatility and execution burden under more constrained or more
 execution-sensitive settings. The main takeaway is documented in
 `docs/prompt3_takeaways.md`.
 
+### Favorita Sample-Size Reproducibility
+
+The Favorita reproducibility layer runs the same pipeline across larger sample
+sizes and exports sample-size comparison tables and figures. In the current
+local environment, quick mode and medium mode completed successfully, while
+larger full-mode attempts loaded data but failed during native ML fitting. The
+completed runs show that the accuracy-first winner can change with sample size,
+but the execution-feasibility tradeoff remains visible. The detailed findings
+are documented in `docs/favorita_reproducibility_findings.md`.
+
 ## Raw Data Workflow
 
 Raw benchmark datasets are stored under `data/raw/` with one directory per source:

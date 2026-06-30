@@ -28,6 +28,8 @@ outputs/logs/*
 !outputs/logs/.gitkeep
 outputs/configs/*
 !outputs/configs/.gitkeep
+outputs/favorita_sample_size_runs/
+paper/favorita_sample_size_runs/
 
 *.egg-info/
 build/

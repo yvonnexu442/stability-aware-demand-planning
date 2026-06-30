@@ -8,7 +8,8 @@ data:
   raw_data_dir: data/raw
   processed_data_dir: data/processed
   quick_mode_max_series: 100
-  full_mode_max_series: null
+  medium_mode_max_series: 500
+  full_mode_max_series: 1000
   min_history_length: 90
   min_nonzero_observations: 30
   date_column: date

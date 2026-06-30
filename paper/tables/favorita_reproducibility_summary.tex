@@ -1,0 +1,19 @@
+\begin{table}
+\centering
+\caption{Favorita reproducibility summary across sample sizes.}
+\label{tab:favorita-reproducibility-summary}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+                                          Question & Answer &                                           Evidence \\
+\midrule
+               Are method rankings broadly stable? & stable & Top total-loss methods by mode: quick\_mode=Glob... \\
+Does LightGBM/global-best remain the strongest ... &  mixed & Lowest-WAPE methods by mode: quick\_mode=Global ... \\
+Do feasibility-aware methods consistently reduc... &    yes & Feasibility-aware lowers execution penalty in 2... \\
+Does the tradeoff remain visible as sample size... &    yes & Feasibility-aware has higher WAPE and inventory... \\
+      Was full-mode completed in this environment? &     no & Full-mode attempts at 1000, 750, 600, and 550 s... \\
+\bottomrule
+\end{tabular}
+}
+
+\end{table}

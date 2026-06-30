@@ -1,0 +1,6 @@
+Question,Answer,Evidence
+Are method rankings broadly stable?,stable,Top total-loss methods by mode: quick_mode=Global Best; medium_mode=Family Best. Mean Spearman rank correlation versus quick mode: 0.899.
+Does LightGBM/global-best remain the strongest accuracy-first method?,mixed,Lowest-WAPE methods by mode: quick_mode=Global Best; medium_mode=Family Best.
+Do feasibility-aware methods consistently reduce execution burden?,yes,Feasibility-aware lowers execution penalty in 2/2 modes and violation rate in 2/2 modes. Mean penalty reduction versus global-best: 37.1%.
+Does the tradeoff remain visible as sample size increases?,yes,Feasibility-aware has higher WAPE and inventory cost but lower execution penalty than global-best in 2/2 modes.
+Was full-mode completed in this environment?,no,"Full-mode attempts at 1000, 750, 600, and 550 series reached data loading but failed during native ML fitting with SIGSEGV; full-mode is therefore not reported for this local environment."

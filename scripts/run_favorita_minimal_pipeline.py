@@ -69,8 +69,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default="configs/default.yaml", help="Path to the experiment config file.")
     parser.add_argument("--raw-data-dir", default=None, help="Directory containing local Favorita CSV files.")
     parser.add_argument("--output-dir", default=None, help="Directory for generated experiment outputs.")
-    parser.add_argument("--run-mode", choices=["quick", "full"], default=None, help="Override the configured run mode.")
+    parser.add_argument(
+        "--run-mode",
+        choices=["quick", "medium", "full", "quick_mode", "medium_mode", "full_mode"],
+        default=None,
+        help="Override the configured run mode.",
+    )
     parser.add_argument("--max-series", type=int, default=None, help="Override the number of store-family series to use.")
+    parser.add_argument("--max-ml-training-rows", type=int, default=None, help="Override the global ML training row cap.")
+    parser.add_argument("--paper-table-dir", default="paper/tables", help="Directory for LaTeX-ready paper tables.")
+    parser.add_argument("--paper-figure-dir", default="paper/figures", help="Directory for LaTeX-ready paper figures.")
+    parser.add_argument("--asset-manifest-path", default="paper/asset_manifest.md", help="Path for the paper asset manifest.")
     parser.add_argument("--skip-ml", action="store_true", help="Skip the global machine-learning forecast candidate.")
     return parser.parse_args()
 
@@ -81,14 +90,18 @@ def main() -> None:
 
     args = parse_args()
     config = load_config(args.config)
+    if args.max_ml_training_rows is not None:
+        config.setdefault("favorita_pipeline", {})["max_ml_training_rows"] = int(args.max_ml_training_rows)
 
-    run_mode = args.run_mode or config.get("project", {}).get("run_mode", "quick")
+    run_mode = _normalize_run_mode(args.run_mode or config.get("project", {}).get("run_mode", "quick"))
     output_dir = Path(args.output_dir or config.get("project", {}).get("output_dir", "outputs"))
     table_dir = output_dir / "tables"
     figure_dir = output_dir / "figures"
     log_dir = output_dir / "logs"
     config_dir = output_dir / "configs"
-    for path in [table_dir, figure_dir, log_dir, config_dir, Path("paper/tables"), Path("paper/figures")]:
+    paper_table_dir = Path(args.paper_table_dir)
+    paper_figure_dir = Path(args.paper_figure_dir)
+    for path in [table_dir, figure_dir, log_dir, config_dir, paper_table_dir, paper_figure_dir]:
         path.mkdir(parents=True, exist_ok=True)
 
     logger = setup_logger("favorita_minimal_pipeline", log_file=log_dir / "favorita_minimal_pipeline.log")
@@ -145,8 +158,8 @@ def main() -> None:
     quality_report.to_csv(table_dir / "favorita_data_quality_report.csv", index=False)
     logger.info("Saved planning utility tables to %s.", table_dir)
 
-    table_assets = _export_latex_tables(forecast_metrics, inventory_metrics, stability_metrics, planning_utility)
-    figure_assets = _make_figures(planning_utility, stability_metrics, decisions, figure_dir, Path("paper/figures"))
+    table_assets = _export_latex_tables(forecast_metrics, inventory_metrics, stability_metrics, planning_utility, paper_table_dir)
+    figure_assets = _make_figures(planning_utility, stability_metrics, decisions, figure_dir, paper_figure_dir)
     prompt3_tables, prompt3_figures = _run_feasibility_analyses(
         forecasts=forecasts,
         modeling_table=modeling_table,
@@ -154,27 +167,46 @@ def main() -> None:
         config=config,
         output_table_dir=table_dir,
         output_figure_dir=figure_dir,
-        paper_table_dir=Path("paper/tables"),
-        paper_figure_dir=Path("paper/figures"),
+        paper_table_dir=paper_table_dir,
+        paper_figure_dir=paper_figure_dir,
         logger=logger,
     )
     table_assets.extend(prompt3_tables)
     figure_assets.extend(prompt3_figures)
-    manifest_path = write_asset_manifest("paper/asset_manifest.md", table_assets, figure_assets)
-    logger.info("Saved LaTeX-ready tables to paper/tables.")
-    logger.info("Saved LaTeX-ready PDF figures to paper/figures.")
+    manifest_path = write_asset_manifest(args.asset_manifest_path, table_assets, figure_assets)
+    logger.info("Saved LaTeX-ready tables to %s.", paper_table_dir)
+    logger.info("Saved LaTeX-ready PDF figures to %s.", paper_figure_dir)
     logger.info("Updated paper asset manifest at %s.", manifest_path)
     logger.info("Favorita minimal pipeline completed successfully.")
 
 
 def _resolve_max_series(max_series_arg: Optional[int], run_mode: str, config: Mapping[str, object]) -> Optional[int]:
-    """Return the configured number of series for quick or full mode."""
+    """Return the configured number of series for quick, medium, or full mode."""
     if max_series_arg is not None:
         return int(max_series_arg)
     data_config = config.get("data", {})
-    if run_mode == "quick":
+    normalized_mode = _normalize_run_mode(run_mode)
+    if normalized_mode == "quick":
         return data_config.get("quick_mode_max_series", 100)
-    return data_config.get("full_mode_max_series")
+    if normalized_mode == "medium":
+        return data_config.get("medium_mode_max_series", 500)
+    return data_config.get("full_mode_max_series", 1000)
+
+
+def _normalize_run_mode(run_mode: str) -> str:
+    """Normalize command-line and config run-mode names."""
+    value = str(run_mode).strip().lower()
+    aliases = {
+        "quick": "quick",
+        "quick_mode": "quick",
+        "medium": "medium",
+        "medium_mode": "medium",
+        "full": "full",
+        "full_mode": "full",
+    }
+    if value not in aliases:
+        raise ValueError("Unsupported run mode: {}".format(run_mode))
+    return aliases[value]
 
 
 def _assign_chronological_splits(data: pd.DataFrame, config: Mapping[str, object]) -> Tuple[pd.DataFrame, Dict[str, pd.Timestamp]]:
@@ -1364,6 +1396,7 @@ def _export_latex_tables(
     inventory_metrics: pd.DataFrame,
     stability_metrics: pd.DataFrame,
     planning_utility: pd.DataFrame,
+    paper_table_dir: Path = Path("paper/tables"),
 ) -> List[Path]:
     """Export core Favorita result tables into paper/tables."""
     outputs = []
@@ -1420,7 +1453,7 @@ def _export_latex_tables(
         export_summary_table(
             data=forecast_table,
             table_name="favorita_forecast_metrics_table",
-            output_dir="paper/tables",
+            output_dir=paper_table_dir,
             caption="Favorita forecast accuracy metrics from the minimal pipeline.",
             label="tab:favorita-forecast-metrics",
             numeric_precision=3,
@@ -1439,7 +1472,7 @@ def _export_latex_tables(
         export_summary_table(
             data=inventory_table,
             table_name="favorita_inventory_metrics_table",
-            output_dir="paper/tables",
+            output_dir=paper_table_dir,
             caption="Favorita inventory and service metrics from the minimal pipeline.",
             label="tab:favorita-inventory-metrics",
             numeric_precision=3,
@@ -1457,7 +1490,7 @@ def _export_latex_tables(
         export_summary_table(
             data=stability_table,
             table_name="favorita_stability_metrics_table",
-            output_dir="paper/tables",
+            output_dir=paper_table_dir,
             caption="Favorita planning stability metrics from the minimal pipeline.",
             label="tab:favorita-stability-metrics",
             numeric_precision=3,
@@ -1476,7 +1509,7 @@ def _export_latex_tables(
         export_summary_table(
             data=utility_table,
             table_name="favorita_planning_utility_table",
-            output_dir="paper/tables",
+            output_dir=paper_table_dir,
             caption="Favorita planning utility metrics from the minimal pipeline.",
             label="tab:favorita-planning-utility",
             numeric_precision=3,
