@@ -1,10 +1,12 @@
 Split,Model,Rows,MAE,RMSE,WAPE
-test,Global ML,2800,488.565,721.805,0.108
+test,LightGBM,2800,492.761,725.326,0.109
+test,XGBoost,2800,502.155,739.079,0.111
 test,Seasonal,2800,713.025,1065.398,0.157
 test,Moving Avg.,2800,852.546,1198.148,0.188
 test,Exp. Smooth,2800,881.606,1244.26,0.194
 test,Naive,2800,942.064,1378.074,0.208
-validation,Global ML,2800,439.125,684.794,0.094
+validation,LightGBM,2800,442.962,684.316,0.095
+validation,XGBoost,2800,447.151,702.795,0.096
 validation,Seasonal,2800,729.933,1133.405,0.157
 validation,Moving Avg.,2800,1076.697,1554.387,0.231
 validation,Naive,2800,1146.079,1718.333,0.246

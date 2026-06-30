@@ -147,6 +147,10 @@ The pipeline writes analysis tables to `outputs/tables/`, figures to
 `paper/tables/`, and PDF figures for the manuscript are written to
 `paper/figures/`.
 
+If LightGBM or XGBoost is installed, the pipeline keeps them as separate global
+machine-learning forecast candidates. If neither package is available, it uses a
+scikit-learn fallback model and records that choice in the run log.
+
 ## Current Status
 
 The current implementation contains the core planning-stability modules, the

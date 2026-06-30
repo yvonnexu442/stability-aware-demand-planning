@@ -33,7 +33,9 @@ forecasting:
     - seasonal_naive
     - moving_average
     - exponential_smoothing
-    - global_ml
+    - global_lightgbm
+    - global_xgboost
+    - global_sklearn
 
 favorita_pipeline:
   raw_data_dir: data/raw/favorita

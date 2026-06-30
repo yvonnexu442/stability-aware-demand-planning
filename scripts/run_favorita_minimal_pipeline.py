@@ -2,6 +2,8 @@
 
 import argparse
 import logging
+import os
+import sys
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
@@ -194,9 +196,7 @@ def _build_candidate_forecasts(
         records.append(_forecast_from_feature(evaluation_frame, model_name, feature_column))
 
     if not skip_ml:
-        ml_forecast = _fit_global_ml_forecast(modeling_table, evaluation_frame, config, logger)
-        if ml_forecast is not None:
-            records.append(ml_forecast)
+        records.extend(_fit_global_ml_forecasts(modeling_table, evaluation_frame, config, logger))
     else:
         logger.info("Skipping global machine-learning candidate because --skip-ml was provided.")
 
@@ -224,18 +224,18 @@ def _forecast_from_feature(evaluation_frame: pd.DataFrame, model_name: str, feat
     return frame.drop(columns=[feature_column, "demand"])
 
 
-def _fit_global_ml_forecast(
+def _fit_global_ml_forecasts(
     modeling_table: pd.DataFrame,
     evaluation_frame: pd.DataFrame,
     config: Mapping[str, object],
     logger: logging.Logger,
-) -> Optional[pd.DataFrame]:
-    """Fit one global ML model with LightGBM when available and sklearn otherwise."""
+) -> List[pd.DataFrame]:
+    """Fit available global ML candidates with robust fallbacks."""
     train_frame = modeling_table[modeling_table["split"] == "train"].copy()
     train_frame = train_frame.dropna(subset=["demand_lag_28", "demand_rolling_mean_28"]).copy()
     if train_frame.empty:
         logger.warning("Skipping global ML candidate because no training rows have enough lag history.")
-        return None
+        return []
 
     favorita_config = config.get("favorita_pipeline", {})
     max_training_rows = int(favorita_config.get("max_ml_training_rows", 250000))
@@ -245,43 +245,142 @@ def _fit_global_ml_forecast(
         logger.info("Sampled %s rows for global ML training.", max_training_rows)
 
     x_train, y_train, x_predict = _prepare_ml_feature_matrices(train_frame, evaluation_frame)
-    estimator, estimator_name = _make_ml_estimator(random_seed, logger)
-    estimator.fit(x_train, y_train)
-    predictions = np.maximum(estimator.predict(x_predict), 0.0)
-    logger.info("Generated global ML forecasts with %s.", estimator_name)
+    candidate_estimators = _make_ml_estimators(random_seed, logger)
+    outputs: List[pd.DataFrame] = []
+    for model_name, estimator, estimator_label in candidate_estimators:
+        try:
+            estimator.fit(x_train, y_train)
+            predictions = np.maximum(estimator.predict(x_predict), 0.0)
+        except Exception as error:
+            logger.warning("Skipping %s because model fitting failed: %s", estimator_label, error)
+            continue
+        output = evaluation_frame[["date", "series_id", "family", "store_nbr", "demand", "split", "horizon"]].copy()
+        output["forecast"] = predictions
+        output["actual"] = output["demand"]
+        output["model_name"] = model_name
+        outputs.append(output.drop(columns=["demand"]))
+        logger.info("Generated global ML forecasts with %s.", estimator_label)
 
-    output = evaluation_frame[["date", "series_id", "family", "store_nbr", "demand", "split", "horizon"]].copy()
-    output["forecast"] = predictions
-    output["actual"] = output["demand"]
-    output["model_name"] = "global_ml"
-    return output.drop(columns=["demand"])
+    if not outputs:
+        sklearn_model = _make_sklearn_fallback_estimator(random_seed, logger)
+        fallback_name, fallback_estimator, fallback_label = sklearn_model
+        fallback_estimator.fit(x_train, y_train)
+        predictions = np.maximum(fallback_estimator.predict(x_predict), 0.0)
+        output = evaluation_frame[["date", "series_id", "family", "store_nbr", "demand", "split", "horizon"]].copy()
+        output["forecast"] = predictions
+        output["actual"] = output["demand"]
+        output["model_name"] = fallback_name
+        outputs.append(output.drop(columns=["demand"]))
+        logger.info("Generated global ML forecasts with %s.", fallback_label)
+    return outputs
 
 
-def _make_ml_estimator(random_seed: int, logger: logging.Logger):
-    """Create the preferred global ML estimator with robust fallbacks."""
+def _make_ml_estimators(random_seed: int, logger: logging.Logger) -> List[Tuple[str, object, str]]:
+    """Create all available global ML estimators.
+
+    LightGBM and XGBoost are kept as separate candidates when both are
+    installed. The scikit-learn model is a fallback only when neither boosting
+    package can be used.
+    """
+    estimators: List[Tuple[str, object, str]] = []
     try:
-        import lightgbm as lgb
-
-        return (
-            lgb.LGBMRegressor(
-                n_estimators=120,
-                learning_rate=0.05,
-                num_leaves=31,
-                subsample=0.9,
-                colsample_bytree=0.9,
-                random_state=random_seed,
-                n_jobs=-1,
-            ),
-            "LightGBM",
+        lgb = _import_lightgbm_without_optional_dask()
+        estimators.append(
+            (
+                "global_lightgbm",
+                lgb.LGBMRegressor(
+                    n_estimators=120,
+                    learning_rate=0.05,
+                    num_leaves=31,
+                    subsample=0.9,
+                    colsample_bytree=0.9,
+                    random_state=random_seed,
+                    n_jobs=-1,
+                    verbose=-1,
+                ),
+                "LightGBM",
+            )
         )
     except Exception as error:
-        logger.warning("LightGBM is unavailable (%s). Falling back to scikit-learn.", error)
+        logger.warning("LightGBM is unavailable and will be skipped: %s", error)
 
+    try:
+        import xgboost as xgb
+
+        estimators.append(
+            (
+                "global_xgboost",
+                xgb.XGBRegressor(
+                    n_estimators=80,
+                    learning_rate=0.05,
+                    max_depth=5,
+                    subsample=0.9,
+                    colsample_bytree=0.9,
+                    objective="reg:squarederror",
+                    random_state=random_seed,
+                    n_jobs=-1,
+                    verbosity=0,
+                ),
+                "XGBoost",
+            )
+        )
+    except Exception as error:
+        logger.warning("XGBoost is unavailable and will be skipped: %s", error)
+
+    if estimators:
+        return estimators
+    return [_make_sklearn_fallback_estimator(random_seed, logger)]
+
+
+def _import_lightgbm_without_optional_dask():
+    """Import LightGBM while disabling optional dask/distributed integration.
+
+    Some local environments have dask installed but not usable in sandboxed or
+    offline runs. The Favorita pipeline only needs the standard sklearn-style
+    LightGBM estimator, so optional distributed integrations are hidden during
+    import.
+    """
+    blocked_modules = ["dask", "dask.dataframe", "dask.distributed", "distributed"]
+    sentinel = object()
+    previous_modules = {name: sys.modules.get(name, sentinel) for name in blocked_modules}
+    for module_name in blocked_modules:
+        sys.modules[module_name] = None
+    try:
+        import sklearn.utils.validation as sklearn_validation
+        import lightgbm as lgb
+        import lightgbm.sklearn as lgb_sklearn
+
+        lgb_sklearn._LGBMCpuCount = lambda only_physical_cores=True: os.cpu_count() or 1
+        if not hasattr(sklearn_validation, "_num_features"):
+            sklearn_validation._num_features = _sklearn_num_features_compat
+    finally:
+        for module_name, previous_module in previous_modules.items():
+            if previous_module is sentinel:
+                sys.modules.pop(module_name, None)
+            else:
+                sys.modules[module_name] = previous_module
+    return lgb
+
+
+def _sklearn_num_features_compat(data) -> int:
+    """Return the number of columns for older scikit-learn versions."""
+    if hasattr(data, "shape") and len(data.shape) >= 2:
+        return int(data.shape[1])
+    if hasattr(data, "__array__"):
+        array = np.asarray(data)
+        if array.ndim >= 2:
+            return int(array.shape[1])
+    raise TypeError("Unable to determine the number of features for LightGBM compatibility.")
+
+
+def _make_sklearn_fallback_estimator(random_seed: int, logger: logging.Logger) -> Tuple[str, object, str]:
+    """Create the scikit-learn fallback estimator."""
     try:
         from sklearn.experimental import enable_hist_gradient_boosting  # noqa: F401
         from sklearn.ensemble import HistGradientBoostingRegressor
 
         return (
+            "global_sklearn",
             HistGradientBoostingRegressor(
                 max_iter=120,
                 learning_rate=0.06,
@@ -296,6 +395,7 @@ def _make_ml_estimator(random_seed: int, logger: logging.Logger):
     from sklearn.ensemble import RandomForestRegressor
 
     return (
+        "global_sklearn",
         RandomForestRegressor(
             n_estimators=60,
             max_depth=14,
@@ -853,7 +953,9 @@ def _model_display_label(model_name: str) -> str:
         "seasonal_naive": "Seasonal",
         "moving_average": "Moving Avg.",
         "exponential_smoothing": "Exp. Smooth",
-        "global_ml": "Global ML",
+        "global_lightgbm": "LightGBM",
+        "global_xgboost": "XGBoost",
+        "global_sklearn": "sklearn",
     }
     return labels.get(model_name, str(model_name).replace("_", " ").title())
 
@@ -979,7 +1081,9 @@ def _short_strategy_label(strategy: str) -> str:
         "individual_seasonal_naive": "Seasonal",
         "individual_moving_average": "Moving Avg.",
         "individual_exponential_smoothing": "Exp. Smooth",
-        "individual_global_ml": "Global ML",
+        "individual_global_lightgbm": "LightGBM",
+        "individual_global_xgboost": "XGBoost",
+        "individual_global_sklearn": "sklearn",
         "global_best_model": "Global Best",
         "family_best_model": "Family Best",
         "stability_aware_selector": "Stability-Aware",
