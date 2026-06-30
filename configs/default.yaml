@@ -152,11 +152,11 @@ stability:
   frozen_planning_window: 7
 
 planning_loss_weights:
-  alpha_forecast: 1.0
+  alpha_forecast: 0.0
   beta_inventory: 1.0
-  lambda_volatility: 0.5
-  lambda_switch: 0.5
-  lambda_execution: 1.0
+  lambda_volatility: 0.10
+  lambda_execution: 0.10
+  lambda_switch: 0.05
 
 experiments:
   save_plots: true

@@ -185,14 +185,25 @@ diagnostic and are explicitly marked in output metadata.
 
 The decision-layer audit now distinguishes deployable strategies from
 non-deployable Oracle diagnostics. Oracle DP is documented as a
-Realized-Inventory Oracle DP: it uses validation-derived forecast loss plus
-period-specific realized test inventory outcomes keyed by series, candidate
-model, and date. It is not a perfect-forecast oracle. The Budgeted DP fallback
+Realized-Inventory Oracle DP: it uses period-specific realized test inventory
+outcomes keyed by series, candidate model, and date, while direct forecast loss
+remains diagnostic unless explicitly weighted in a sensitivity setting. It is
+not a perfect-forecast oracle. The Budgeted DP fallback
 is also explicit in outputs through fallback metadata. The fallback freezes the
 first-period lowest-cost incumbent model when that model remains available, and
 it marks later missing-incumbent cases as potentially non-strict diagnostics.
 The audit table is exported to `outputs/tables/decision_layer_audit.csv` and
 `paper/tables/decision_layer_audit_table.tex`.
+
+### Operational-Loss Objective and Oracle Gap Split
+
+The default planning objective now treats forecast accuracy as a diagnostic
+metric rather than as a direct term in normalized operational loss.
+`planning_loss_weights.alpha_forecast` defaults to `0.0`, while inventory,
+volatility, execution, and switching terms define the main planning objective.
+Paper-facing outputs now split Oracle gaps into `gap_to_dp_oracle` and
+`gap_to_perfect_oracle` so model-selection suboptimality and realized-demand
+uncertainty are reported separately.
 
 ## Raw Data Workflow
 

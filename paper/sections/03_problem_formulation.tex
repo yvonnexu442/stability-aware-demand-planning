@@ -119,24 +119,23 @@ The project evaluates planning utility through a multi-objective loss:
 \begin{align}
     \mathrm{total\_loss}^{s}
     ={}&
-    \lambda_{\mathrm{forecast}} \cdot \mathrm{forecast\_error}^{s}
-    + \lambda_{\mathrm{inventory}} \cdot \mathrm{inventory\_cost}^{s} \notag \\
-    &+ \lambda_{\mathrm{volatility}} \cdot \mathrm{planning\_volatility}^{s}
+    \lambda_{\mathrm{inventory}} \cdot \mathrm{inventory\_cost}^{s}
+    + \lambda_{\mathrm{volatility}} \cdot \mathrm{planning\_volatility}^{s}
     + \lambda_{\mathrm{switch}} \cdot \mathrm{switching\_burden}^{s} \notag \\
     &+ \lambda_{\mathrm{execution}} \cdot \mathrm{execution\_penalty}^{s}.
 \end{align}
 
-The weighted scalar loss is useful for optimization and policy comparison. The paper will also report Pareto-style multi-objective outputs so that tradeoffs among accuracy, inventory cost, stability, switching, and execution adaptation remain visible.
+The main planning objective excludes direct forecast-error terms because realized inventory cost already captures the operational consequences of forecast-driven planning decisions. Forecast accuracy is reported separately as a diagnostic metric. A forecast-error-regularized objective can be added as an explicit sensitivity setting, but it is not the default objective. The weighted scalar loss is useful for optimization and policy comparison. The paper will also report Pareto-style multi-objective outputs so that tradeoffs among accuracy, inventory cost, stability, switching, and execution adaptation remain visible.
 
 \subsection{Finite-Horizon Model Selection}
 
-The decision layer can be viewed as a finite-horizon deterministic dynamic program once candidate forecasts and validation-derived expected costs are available for a planning horizon. For a deployable strategy, the period cost uses validation-calibrated forecast and inventory terms, plus transition costs induced by the candidate planning signals. A generic finite-horizon objective is
+The decision layer can be viewed as a finite-horizon deterministic dynamic program once candidate forecasts and validation-derived expected costs are available for a planning horizon. For a deployable strategy, the default period cost uses validation-calibrated inventory terms plus transition costs induced by the candidate planning signals; forecast error remains a diagnostic metric unless an explicit sensitivity setting assigns it positive weight. A generic finite-horizon objective is
 \begin{equation}
     \min_{z_{i,1:T}}
     \sum_{t=1}^{T}
     \ell_{i,t}\left(z_{i,t}, z_{i,t-1}, x_{i,t}^{z_{i,t}}, x_{i,t-1}^{z_{i,t-1}}\right),
 \end{equation}
-where $\ell_{i,t}$ includes expected forecast loss, expected inventory cost, planning volatility, model-switching cost, and execution-capacity violation. A budgeted version adds the hard constraint
+where $\ell_{i,t}$ includes expected inventory cost, planning volatility, model-switching cost, and execution-capacity violation. A budgeted version adds the hard constraint
 \begin{equation}
     \sum_{t=2}^{T}\mathbb{I}\{z_{i,t} \neq z_{i,t-1}\} \leq K.
 \end{equation}

@@ -10,11 +10,11 @@ def select_stability_aware_model(
     previous_model: Optional[str] = None,
     switch_penalty: float = 0.0,
 ) -> str:
-    """Select a model using forecast loss plus an optional switching penalty.
+    """Select a model using an input loss plus an optional switching penalty.
 
     This initial selector captures the simplest version of the paper's decision
-    layer: a model should not switch merely because it is slightly better on
-    forecast error if switching creates operational burden.
+    layer: a model should not switch merely because it is slightly better on a
+    diagnostic or validation loss if switching creates operational burden.
 
     The selector makes the planning-infrastructure gap explicit by adding a
     cost for changing model logic between planning periods.

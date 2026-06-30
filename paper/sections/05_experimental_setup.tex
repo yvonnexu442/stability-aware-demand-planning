@@ -22,7 +22,7 @@ The analysis compares accuracy-first, stability-first, ensemble-based, smoothing
 
 \subsection{Evaluation Metrics}
 
-The evaluation reports WAPE, inventory cost, planning volatility, execution penalty, execution violation rate, model-switching burden, normalized total loss, and gap to the Oracle diagnostic. Normalized planning loss is reported relative to the accuracy-first BestAccuracy or Global Best baseline within the same run mode and split. Raw metrics remain visible in the result tables so that normalized rankings do not hide the underlying tradeoffs.
+The evaluation reports WAPE, inventory cost, planning volatility, execution penalty, execution violation rate, model-switching burden, normalized total loss, gap to the Realized-Inventory Oracle DP, and gap to the Realized Demand Oracle. WAPE is reported as a diagnostic forecast metric and is not part of the default operational planning objective. Normalized planning loss is reported relative to the accuracy-first BestAccuracy or Global Best baseline within the same run mode and split. Raw metrics remain visible in the result tables so that normalized rankings do not hide the underlying tradeoffs.
 
 \subsection{Execution Capacity Scenarios}
 

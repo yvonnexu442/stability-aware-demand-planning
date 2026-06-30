@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from decision_layer.no_leakage import require_no_future_outcomes
+from evaluation.planning_utility import planning_loss_weight
 from planning_environment.planning_actions import forecast_to_inventory_target
 
 
@@ -85,9 +86,9 @@ class GreedyFeasibilitySelector:
         switch_cost = 0.0 if previous_model is None or previous_model == str(row["model_name"]) else self.switch_penalty
         score = (
             base_cost
-            + float(self.weights.get("lambda_volatility", 0.5)) * plan_change_pct
-            + float(self.weights.get("lambda_switch", 0.5)) * switch_cost
-            + float(self.weights.get("lambda_execution", 1.0)) * execution_violation
+            + planning_loss_weight(self.weights, "lambda_volatility") * plan_change_pct
+            + planning_loss_weight(self.weights, "lambda_switch") * switch_cost
+            + planning_loss_weight(self.weights, "lambda_execution") * execution_violation
         )
         return float(score), plan
 
@@ -99,8 +100,8 @@ class GreedyFeasibilitySelector:
             self.global_expected_losses.get(model_name, self.expected_losses.get(("global", model_name), {})),
         )
         return (
-            float(self.weights.get("alpha_forecast", 1.0)) * float(losses.get("wape", 1.0))
-            + float(self.weights.get("beta_inventory", 1.0)) * float(losses.get("inventory_cost_per_demand_unit", 0.0))
+            planning_loss_weight(self.weights, "alpha_forecast") * float(losses.get("wape", 1.0))
+            + planning_loss_weight(self.weights, "beta_inventory") * float(losses.get("inventory_cost_per_demand_unit", 0.0))
         )
 
 
@@ -366,8 +367,8 @@ class OracleDPFeasibilitySelector(DPFeasibilitySelector):
             self.global_expected_losses.get(model_name, self.expected_losses.get(("global", model_name), {})),
         )
         return (
-            float(self.weights.get("alpha_forecast", 1.0)) * float(losses.get("wape", 1.0))
-            + float(self.weights.get("beta_inventory", 1.0)) * float(realized_inventory)
+            planning_loss_weight(self.weights, "alpha_forecast") * float(losses.get("wape", 1.0))
+            + planning_loss_weight(self.weights, "beta_inventory") * float(realized_inventory)
         )
 
     def _period_realized_inventory_cost(

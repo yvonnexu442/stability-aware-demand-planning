@@ -1,12 +1,12 @@
 scenario_name,lambda_execution,objective_name,method_name,method_family,strategy,metric_value,objective_rank
 baseline,0.05,WAPE,Oracle,Oracle,oracle_realized_demand,0.0,1
+baseline,0.05,WAPE,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.108,2
 baseline,0.05,WAPE,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.108,2
-baseline,0.05,WAPE,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.108,3
-baseline,0.05,WAPE,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.108,3
+baseline,0.05,WAPE,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.108,2
+baseline,0.05,WAPE,Best Inventory,Baseline,best_inventory_cost_model,0.109,5
+baseline,0.05,WAPE,Global Best,Baseline,global_best_model,0.109,5
+baseline,0.05,WAPE,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.109,5
 baseline,0.05,WAPE,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.109,5
-baseline,0.05,WAPE,Best Inventory,Baseline,best_inventory_cost_model,0.109,6
-baseline,0.05,WAPE,Global Best,Baseline,global_best_model,0.109,6
-baseline,0.05,WAPE,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.109,8
 baseline,0.05,WAPE,Family Best,Baseline,family_best_model,0.11,9
 baseline,0.05,WAPE,Stability-Aware,Baseline,stability_aware_selector,0.113,10
 baseline,0.05,WAPE,Feasibility-Aware,Baseline,feasibility_aware_selector,0.116,11
@@ -27,7 +27,7 @@ baseline,0.05,execution_penalty,Scenario Alpha,FeasibilityAwareSmoothed,feasibil
 baseline,0.05,execution_penalty,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,171810.1,9
 baseline,0.05,execution_penalty,Feasibility-Aware,Baseline,feasibility_aware_selector,365116.914,11
 baseline,0.05,execution_penalty,Stability-Aware,Baseline,stability_aware_selector,402775.817,12
-baseline,0.05,execution_penalty,Family Best,Baseline,family_best_model,537406.724,13
+baseline,0.05,execution_penalty,Family Best,Baseline,family_best_model,537406.7239999999,13
 baseline,0.05,execution_penalty,Best Inventory,Baseline,best_inventory_cost_model,546133.345,14
 baseline,0.05,execution_penalty,Global Best,Baseline,global_best_model,546133.345,14
 baseline,0.05,execution_penalty,Oracle,Oracle,oracle_realized_demand,680523.022,16
@@ -39,33 +39,33 @@ baseline,0.05,execution_violation_rate,Simple Ensemble,ReferenceEnsemble,simple_
 baseline,0.05,execution_violation_rate,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,0.133,6
 baseline,0.05,execution_violation_rate,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,0.16,7
 baseline,0.05,execution_violation_rate,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,0.16,7
-baseline,0.05,execution_violation_rate,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.164,9
-baseline,0.05,execution_violation_rate,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.164,9
+baseline,0.05,execution_violation_rate,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.16399999999999998,9
+baseline,0.05,execution_violation_rate,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.16399999999999998,9
 baseline,0.05,execution_violation_rate,Feasibility-Aware,Baseline,feasibility_aware_selector,0.232,11
 baseline,0.05,execution_violation_rate,Stability-Aware,Baseline,stability_aware_selector,0.258,12
 baseline,0.05,execution_violation_rate,Family Best,Baseline,family_best_model,0.279,13
 baseline,0.05,execution_violation_rate,Best Inventory,Baseline,best_inventory_cost_model,0.284,14
 baseline,0.05,execution_violation_rate,Global Best,Baseline,global_best_model,0.284,14
 baseline,0.05,execution_violation_rate,Oracle,Oracle,oracle_realized_demand,0.345,16
-baseline,0.05,gap_to_oracle,Oracle,Oracle,oracle_realized_demand,0.0,1
-baseline,0.05,gap_to_oracle,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,0.229,2
-baseline,0.05,gap_to_oracle,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,0.236,3
-baseline,0.05,gap_to_oracle,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,0.236,3
-baseline,0.05,gap_to_oracle,Simple Ensemble,ReferenceEnsemble,simple_ensemble,0.242,5
-baseline,0.05,gap_to_oracle,Best Inventory,Baseline,best_inventory_cost_model,0.357,6
-baseline,0.05,gap_to_oracle,Global Best,Baseline,global_best_model,0.357,6
-baseline,0.05,gap_to_oracle,Family Best,Baseline,family_best_model,0.37,8
-baseline,0.05,gap_to_oracle,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.454,9
-baseline,0.05,gap_to_oracle,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.495,10
-baseline,0.05,gap_to_oracle,Best Stability,Baseline,best_stability_model,0.573,11
-baseline,0.05,gap_to_oracle,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.643,12
-baseline,0.05,gap_to_oracle,Stability-Aware,Baseline,stability_aware_selector,0.746,13
-baseline,0.05,gap_to_oracle,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.893,14
-baseline,0.05,gap_to_oracle,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.893,14
-baseline,0.05,gap_to_oracle,Feasibility-Aware,Baseline,feasibility_aware_selector,1.718,16
+baseline,0.05,gap_to_perfect_oracle,Oracle,Oracle,oracle_realized_demand,0.0,1
+baseline,0.05,gap_to_perfect_oracle,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,0.2289999999999999,2
+baseline,0.05,gap_to_perfect_oracle,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,0.23600000000000002,3
+baseline,0.05,gap_to_perfect_oracle,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,0.23600000000000002,3
+baseline,0.05,gap_to_perfect_oracle,Simple Ensemble,ReferenceEnsemble,simple_ensemble,0.2410000000000001,5
+baseline,0.05,gap_to_perfect_oracle,Best Inventory,Baseline,best_inventory_cost_model,0.35700000000000004,6
+baseline,0.05,gap_to_perfect_oracle,Global Best,Baseline,global_best_model,0.35700000000000004,6
+baseline,0.05,gap_to_perfect_oracle,Family Best,Baseline,family_best_model,0.3700000000000001,8
+baseline,0.05,gap_to_perfect_oracle,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.4529999999999999,9
+baseline,0.05,gap_to_perfect_oracle,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.4939999999999998,10
+baseline,0.05,gap_to_perfect_oracle,Best Stability,Baseline,best_stability_model,0.573,11
+baseline,0.05,gap_to_perfect_oracle,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.6429999999999998,12
+baseline,0.05,gap_to_perfect_oracle,Stability-Aware,Baseline,stability_aware_selector,0.746,13
+baseline,0.05,gap_to_perfect_oracle,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.8919999999999999,14
+baseline,0.05,gap_to_perfect_oracle,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.8919999999999999,14
+baseline,0.05,gap_to_perfect_oracle,Feasibility-Aware,Baseline,feasibility_aware_selector,1.7180000000000002,16
 baseline,0.05,inventory_cost,Oracle,Oracle,oracle_realized_demand,1633182.571,1
-baseline,0.05,inventory_cost,Best Inventory,Baseline,best_inventory_cost_model,3010924.926,2
-baseline,0.05,inventory_cost,Global Best,Baseline,global_best_model,3010924.926,2
+baseline,0.05,inventory_cost,Best Inventory,Baseline,best_inventory_cost_model,3010924.9260000004,2
+baseline,0.05,inventory_cost,Global Best,Baseline,global_best_model,3010924.9260000004,2
 baseline,0.05,inventory_cost,Family Best,Baseline,family_best_model,3064462.341,4
 baseline,0.05,inventory_cost,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,3156505.409,5
 baseline,0.05,inventory_cost,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,3156505.409,5
@@ -115,12 +115,12 @@ baseline,0.05,normalized_total_loss,Oracle,Oracle,oracle_realized_demand,1.193,1
 baseline,0.05,normalized_total_loss,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,1.422,2
 baseline,0.05,normalized_total_loss,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,1.429,3
 baseline,0.05,normalized_total_loss,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,1.429,3
-baseline,0.05,normalized_total_loss,Simple Ensemble,ReferenceEnsemble,simple_ensemble,1.434,5
+baseline,0.05,normalized_total_loss,Simple Ensemble,ReferenceEnsemble,simple_ensemble,1.4340000000000002,5
 baseline,0.05,normalized_total_loss,Best Inventory,Baseline,best_inventory_cost_model,1.55,6
 baseline,0.05,normalized_total_loss,Global Best,Baseline,global_best_model,1.55,6
-baseline,0.05,normalized_total_loss,Family Best,Baseline,family_best_model,1.563,8
+baseline,0.05,normalized_total_loss,Family Best,Baseline,family_best_model,1.5630000000000002,8
 baseline,0.05,normalized_total_loss,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,1.646,9
-baseline,0.05,normalized_total_loss,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,1.687,10
+baseline,0.05,normalized_total_loss,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,1.6869999999999998,10
 baseline,0.05,normalized_total_loss,Best Stability,Baseline,best_stability_model,1.766,11
 baseline,0.05,normalized_total_loss,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,1.836,12
 baseline,0.05,normalized_total_loss,Stability-Aware,Baseline,stability_aware_selector,1.939,13
@@ -145,12 +145,12 @@ baseline,0.05,planning_volatility,Global Best,Baseline,global_best_model,414.964
 baseline,0.05,planning_volatility,Oracle,Oracle,oracle_realized_demand,487.867,16
 dataco_high,0.341,WAPE,Oracle,Oracle,oracle_realized_demand,0.0,1
 dataco_high,0.341,WAPE,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.108,2
+dataco_high,0.341,WAPE,Best Inventory,Baseline,best_inventory_cost_model,0.109,3
+dataco_high,0.341,WAPE,Global Best,Baseline,global_best_model,0.109,3
+dataco_high,0.341,WAPE,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.109,3
+dataco_high,0.341,WAPE,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.109,3
+dataco_high,0.341,WAPE,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.109,3
 dataco_high,0.341,WAPE,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.109,3
-dataco_high,0.341,WAPE,Best Inventory,Baseline,best_inventory_cost_model,0.109,4
-dataco_high,0.341,WAPE,Global Best,Baseline,global_best_model,0.109,4
-dataco_high,0.341,WAPE,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.109,6
-dataco_high,0.341,WAPE,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.109,7
-dataco_high,0.341,WAPE,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.109,7
 dataco_high,0.341,WAPE,Family Best,Baseline,family_best_model,0.11,9
 dataco_high,0.341,WAPE,Stability-Aware,Baseline,stability_aware_selector,0.113,10
 dataco_high,0.341,WAPE,Feasibility-Aware,Baseline,feasibility_aware_selector,0.116,11
@@ -171,7 +171,7 @@ dataco_high,0.341,execution_penalty,Accuracy Ensemble,FeasibilityAwareEnsemble,f
 dataco_high,0.341,execution_penalty,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,162839.995,10
 dataco_high,0.341,execution_penalty,Feasibility-Aware,Baseline,feasibility_aware_selector,365116.914,11
 dataco_high,0.341,execution_penalty,Stability-Aware,Baseline,stability_aware_selector,402775.817,12
-dataco_high,0.341,execution_penalty,Family Best,Baseline,family_best_model,537406.724,13
+dataco_high,0.341,execution_penalty,Family Best,Baseline,family_best_model,537406.7239999999,13
 dataco_high,0.341,execution_penalty,Best Inventory,Baseline,best_inventory_cost_model,546133.345,14
 dataco_high,0.341,execution_penalty,Global Best,Baseline,global_best_model,546133.345,14
 dataco_high,0.341,execution_penalty,Oracle,Oracle,oracle_realized_demand,680523.022,16
@@ -184,32 +184,32 @@ dataco_high,0.341,execution_violation_rate,Simple Ensemble,ReferenceEnsemble,sim
 dataco_high,0.341,execution_violation_rate,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,0.122,7
 dataco_high,0.341,execution_violation_rate,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,0.131,8
 dataco_high,0.341,execution_violation_rate,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,0.16,9
-dataco_high,0.341,execution_violation_rate,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.16,10
+dataco_high,0.341,execution_violation_rate,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.16,9
 dataco_high,0.341,execution_violation_rate,Feasibility-Aware,Baseline,feasibility_aware_selector,0.232,11
 dataco_high,0.341,execution_violation_rate,Stability-Aware,Baseline,stability_aware_selector,0.258,12
 dataco_high,0.341,execution_violation_rate,Family Best,Baseline,family_best_model,0.279,13
 dataco_high,0.341,execution_violation_rate,Best Inventory,Baseline,best_inventory_cost_model,0.284,14
 dataco_high,0.341,execution_violation_rate,Global Best,Baseline,global_best_model,0.284,14
 dataco_high,0.341,execution_violation_rate,Oracle,Oracle,oracle_realized_demand,0.345,16
-dataco_high,0.341,gap_to_oracle,Simple Ensemble,ReferenceEnsemble,simple_ensemble,-0.095,1
-dataco_high,0.341,gap_to_oracle,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,-0.081,2
-dataco_high,0.341,gap_to_oracle,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,-0.073,3
-dataco_high,0.341,gap_to_oracle,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,-0.044,4
-dataco_high,0.341,gap_to_oracle,Oracle,Oracle,oracle_realized_demand,0.0,5
-dataco_high,0.341,gap_to_oracle,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.101,6
-dataco_high,0.341,gap_to_oracle,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.101,6
-dataco_high,0.341,gap_to_oracle,Best Stability,Baseline,best_stability_model,0.211,8
-dataco_high,0.341,gap_to_oracle,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.281,9
-dataco_high,0.341,gap_to_oracle,Best Inventory,Baseline,best_inventory_cost_model,0.286,10
-dataco_high,0.341,gap_to_oracle,Global Best,Baseline,global_best_model,0.286,10
-dataco_high,0.341,gap_to_oracle,Family Best,Baseline,family_best_model,0.294,12
-dataco_high,0.341,gap_to_oracle,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.356,13
-dataco_high,0.341,gap_to_oracle,Stability-Aware,Baseline,stability_aware_selector,0.807,14
-dataco_high,0.341,gap_to_oracle,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,1.162,15
-dataco_high,0.341,gap_to_oracle,Feasibility-Aware,Baseline,feasibility_aware_selector,2.316,16
+dataco_high,0.341,gap_to_perfect_oracle,Simple Ensemble,ReferenceEnsemble,simple_ensemble,-0.09599999999999986,1
+dataco_high,0.341,gap_to_perfect_oracle,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,-0.08199999999999985,2
+dataco_high,0.341,gap_to_perfect_oracle,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,-0.07400000000000008,3
+dataco_high,0.341,gap_to_perfect_oracle,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,-0.04400000000000004,4
+dataco_high,0.341,gap_to_perfect_oracle,Oracle,Oracle,oracle_realized_demand,0.0,5
+dataco_high,0.341,gap_to_perfect_oracle,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.10000000000000007,6
+dataco_high,0.341,gap_to_perfect_oracle,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.10000000000000007,6
+dataco_high,0.341,gap_to_perfect_oracle,Best Stability,Baseline,best_stability_model,0.21100000000000008,8
+dataco_high,0.341,gap_to_perfect_oracle,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.2809999999999999,9
+dataco_high,0.341,gap_to_perfect_oracle,Best Inventory,Baseline,best_inventory_cost_model,0.28600000000000003,10
+dataco_high,0.341,gap_to_perfect_oracle,Global Best,Baseline,global_best_model,0.28600000000000003,10
+dataco_high,0.341,gap_to_perfect_oracle,Family Best,Baseline,family_best_model,0.29400000000000004,12
+dataco_high,0.341,gap_to_perfect_oracle,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.3560000000000001,13
+dataco_high,0.341,gap_to_perfect_oracle,Stability-Aware,Baseline,stability_aware_selector,0.8070000000000002,14
+dataco_high,0.341,gap_to_perfect_oracle,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,1.162,15
+dataco_high,0.341,gap_to_perfect_oracle,Feasibility-Aware,Baseline,feasibility_aware_selector,2.3150000000000004,16
 dataco_high,0.341,inventory_cost,Oracle,Oracle,oracle_realized_demand,1633182.571,1
-dataco_high,0.341,inventory_cost,Best Inventory,Baseline,best_inventory_cost_model,3010924.926,2
-dataco_high,0.341,inventory_cost,Global Best,Baseline,global_best_model,3010924.926,2
+dataco_high,0.341,inventory_cost,Best Inventory,Baseline,best_inventory_cost_model,3010924.9260000004,2
+dataco_high,0.341,inventory_cost,Global Best,Baseline,global_best_model,3010924.9260000004,2
 dataco_high,0.341,inventory_cost,Family Best,Baseline,family_best_model,3064462.341,4
 dataco_high,0.341,inventory_cost,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,3157861.074,5
 dataco_high,0.341,inventory_cost,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,3171084.953,6
@@ -290,11 +290,11 @@ dataco_high,0.341,planning_volatility,Oracle,Oracle,oracle_realized_demand,487.8
 dataco_low,0.318,WAPE,Oracle,Oracle,oracle_realized_demand,0.0,1
 dataco_low,0.318,WAPE,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.108,2
 dataco_low,0.318,WAPE,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.108,2
+dataco_low,0.318,WAPE,Best Inventory,Baseline,best_inventory_cost_model,0.109,4
+dataco_low,0.318,WAPE,Global Best,Baseline,global_best_model,0.109,4
+dataco_low,0.318,WAPE,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.109,4
+dataco_low,0.318,WAPE,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.109,4
 dataco_low,0.318,WAPE,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.109,4
-dataco_low,0.318,WAPE,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.109,5
-dataco_low,0.318,WAPE,Best Inventory,Baseline,best_inventory_cost_model,0.109,6
-dataco_low,0.318,WAPE,Global Best,Baseline,global_best_model,0.109,6
-dataco_low,0.318,WAPE,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.109,8
 dataco_low,0.318,WAPE,Family Best,Baseline,family_best_model,0.11,9
 dataco_low,0.318,WAPE,Stability-Aware,Baseline,stability_aware_selector,0.113,10
 dataco_low,0.318,WAPE,Feasibility-Aware,Baseline,feasibility_aware_selector,0.116,11
@@ -306,8 +306,8 @@ dataco_low,0.318,WAPE,Best Stability,Baseline,best_stability_model,0.188,16
 dataco_low,0.318,execution_penalty,Best Stability,Baseline,best_stability_model,0.0,1
 dataco_low,0.318,execution_penalty,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.0,1
 dataco_low,0.318,execution_penalty,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,102.215,3
-dataco_low,0.318,execution_penalty,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,22325.997,4
-dataco_low,0.318,execution_penalty,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,22325.997,4
+dataco_low,0.318,execution_penalty,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,22325.997000000007,4
+dataco_low,0.318,execution_penalty,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,22325.997000000007,4
 dataco_low,0.318,execution_penalty,Simple Ensemble,ReferenceEnsemble,simple_ensemble,47421.135,6
 dataco_low,0.318,execution_penalty,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,104381.142,7
 dataco_low,0.318,execution_penalty,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,128111.146,8
@@ -315,7 +315,7 @@ dataco_low,0.318,execution_penalty,Accuracy Ensemble,FeasibilityAwareEnsemble,fe
 dataco_low,0.318,execution_penalty,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,163019.775,10
 dataco_low,0.318,execution_penalty,Feasibility-Aware,Baseline,feasibility_aware_selector,365116.914,11
 dataco_low,0.318,execution_penalty,Stability-Aware,Baseline,stability_aware_selector,402775.817,12
-dataco_low,0.318,execution_penalty,Family Best,Baseline,family_best_model,537406.724,13
+dataco_low,0.318,execution_penalty,Family Best,Baseline,family_best_model,537406.7239999999,13
 dataco_low,0.318,execution_penalty,Best Inventory,Baseline,best_inventory_cost_model,546133.345,14
 dataco_low,0.318,execution_penalty,Global Best,Baseline,global_best_model,546133.345,14
 dataco_low,0.318,execution_penalty,Oracle,Oracle,oracle_realized_demand,680523.022,16
@@ -328,32 +328,32 @@ dataco_low,0.318,execution_violation_rate,Simple Ensemble,ReferenceEnsemble,simp
 dataco_low,0.318,execution_violation_rate,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,0.122,7
 dataco_low,0.318,execution_violation_rate,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,0.139,8
 dataco_low,0.318,execution_violation_rate,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,0.16,9
-dataco_low,0.318,execution_violation_rate,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.16,10
+dataco_low,0.318,execution_violation_rate,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.16,9
 dataco_low,0.318,execution_violation_rate,Feasibility-Aware,Baseline,feasibility_aware_selector,0.232,11
 dataco_low,0.318,execution_violation_rate,Stability-Aware,Baseline,stability_aware_selector,0.258,12
 dataco_low,0.318,execution_violation_rate,Family Best,Baseline,family_best_model,0.279,13
 dataco_low,0.318,execution_violation_rate,Best Inventory,Baseline,best_inventory_cost_model,0.284,14
 dataco_low,0.318,execution_violation_rate,Global Best,Baseline,global_best_model,0.284,14
 dataco_low,0.318,execution_violation_rate,Oracle,Oracle,oracle_realized_demand,0.345,16
-dataco_low,0.318,gap_to_oracle,Simple Ensemble,ReferenceEnsemble,simple_ensemble,-0.069,1
-dataco_low,0.318,gap_to_oracle,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,-0.056,2
-dataco_low,0.318,gap_to_oracle,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,-0.04,3
-dataco_low,0.318,gap_to_oracle,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,-0.022,4
-dataco_low,0.318,gap_to_oracle,Oracle,Oracle,oracle_realized_demand,0.0,5
-dataco_low,0.318,gap_to_oracle,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.129,6
-dataco_low,0.318,gap_to_oracle,Best Stability,Baseline,best_stability_model,0.24,7
-dataco_low,0.318,gap_to_oracle,Best Inventory,Baseline,best_inventory_cost_model,0.292,8
-dataco_low,0.318,gap_to_oracle,Global Best,Baseline,global_best_model,0.292,8
-dataco_low,0.318,gap_to_oracle,Family Best,Baseline,family_best_model,0.3,10
-dataco_low,0.318,gap_to_oracle,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.31,11
-dataco_low,0.318,gap_to_oracle,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.382,12
-dataco_low,0.318,gap_to_oracle,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.382,12
-dataco_low,0.318,gap_to_oracle,Stability-Aware,Baseline,stability_aware_selector,0.821,14
-dataco_low,0.318,gap_to_oracle,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,1.176,15
-dataco_low,0.318,gap_to_oracle,Feasibility-Aware,Baseline,feasibility_aware_selector,2.335,16
+dataco_low,0.318,gap_to_perfect_oracle,Simple Ensemble,ReferenceEnsemble,simple_ensemble,-0.06900000000000017,1
+dataco_low,0.318,gap_to_perfect_oracle,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,-0.05600000000000005,2
+dataco_low,0.318,gap_to_perfect_oracle,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,-0.040000000000000036,3
+dataco_low,0.318,gap_to_perfect_oracle,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,-0.02200000000000002,4
+dataco_low,0.318,gap_to_perfect_oracle,Oracle,Oracle,oracle_realized_demand,0.0,5
+dataco_low,0.318,gap_to_perfect_oracle,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.129,6
+dataco_low,0.318,gap_to_perfect_oracle,Best Stability,Baseline,best_stability_model,0.24,7
+dataco_low,0.318,gap_to_perfect_oracle,Best Inventory,Baseline,best_inventory_cost_model,0.29200000000000004,8
+dataco_low,0.318,gap_to_perfect_oracle,Global Best,Baseline,global_best_model,0.29200000000000004,8
+dataco_low,0.318,gap_to_perfect_oracle,Family Best,Baseline,family_best_model,0.2999999999999998,10
+dataco_low,0.318,gap_to_perfect_oracle,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.30999999999999983,11
+dataco_low,0.318,gap_to_perfect_oracle,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.3820000000000001,12
+dataco_low,0.318,gap_to_perfect_oracle,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.3820000000000001,12
+dataco_low,0.318,gap_to_perfect_oracle,Stability-Aware,Baseline,stability_aware_selector,0.821,14
+dataco_low,0.318,gap_to_perfect_oracle,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,1.176,15
+dataco_low,0.318,gap_to_perfect_oracle,Feasibility-Aware,Baseline,feasibility_aware_selector,2.335,16
 dataco_low,0.318,inventory_cost,Oracle,Oracle,oracle_realized_demand,1633182.571,1
-dataco_low,0.318,inventory_cost,Best Inventory,Baseline,best_inventory_cost_model,3010924.926,2
-dataco_low,0.318,inventory_cost,Global Best,Baseline,global_best_model,3010924.926,2
+dataco_low,0.318,inventory_cost,Best Inventory,Baseline,best_inventory_cost_model,3010924.9260000004,2
+dataco_low,0.318,inventory_cost,Global Best,Baseline,global_best_model,3010924.9260000004,2
 dataco_low,0.318,inventory_cost,Family Best,Baseline,family_best_model,3064462.341,4
 dataco_low,0.318,inventory_cost,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,3157861.074,5
 dataco_low,0.318,inventory_cost,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,3170260.445,6
@@ -434,11 +434,11 @@ dataco_low,0.318,planning_volatility,Oracle,Oracle,oracle_realized_demand,487.86
 dataco_median,0.326,WAPE,Oracle,Oracle,oracle_realized_demand,0.0,1
 dataco_median,0.326,WAPE,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.108,2
 dataco_median,0.326,WAPE,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.108,2
+dataco_median,0.326,WAPE,Best Inventory,Baseline,best_inventory_cost_model,0.109,4
+dataco_median,0.326,WAPE,Global Best,Baseline,global_best_model,0.109,4
+dataco_median,0.326,WAPE,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.109,4
+dataco_median,0.326,WAPE,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.109,4
 dataco_median,0.326,WAPE,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.109,4
-dataco_median,0.326,WAPE,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.109,5
-dataco_median,0.326,WAPE,Best Inventory,Baseline,best_inventory_cost_model,0.109,6
-dataco_median,0.326,WAPE,Global Best,Baseline,global_best_model,0.109,6
-dataco_median,0.326,WAPE,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.109,8
 dataco_median,0.326,WAPE,Family Best,Baseline,family_best_model,0.11,9
 dataco_median,0.326,WAPE,Stability-Aware,Baseline,stability_aware_selector,0.113,10
 dataco_median,0.326,WAPE,Feasibility-Aware,Baseline,feasibility_aware_selector,0.116,11
@@ -450,8 +450,8 @@ dataco_median,0.326,WAPE,Best Stability,Baseline,best_stability_model,0.188,16
 dataco_median,0.326,execution_penalty,Best Stability,Baseline,best_stability_model,0.0,1
 dataco_median,0.326,execution_penalty,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.0,1
 dataco_median,0.326,execution_penalty,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,102.215,3
-dataco_median,0.326,execution_penalty,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,22325.997,4
-dataco_median,0.326,execution_penalty,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,22325.997,4
+dataco_median,0.326,execution_penalty,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,22325.997000000007,4
+dataco_median,0.326,execution_penalty,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,22325.997000000007,4
 dataco_median,0.326,execution_penalty,Simple Ensemble,ReferenceEnsemble,simple_ensemble,47421.135,6
 dataco_median,0.326,execution_penalty,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,103964.356,7
 dataco_median,0.326,execution_penalty,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,115477.821,8
@@ -459,7 +459,7 @@ dataco_median,0.326,execution_penalty,Accuracy Ensemble,FeasibilityAwareEnsemble
 dataco_median,0.326,execution_penalty,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,163019.775,10
 dataco_median,0.326,execution_penalty,Feasibility-Aware,Baseline,feasibility_aware_selector,365116.914,11
 dataco_median,0.326,execution_penalty,Stability-Aware,Baseline,stability_aware_selector,402775.817,12
-dataco_median,0.326,execution_penalty,Family Best,Baseline,family_best_model,537406.724,13
+dataco_median,0.326,execution_penalty,Family Best,Baseline,family_best_model,537406.7239999999,13
 dataco_median,0.326,execution_penalty,Best Inventory,Baseline,best_inventory_cost_model,546133.345,14
 dataco_median,0.326,execution_penalty,Global Best,Baseline,global_best_model,546133.345,14
 dataco_median,0.326,execution_penalty,Oracle,Oracle,oracle_realized_demand,680523.022,16
@@ -472,32 +472,32 @@ dataco_median,0.326,execution_violation_rate,Simple Ensemble,ReferenceEnsemble,s
 dataco_median,0.326,execution_violation_rate,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,0.122,7
 dataco_median,0.326,execution_violation_rate,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,0.131,8
 dataco_median,0.326,execution_violation_rate,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,0.16,9
-dataco_median,0.326,execution_violation_rate,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.16,10
+dataco_median,0.326,execution_violation_rate,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.16,9
 dataco_median,0.326,execution_violation_rate,Feasibility-Aware,Baseline,feasibility_aware_selector,0.232,11
 dataco_median,0.326,execution_violation_rate,Stability-Aware,Baseline,stability_aware_selector,0.258,12
 dataco_median,0.326,execution_violation_rate,Family Best,Baseline,family_best_model,0.279,13
 dataco_median,0.326,execution_violation_rate,Best Inventory,Baseline,best_inventory_cost_model,0.284,14
 dataco_median,0.326,execution_violation_rate,Global Best,Baseline,global_best_model,0.284,14
 dataco_median,0.326,execution_violation_rate,Oracle,Oracle,oracle_realized_demand,0.345,16
-dataco_median,0.326,gap_to_oracle,Simple Ensemble,ReferenceEnsemble,simple_ensemble,-0.078,1
-dataco_median,0.326,gap_to_oracle,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,-0.065,2
-dataco_median,0.326,gap_to_oracle,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,-0.058,3
-dataco_median,0.326,gap_to_oracle,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,-0.03,4
-dataco_median,0.326,gap_to_oracle,Oracle,Oracle,oracle_realized_demand,0.0,5
-dataco_median,0.326,gap_to_oracle,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.119,6
-dataco_median,0.326,gap_to_oracle,Best Stability,Baseline,best_stability_model,0.229,7
-dataco_median,0.326,gap_to_oracle,Best Inventory,Baseline,best_inventory_cost_model,0.289,8
-dataco_median,0.326,gap_to_oracle,Global Best,Baseline,global_best_model,0.289,8
-dataco_median,0.326,gap_to_oracle,Family Best,Baseline,family_best_model,0.298,10
-dataco_median,0.326,gap_to_oracle,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.299,11
-dataco_median,0.326,gap_to_oracle,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.372,12
-dataco_median,0.326,gap_to_oracle,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.372,12
-dataco_median,0.326,gap_to_oracle,Stability-Aware,Baseline,stability_aware_selector,0.816,14
-dataco_median,0.326,gap_to_oracle,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,1.168,15
-dataco_median,0.326,gap_to_oracle,Feasibility-Aware,Baseline,feasibility_aware_selector,2.33,16
+dataco_median,0.326,gap_to_perfect_oracle,Simple Ensemble,ReferenceEnsemble,simple_ensemble,-0.07899999999999974,1
+dataco_median,0.326,gap_to_perfect_oracle,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,-0.06600000000000006,2
+dataco_median,0.326,gap_to_perfect_oracle,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,-0.05799999999999982,3
+dataco_median,0.326,gap_to_perfect_oracle,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,-0.030000000000000027,4
+dataco_median,0.326,gap_to_perfect_oracle,Oracle,Oracle,oracle_realized_demand,0.0,5
+dataco_median,0.326,gap_to_perfect_oracle,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.1180000000000001,6
+dataco_median,0.326,gap_to_perfect_oracle,Best Stability,Baseline,best_stability_model,0.2290000000000001,7
+dataco_median,0.326,gap_to_perfect_oracle,Best Inventory,Baseline,best_inventory_cost_model,0.2889999999999999,8
+dataco_median,0.326,gap_to_perfect_oracle,Global Best,Baseline,global_best_model,0.2889999999999999,8
+dataco_median,0.326,gap_to_perfect_oracle,Family Best,Baseline,family_best_model,0.29800000000000004,10
+dataco_median,0.326,gap_to_perfect_oracle,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.29899999999999993,11
+dataco_median,0.326,gap_to_perfect_oracle,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.3720000000000001,12
+dataco_median,0.326,gap_to_perfect_oracle,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.3720000000000001,12
+dataco_median,0.326,gap_to_perfect_oracle,Stability-Aware,Baseline,stability_aware_selector,0.8160000000000003,14
+dataco_median,0.326,gap_to_perfect_oracle,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,1.168,15
+dataco_median,0.326,gap_to_perfect_oracle,Feasibility-Aware,Baseline,feasibility_aware_selector,2.329,16
 dataco_median,0.326,inventory_cost,Oracle,Oracle,oracle_realized_demand,1633182.571,1
-dataco_median,0.326,inventory_cost,Best Inventory,Baseline,best_inventory_cost_model,3010924.926,2
-dataco_median,0.326,inventory_cost,Global Best,Baseline,global_best_model,3010924.926,2
+dataco_median,0.326,inventory_cost,Best Inventory,Baseline,best_inventory_cost_model,3010924.9260000004,2
+dataco_median,0.326,inventory_cost,Global Best,Baseline,global_best_model,3010924.9260000004,2
 dataco_median,0.326,inventory_cost,Family Best,Baseline,family_best_model,3064462.341,4
 dataco_median,0.326,inventory_cost,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,3157861.074,5
 dataco_median,0.326,inventory_cost,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,3170260.445,6
@@ -543,7 +543,7 @@ dataco_median,0.326,model_switch_count,Smoothed Alpha 0.50,FeasibilityAwareSmoot
 dataco_median,0.326,model_switch_count,Stability-Aware,Baseline,stability_aware_selector,213.0,14
 dataco_median,0.326,model_switch_count,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,440.0,15
 dataco_median,0.326,model_switch_count,Feasibility-Aware,Baseline,feasibility_aware_selector,781.0,16
-dataco_median,0.326,normalized_total_loss,Simple Ensemble,ReferenceEnsemble,simple_ensemble,1.458,1
+dataco_median,0.326,normalized_total_loss,Simple Ensemble,ReferenceEnsemble,simple_ensemble,1.4580000000000002,1
 dataco_median,0.326,normalized_total_loss,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,1.471,2
 dataco_median,0.326,normalized_total_loss,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,1.479,3
 dataco_median,0.326,normalized_total_loss,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,1.507,4
@@ -566,7 +566,7 @@ dataco_median,0.326,planning_volatility,Scenario Alpha,FeasibilityAwareSmoothed,
 dataco_median,0.326,planning_volatility,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,222.306,4
 dataco_median,0.326,planning_volatility,Simple Ensemble,ReferenceEnsemble,simple_ensemble,246.143,6
 dataco_median,0.326,planning_volatility,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,281.493,7
-dataco_median,0.326,planning_volatility,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,286.989,8
+dataco_median,0.326,planning_volatility,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,286.9890000000001,8
 dataco_median,0.326,planning_volatility,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,303.581,9
 dataco_median,0.326,planning_volatility,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,313.93,10
 dataco_median,0.326,planning_volatility,Feasibility-Aware,Baseline,feasibility_aware_selector,364.328,11
@@ -577,12 +577,12 @@ dataco_median,0.326,planning_volatility,Global Best,Baseline,global_best_model,4
 dataco_median,0.326,planning_volatility,Oracle,Oracle,oracle_realized_demand,487.867,16
 dataco_severe,0.5,WAPE,Oracle,Oracle,oracle_realized_demand,0.0,1
 dataco_severe,0.5,WAPE,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.108,2
+dataco_severe,0.5,WAPE,Best Inventory,Baseline,best_inventory_cost_model,0.109,3
+dataco_severe,0.5,WAPE,Global Best,Baseline,global_best_model,0.109,3
 dataco_severe,0.5,WAPE,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.109,3
+dataco_severe,0.5,WAPE,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.109,3
+dataco_severe,0.5,WAPE,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.109,3
 dataco_severe,0.5,WAPE,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.109,3
-dataco_severe,0.5,WAPE,Best Inventory,Baseline,best_inventory_cost_model,0.109,5
-dataco_severe,0.5,WAPE,Global Best,Baseline,global_best_model,0.109,5
-dataco_severe,0.5,WAPE,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,0.109,7
-dataco_severe,0.5,WAPE,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.109,8
 dataco_severe,0.5,WAPE,Family Best,Baseline,family_best_model,0.11,9
 dataco_severe,0.5,WAPE,Stability-Aware,Baseline,stability_aware_selector,0.113,10
 dataco_severe,0.5,WAPE,Feasibility-Aware,Baseline,feasibility_aware_selector,0.116,11
@@ -603,7 +603,7 @@ dataco_severe,0.5,execution_penalty,Accuracy Ensemble,FeasibilityAwareEnsemble,f
 dataco_severe,0.5,execution_penalty,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,157587.663,10
 dataco_severe,0.5,execution_penalty,Feasibility-Aware,Baseline,feasibility_aware_selector,365116.914,11
 dataco_severe,0.5,execution_penalty,Stability-Aware,Baseline,stability_aware_selector,402775.817,12
-dataco_severe,0.5,execution_penalty,Family Best,Baseline,family_best_model,537406.724,13
+dataco_severe,0.5,execution_penalty,Family Best,Baseline,family_best_model,537406.7239999999,13
 dataco_severe,0.5,execution_penalty,Best Inventory,Baseline,best_inventory_cost_model,546133.345,14
 dataco_severe,0.5,execution_penalty,Global Best,Baseline,global_best_model,546133.345,14
 dataco_severe,0.5,execution_penalty,Oracle,Oracle,oracle_realized_demand,680523.022,16
@@ -623,25 +623,25 @@ dataco_severe,0.5,execution_violation_rate,Family Best,Baseline,family_best_mode
 dataco_severe,0.5,execution_violation_rate,Best Inventory,Baseline,best_inventory_cost_model,0.284,14
 dataco_severe,0.5,execution_violation_rate,Global Best,Baseline,global_best_model,0.284,14
 dataco_severe,0.5,execution_violation_rate,Oracle,Oracle,oracle_realized_demand,0.345,16
-dataco_severe,0.5,gap_to_oracle,Simple Ensemble,ReferenceEnsemble,simple_ensemble,-0.28,1
-dataco_severe,0.5,gap_to_oracle,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,-0.258,2
-dataco_severe,0.5,gap_to_oracle,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,-0.258,2
-dataco_severe,0.5,gap_to_oracle,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,-0.198,4
-dataco_severe,0.5,gap_to_oracle,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,-0.099,5
-dataco_severe,0.5,gap_to_oracle,Oracle,Oracle,oracle_realized_demand,0.0,6
-dataco_severe,0.5,gap_to_oracle,Best Stability,Baseline,best_stability_model,0.012,7
-dataco_severe,0.5,gap_to_oracle,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.082,8
-dataco_severe,0.5,gap_to_oracle,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.082,8
-dataco_severe,0.5,gap_to_oracle,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.136,10
-dataco_severe,0.5,gap_to_oracle,Best Inventory,Baseline,best_inventory_cost_model,0.247,11
-dataco_severe,0.5,gap_to_oracle,Global Best,Baseline,global_best_model,0.247,11
-dataco_severe,0.5,gap_to_oracle,Family Best,Baseline,family_best_model,0.252,13
-dataco_severe,0.5,gap_to_oracle,Stability-Aware,Baseline,stability_aware_selector,0.658,14
-dataco_severe,0.5,gap_to_oracle,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.961,15
-dataco_severe,0.5,gap_to_oracle,Feasibility-Aware,Baseline,feasibility_aware_selector,1.974,16
+dataco_severe,0.5,gap_to_perfect_oracle,Simple Ensemble,ReferenceEnsemble,simple_ensemble,-0.2809999999999999,1
+dataco_severe,0.5,gap_to_perfect_oracle,Constrained Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_constrained,-0.258,2
+dataco_severe,0.5,gap_to_perfect_oracle,Operational Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_operational_loss,-0.258,2
+dataco_severe,0.5,gap_to_perfect_oracle,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,-0.19799999999999995,4
+dataco_severe,0.5,gap_to_perfect_oracle,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,-0.09899999999999998,5
+dataco_severe,0.5,gap_to_perfect_oracle,Oracle,Oracle,oracle_realized_demand,0.0,6
+dataco_severe,0.5,gap_to_perfect_oracle,Best Stability,Baseline,best_stability_model,0.012000000000000009,7
+dataco_severe,0.5,gap_to_perfect_oracle,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,0.08199999999999985,8
+dataco_severe,0.5,gap_to_perfect_oracle,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,0.08199999999999985,8
+dataco_severe,0.5,gap_to_perfect_oracle,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,0.1359999999999999,10
+dataco_severe,0.5,gap_to_perfect_oracle,Best Inventory,Baseline,best_inventory_cost_model,0.24600000000000002,11
+dataco_severe,0.5,gap_to_perfect_oracle,Global Best,Baseline,global_best_model,0.24600000000000002,11
+dataco_severe,0.5,gap_to_perfect_oracle,Family Best,Baseline,family_best_model,0.2519999999999998,13
+dataco_severe,0.5,gap_to_perfect_oracle,Stability-Aware,Baseline,stability_aware_selector,0.6579999999999999,14
+dataco_severe,0.5,gap_to_perfect_oracle,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,0.96,15
+dataco_severe,0.5,gap_to_perfect_oracle,Feasibility-Aware,Baseline,feasibility_aware_selector,1.974,16
 dataco_severe,0.5,inventory_cost,Oracle,Oracle,oracle_realized_demand,1633182.571,1
-dataco_severe,0.5,inventory_cost,Best Inventory,Baseline,best_inventory_cost_model,3010924.926,2
-dataco_severe,0.5,inventory_cost,Global Best,Baseline,global_best_model,3010924.926,2
+dataco_severe,0.5,inventory_cost,Best Inventory,Baseline,best_inventory_cost_model,3010924.9260000004,2
+dataco_severe,0.5,inventory_cost,Global Best,Baseline,global_best_model,3010924.9260000004,2
 dataco_severe,0.5,inventory_cost,Family Best,Baseline,family_best_model,3064462.341,4
 dataco_severe,0.5,inventory_cost,Accuracy Ensemble,FeasibilityAwareEnsemble,feasibility_aware_ensemble_inverse_accuracy,3157861.074,5
 dataco_severe,0.5,inventory_cost,Smoothed Alpha 0.75,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_75,3198150.792,6
@@ -651,7 +651,7 @@ dataco_severe,0.5,inventory_cost,Stability-Aware,Baseline,stability_aware_select
 dataco_severe,0.5,inventory_cost,Feasibility-Aware,Baseline,feasibility_aware_selector,3375551.068,10
 dataco_severe,0.5,inventory_cost,Simple Ensemble,ReferenceEnsemble,simple_ensemble,3412038.615,11
 dataco_severe,0.5,inventory_cost,Smoothed Alpha 0.50,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_50,3606976.56,12
-dataco_severe,0.5,inventory_cost,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,4516026.042,13
+dataco_severe,0.5,inventory_cost,Smoothed Alpha 0.25,FeasibilityAwareSmoothed,feasibility_aware_smoothed_alpha_0_25,4516026.0419999985,13
 dataco_severe,0.5,inventory_cost,Best Stability,Baseline,best_stability_model,5263648.54,14
 dataco_severe,0.5,inventory_cost,Scenario Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_scenario_alpha,5373682.296,15
 dataco_severe,0.5,inventory_cost,Utility Alpha,FeasibilityAwareSmoothed,feasibility_aware_smoothed_utility_alpha,5373682.296,15

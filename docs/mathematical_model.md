@@ -64,18 +64,17 @@ Smoothing is used to model gradual operational adaptation when execution infrast
 
 ## Multi-objective Planning Loss
 
-The project evaluates planning utility as a weighted multi-objective loss:
+The project evaluates planning utility as a weighted multi-objective operational loss:
 
 ```text
 total_loss =
-  alpha * forecast_error
-  + beta * inventory_cost
+  beta * inventory_cost
   + lambda_volatility * planning_signal_volatility
   + lambda_switch * model_switching_cost
   + lambda_execution * execution_adaptation_penalty
 ```
 
-This objective makes forecast accuracy only one part of the evaluation. A model can reduce prediction error while increasing operational burden.
+The main planning objective excludes direct forecast-error terms because realized inventory cost already captures the operational consequences of forecast-driven planning decisions. Forecast accuracy is reported separately as a diagnostic metric. If a forecast-error-regularized objective is needed later, it should be implemented as an explicit sensitivity setting rather than as the default.
 
 ## Normalized Planning Loss
 
@@ -159,7 +158,7 @@ sum_t 1{z_i,t != z_i,t-1} <= K
 
 If no path remains feasible because candidate availability conflicts with the switch budget, the implementation uses an incumbent-stays fallback for pipeline safety. The fallback chooses the first period's lowest-cost model using the same one-step stage cost with no previous model, then holds that incumbent model for the remaining horizon whenever it is available. If the incumbent model is missing in a later period, the fallback emits a RuntimeWarning and marks the path as potentially non-strict. Fallback rows are explicitly marked and should be treated as diagnostic rather than silent budgeted-DP results.
 
-The Realized-Inventory Oracle DP is non-deployable. It still uses validation-derived forecast loss, but it replaces the expected inventory component with period-specific realized inventory outcome cost keyed by:
+The Realized-Inventory Oracle DP is non-deployable. It replaces the deployable expected inventory component with period-specific realized inventory outcome cost keyed by:
 
 ```text
 (series_id, model_name, date)

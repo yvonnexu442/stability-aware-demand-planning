@@ -1,10 +1,11 @@
 import unittest
 
 import numpy as np
+import pandas as pd
 
 from evaluation.forecast_metrics import mean_absolute_error, weighted_absolute_percentage_error
 from evaluation.inventory_metrics import compute_inventory_target, compute_service_level
-from evaluation.planning_utility import compute_execution_penalty, compute_total_planning_loss
+from evaluation.planning_utility import add_oracle_gap_columns, compute_execution_penalty, compute_total_planning_loss
 from evaluation.stability_metrics import compute_model_switch_count, compute_percentage_plan_change
 from planning_environment.planning_simulator import evaluate_planning_strategy, simulate_planning_outcomes
 
@@ -50,6 +51,63 @@ class CoreModuleSmokeTest(unittest.TestCase):
         summary = evaluate_planning_strategy(simulation)
         self.assertIn("weighted_absolute_percentage_error", summary)
         self.assertIn("execution_adaptation_penalty_total", summary)
+
+    def test_missing_alpha_forecast_defaults_to_zero(self):
+        total_loss = compute_total_planning_loss(
+            forecast_error=np.array([100.0]),
+            inventory_cost=np.array([2.0]),
+            planning_signal_volatility=np.array([3.0]),
+            model_switching_cost=np.array([4.0]),
+            execution_adaptation_penalty=np.array([5.0]),
+            weights={},
+        )
+
+        self.assertAlmostEqual(total_loss, 2.0 + 0.10 * 3.0 + 0.05 * 4.0 + 0.10 * 5.0)
+
+    def test_oracle_gaps_are_group_scoped(self):
+        table = add_oracle_gap_columns(
+            pd.DataFrame(
+                [
+                    {
+                        "scenario_name": "baseline",
+                        "strategy": "oracle_dp_feasibility_selector",
+                        "normalized_total_loss": 1.0,
+                    },
+                    {
+                        "scenario_name": "baseline",
+                        "strategy": "oracle_realized_demand",
+                        "normalized_total_loss": 0.5,
+                    },
+                    {
+                        "scenario_name": "baseline",
+                        "strategy": "global_best_model",
+                        "normalized_total_loss": 1.4,
+                    },
+                    {
+                        "scenario_name": "stress",
+                        "strategy": "oracle_dp_feasibility_selector",
+                        "normalized_total_loss": 10.0,
+                    },
+                    {
+                        "scenario_name": "stress",
+                        "strategy": "oracle_realized_demand",
+                        "normalized_total_loss": 6.0,
+                    },
+                    {
+                        "scenario_name": "stress",
+                        "strategy": "global_best_model",
+                        "normalized_total_loss": 11.0,
+                    },
+                ]
+            )
+        )
+
+        baseline = table[(table["scenario_name"] == "baseline") & (table["strategy"] == "global_best_model")].iloc[0]
+        stress = table[(table["scenario_name"] == "stress") & (table["strategy"] == "global_best_model")].iloc[0]
+        self.assertAlmostEqual(baseline["gap_to_dp_oracle"], 0.4)
+        self.assertAlmostEqual(baseline["gap_to_perfect_oracle"], 0.9)
+        self.assertAlmostEqual(stress["gap_to_dp_oracle"], 1.0)
+        self.assertAlmostEqual(stress["gap_to_perfect_oracle"], 5.0)
 
 
 if __name__ == "__main__":

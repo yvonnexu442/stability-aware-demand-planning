@@ -1,22 +1,22 @@
-dataset_name,run_mode,grain_level,intermittency_bucket,scenario_name,method_name,WAPE,inventory_cost,planning_volatility,execution_penalty,execution_violation_rate,model_switch_count,normalized_inventory_component,normalized_volatility_component,normalized_execution_component,normalized_switch_component,normalized_total_loss,gap_to_oracle,rank_by_WAPE,rank_by_execution_penalty,rank_by_normalized_total_loss,strategy
-m5,quick,item_store,high_intermittency,baseline,Smoothed Alpha 0.25,0.616,43407.791,40225409.716,100.006,0.03,0,1.06,0.124,0.101,0.0,1.284,-13.314,3,1,1,feasibility_aware_smoothed_alpha_0_25
-m5,quick,item_store,high_intermittency,baseline,Operational Ensemble,0.641,42871.516,103492140.83,290.802,0.066,0,1.047,0.318,0.293,0.0,1.658,-12.94,5,2,2,operational_loss_ensemble
-m5,quick,item_store,high_intermittency,baseline,Global Best,0.616,40960.204,162695802.448,990.876,0.173,0,1.0,0.5,1.0,0.0,2.5,-12.098,3,4,3,global_best_model
-m5,quick,item_store,high_intermittency,baseline,Simple Ensemble,0.611,40554.927,180836665.402,2896.98,0.349,0,0.99,0.556,2.924,0.0,4.47,-10.128,2,5,4,simple_ensemble
-m5,quick,item_store,high_intermittency,baseline,Feasibility-Aware,0.671,45009.977,698994595.027,771.52,0.093,143,1.099,2.148,0.779,0.5,4.526,-10.072,6,3,5,feasibility_aware_selector
-m5,quick,item_store,high_intermittency,baseline,Best Stability,0.785,51407.628,98995397.622,11134.134,0.569,0,1.255,0.304,11.237,0.0,12.796,-1.802,7,7,6,best_stability_model
-m5,quick,item_store,high_intermittency,baseline,Oracle,0.0,10798.518,1012057466.462,11121.616,0.555,0,0.264,3.11,11.224,0.0,14.598,0.0,1,6,7,oracle_realized_demand
-m5,quick,item_store,low_intermittency,baseline,Smoothed Alpha 0.25,0.254,30985.649,39.117,0.0,0.0,0,0.993,0.163,0.0,0.0,1.156,-119.508,5,1,1,feasibility_aware_smoothed_alpha_0_25
-m5,quick,item_store,low_intermittency,baseline,Operational Ensemble,0.233,28637.237,58.637,0.0,0.0,0,0.918,0.244,0.0,0.0,1.162,-119.503,3,1,2,operational_loss_ensemble
-m5,quick,item_store,low_intermittency,baseline,Global Best,0.254,31190.337,120.204,46.817,0.022,0,1.0,0.5,1.0,0.0,2.5,-118.165,5,3,3,global_best_model
-m5,quick,item_store,low_intermittency,baseline,Simple Ensemble,0.216,26362.867,182.98,396.881,0.108,0,0.845,0.761,8.477,0.0,10.084,-110.581,2,4,4,simple_ensemble
-m5,quick,item_store,low_intermittency,baseline,Feasibility-Aware,0.246,30470.347,82.418,420.306,0.048,244,0.977,0.343,8.978,0.5,10.797,-109.867,4,5,5,feasibility_aware_selector
-m5,quick,item_store,low_intermittency,baseline,Oracle,0.0,9304.527,472.962,5543.125,0.475,0,0.298,1.967,118.399,0.0,120.665,0.0,1,6,6,oracle_realized_demand
-m5,quick,item_store,low_intermittency,baseline,Best Stability,0.26,31589.366,487.564,6149.283,0.479,0,1.013,2.028,131.346,0.0,134.387,13.723,7,7,7,best_stability_model
-m5,quick,item_store,medium_intermittency,baseline,Smoothed Alpha 0.25,0.367,38548.834,52.659,1.402,0.001,0,1.001,0.162,0.006,0.0,1.168,-37.661,5,1,1,feasibility_aware_smoothed_alpha_0_25
-m5,quick,item_store,medium_intermittency,baseline,Operational Ensemble,0.344,36627.163,81.132,10.777,0.006,0,0.951,0.249,0.045,0.0,1.245,-37.584,3,2,2,operational_loss_ensemble
-m5,quick,item_store,medium_intermittency,baseline,Global Best,0.367,38525.787,162.621,241.565,0.071,0,1.0,0.5,1.0,0.0,2.5,-36.329,5,3,3,global_best_model
-m5,quick,item_store,medium_intermittency,baseline,Feasibility-Aware,0.352,38321.082,120.899,772.351,0.084,274,0.995,0.372,3.197,0.5,5.064,-33.766,4,4,4,feasibility_aware_selector
-m5,quick,item_store,medium_intermittency,baseline,Simple Ensemble,0.315,32722.214,249.269,1156.832,0.241,0,0.849,0.766,4.789,0.0,6.405,-32.425,2,5,5,simple_ensemble
-m5,quick,item_store,medium_intermittency,baseline,Oracle,0.0,10335.992,658.631,8825.815,0.6,0,0.268,2.025,36.536,0.0,38.829,0.0,1,6,6,oracle_realized_demand
-m5,quick,item_store,medium_intermittency,baseline,Best Stability,0.375,37776.562,676.977,9318.065,0.609,0,0.981,2.081,38.574,0.0,41.636,2.806,7,7,7,best_stability_model
+dataset_name,run_mode,grain_level,intermittency_bucket,scenario_name,method_name,WAPE,inventory_cost,planning_volatility,execution_penalty,execution_violation_rate,model_switch_count,normalized_inventory_component,normalized_volatility_component,normalized_execution_component,normalized_switch_component,normalized_total_loss,gap_to_dp_oracle,gap_to_perfect_oracle,rank_by_WAPE,rank_by_execution_penalty,rank_by_normalized_total_loss,strategy
+m5,quick,item_store,high_intermittency,baseline,Smoothed Alpha 0.25,0.616,43407.791,40225409.716,100.006,0.03,0,1.06,0.124,0.101,0.0,1.284,,-13.314,3,1,1,feasibility_aware_smoothed_alpha_0_25
+m5,quick,item_store,high_intermittency,baseline,Operational Ensemble,0.6409999999999999,42871.516,103492140.83,290.802,0.066,0,1.047,0.318,0.293,0.0,1.658,,-12.940000000000001,5,2,2,operational_loss_ensemble
+m5,quick,item_store,high_intermittency,baseline,Global Best,0.616,40960.204,162695802.44799998,990.876,0.173,0,1.0,0.5,1.0,0.0,2.5,,-12.098,3,4,3,global_best_model
+m5,quick,item_store,high_intermittency,baseline,Simple Ensemble,0.611,40554.927,180836665.402,2896.98,0.349,0,0.99,0.556,2.924,0.0,4.47,,-10.128,2,5,4,simple_ensemble
+m5,quick,item_store,high_intermittency,baseline,Feasibility-Aware,0.6709999999999999,45009.977,698994595.027,771.52,0.093,143,1.099,2.148,0.779,0.5,4.526,,-10.072000000000001,6,3,5,feasibility_aware_selector
+m5,quick,item_store,high_intermittency,baseline,Best Stability,0.785,51407.628,98995397.622,11134.133999999998,0.569,0,1.255,0.304,11.237,0.0,12.796,,-1.8020000000000014,7,7,6,best_stability_model
+m5,quick,item_store,high_intermittency,baseline,Oracle,0.0,10798.518,1012057466.462,11121.616000000002,0.555,0,0.264,3.11,11.224,0.0,14.598,,0.0,1,6,7,oracle_realized_demand
+m5,quick,item_store,low_intermittency,baseline,Smoothed Alpha 0.25,0.254,30985.649,39.117,0.0,0.0,0,0.993,0.163,0.0,0.0,1.156,,-119.509,5,1,1,feasibility_aware_smoothed_alpha_0_25
+m5,quick,item_store,low_intermittency,baseline,Operational Ensemble,0.233,28637.237,58.637,0.0,0.0,0,0.918,0.244,0.0,0.0,1.162,,-119.503,3,1,2,operational_loss_ensemble
+m5,quick,item_store,low_intermittency,baseline,Global Best,0.254,31190.337000000003,120.204,46.817,0.022,0,1.0,0.5,1.0,0.0,2.5,,-118.165,5,3,3,global_best_model
+m5,quick,item_store,low_intermittency,baseline,Simple Ensemble,0.21600000000000005,26362.867,182.98,396.881,0.108,0,0.845,0.7609999999999999,8.477,0.0,10.084,,-110.581,2,4,4,simple_ensemble
+m5,quick,item_store,low_intermittency,baseline,Feasibility-Aware,0.246,30470.347,82.41799999999998,420.306,0.048,244,0.977,0.343,8.978,0.5,10.797,,-109.86800000000001,4,5,5,feasibility_aware_selector
+m5,quick,item_store,low_intermittency,baseline,Oracle,0.0,9304.527,472.962,5543.125,0.475,0,0.298,1.967,118.399,0.0,120.665,,0.0,1,6,6,oracle_realized_demand
+m5,quick,item_store,low_intermittency,baseline,Best Stability,0.26,31589.366,487.564,6149.283,0.479,0,1.013,2.028,131.346,0.0,134.387,,13.721999999999994,7,7,7,best_stability_model
+m5,quick,item_store,medium_intermittency,baseline,Smoothed Alpha 0.25,0.3670000000000001,38548.834,52.659,1.402,0.001,0,1.001,0.162,0.006,0.0,1.168,,-37.661,5,1,1,feasibility_aware_smoothed_alpha_0_25
+m5,quick,item_store,medium_intermittency,baseline,Operational Ensemble,0.344,36627.163,81.132,10.777,0.006,0,0.951,0.249,0.045,0.0,1.245,,-37.584,3,2,2,operational_loss_ensemble
+m5,quick,item_store,medium_intermittency,baseline,Global Best,0.3670000000000001,38525.787,162.621,241.565,0.071,0,1.0,0.5,1.0,0.0,2.5,,-36.329,5,3,3,global_best_model
+m5,quick,item_store,medium_intermittency,baseline,Feasibility-Aware,0.35200000000000004,38321.082,120.899,772.3510000000001,0.084,274,0.995,0.3720000000000001,3.197,0.5,5.064,,-33.765,4,4,4,feasibility_aware_selector
+m5,quick,item_store,medium_intermittency,baseline,Simple Ensemble,0.315,32722.214,249.269,1156.832,0.241,0,0.8490000000000001,0.7659999999999999,4.789,0.0,6.405,,-32.424,2,5,5,simple_ensemble
+m5,quick,item_store,medium_intermittency,baseline,Oracle,0.0,10335.992,658.6310000000002,8825.815,0.6,0,0.268,2.025,36.536,0.0,38.829,,0.0,1,6,6,oracle_realized_demand
+m5,quick,item_store,medium_intermittency,baseline,Best Stability,0.375,37776.56200000001,676.977,9318.065,0.609,0,0.981,2.081,38.574,0.0,41.636,,2.807000000000002,7,7,7,best_stability_model

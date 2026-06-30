@@ -1,4 +1,4 @@
-"""Planning utility functions that combine forecast, inventory, and stability terms."""
+"""Planning utility functions that combine operational planning terms."""
 
 from typing import Dict, Mapping, Sequence, Tuple
 
@@ -6,6 +6,34 @@ import numpy as np
 import pandas as pd
 
 from evaluation.stability_metrics import compute_absolute_plan_change
+
+
+DEFAULT_PLANNING_LOSS_WEIGHTS = {
+    "alpha_forecast": 0.0,
+    "beta_inventory": 1.0,
+    "lambda_volatility": 0.10,
+    "lambda_execution": 0.10,
+    "lambda_switch": 0.05,
+}
+
+ORACLE_GAP_GROUP_COLUMNS = [
+    "dataset_name",
+    "run_mode",
+    "scenario_name",
+    "grain_level",
+    "intermittency_bucket",
+    "evaluation_mode",
+    "capacity_scenario",
+    "scenario_id",
+    "split_name",
+    "weight_setting",
+    "loss_weight_setting",
+    "alpha_forecast",
+    "beta_inventory",
+    "lambda_volatility",
+    "lambda_execution",
+    "lambda_switch",
+]
 
 
 def _as_float_array(values: Sequence[float], name: str) -> np.ndarray:
@@ -55,23 +83,29 @@ def compute_total_planning_loss(
 ) -> float:
     """Return a weighted scalar planning loss.
 
-    The scalar loss combines forecast accuracy, inventory cost, plan volatility,
-    model switching, and execution adaptation. It matters because it gives a
-    single objective for comparing planning strategies.
+    The default scalar objective combines inventory cost, plan volatility, model
+    switching, and execution adaptation. Forecast error is accepted as an input
+    for explicit sensitivity settings, but its default weight is zero because
+    WAPE is reported separately as a diagnostic metric.
 
     The paper should not rely on this scalar alone. The scalar is a useful
     optimization device, while the individual components explain the tradeoffs
     created by the planning-infrastructure gap.
     """
     return float(
-        float(weights.get("alpha_forecast", 1.0)) * _component_sum(forecast_error, "forecast_error")
-        + float(weights.get("beta_inventory", 1.0)) * _component_sum(inventory_cost, "inventory_cost")
-        + float(weights.get("lambda_volatility", 1.0))
+        planning_loss_weight(weights, "alpha_forecast") * _component_sum(forecast_error, "forecast_error")
+        + planning_loss_weight(weights, "beta_inventory") * _component_sum(inventory_cost, "inventory_cost")
+        + planning_loss_weight(weights, "lambda_volatility")
         * _component_sum(planning_signal_volatility, "planning_signal_volatility")
-        + float(weights.get("lambda_switch", 1.0)) * _component_sum(model_switching_cost, "model_switching_cost")
-        + float(weights.get("lambda_execution", 1.0))
+        + planning_loss_weight(weights, "lambda_switch") * _component_sum(model_switching_cost, "model_switching_cost")
+        + planning_loss_weight(weights, "lambda_execution")
         * _component_sum(execution_adaptation_penalty, "execution_adaptation_penalty")
     )
+
+
+def planning_loss_weight(weights: Mapping[str, float], name: str) -> float:
+    """Return a planning-loss weight with repository-wide operational defaults."""
+    return float((weights or {}).get(name, DEFAULT_PLANNING_LOSS_WEIGHTS[name]))
 
 
 def compute_multi_objective_summary(
@@ -185,7 +219,7 @@ def add_normalized_planning_loss(
                 fallback_reason = "Reference strategy value and all strategy values were zero or unavailable; used 1.0."
             fallback_used = True
 
-        weight = float(weights.get(weight_name, 1.0))
+        weight = planning_loss_weight(weights, weight_name)
         frame[output_column] = weight * raw_values / max(abs(reference_value), epsilon)
         reference_values[reference_column] = float(reference_value)
         fallback_flags[reference_column] = fallback_used
@@ -238,3 +272,48 @@ def add_normalized_planning_loss(
     )
     audit_table = pd.DataFrame(audit_records)
     return frame, reference_table, audit_table
+
+
+def add_oracle_gap_columns(
+    summary: pd.DataFrame,
+    group_columns: Sequence[str] = ORACLE_GAP_GROUP_COLUMNS,
+) -> pd.DataFrame:
+    """Add DP-oracle and perfect-oracle normalized-loss gaps.
+
+    ``gap_to_dp_oracle`` compares each strategy to the non-deployable
+    Realized-Inventory Oracle DP over the same candidate forecasts.
+    ``gap_to_perfect_oracle`` compares each strategy to the realized-demand
+    benchmark. Gaps are computed within the grouping columns that are present in
+    the table, so scenarios, grains, and evaluation modes are not mixed.
+    """
+    frame = summary.copy()
+    required_columns = {"strategy", "normalized_total_loss"}
+    missing = required_columns.difference(frame.columns)
+    if missing:
+        raise ValueError("Oracle gap computation is missing required columns: {}".format(sorted(missing)))
+
+    frame["gap_to_dp_oracle"] = np.nan
+    frame["gap_to_perfect_oracle"] = np.nan
+    present_group_columns = [column for column in group_columns if column in frame.columns]
+    grouped = [((), frame)] if not present_group_columns else frame.groupby(present_group_columns, dropna=False, sort=False)
+
+    for _, group in grouped:
+        dp_oracle_value = _oracle_normalized_loss(group, "oracle_dp_feasibility_selector")
+        perfect_oracle_value = _oracle_normalized_loss(group, "oracle_realized_demand")
+        normalized_loss = pd.to_numeric(group["normalized_total_loss"], errors="coerce")
+        if np.isfinite(dp_oracle_value):
+            frame.loc[group.index, "gap_to_dp_oracle"] = normalized_loss - dp_oracle_value
+        if np.isfinite(perfect_oracle_value):
+            frame.loc[group.index, "gap_to_perfect_oracle"] = normalized_loss - perfect_oracle_value
+    return frame
+
+
+def _oracle_normalized_loss(group: pd.DataFrame, strategy_name: str) -> float:
+    """Return the oracle normalized loss for one already-scoped group."""
+    oracle_rows = group[group["strategy"] == strategy_name]
+    if oracle_rows.empty:
+        return np.nan
+    values = pd.to_numeric(oracle_rows["normalized_total_loss"], errors="coerce").dropna()
+    if values.empty:
+        return np.nan
+    return float(values.iloc[0])

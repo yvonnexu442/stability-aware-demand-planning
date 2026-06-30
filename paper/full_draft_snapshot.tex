@@ -151,7 +151,7 @@ DataCo is used as an execution-risk anchor. Favorita is the main forecast-to-pla
 
 The Favorita analysis includes transparent baselines and machine-learning forecasters, including naive, seasonal, moving-average, exponential-smoothing, XGBoost, and LightGBM variants where available. The M5 robustness experiments use transparent forecast candidates that are computationally feasible for hierarchical sensitivity checks.
 
-The evaluation reports WAPE, inventory cost, planning volatility, execution penalty, execution violation rate, model-switching burden, normalized total loss, and gap to the Oracle diagnostic. DataCo-derived late-delivery-risk percentiles are mapped into execution-risk sensitivity scenarios using a configurable formula.
+The evaluation reports WAPE, inventory cost, planning volatility, execution penalty, execution violation rate, model-switching burden, normalized total loss, gap to the Realized-Inventory Oracle DP, and gap to the Realized Demand Oracle. WAPE is reported as a diagnostic forecast metric and is not part of the default operational planning objective. DataCo-derived late-delivery-risk percentiles are mapped into execution-risk sensitivity scenarios using a configurable formula.
 
 \section{Results}
 

@@ -11,6 +11,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from evaluation.planning_utility import add_oracle_gap_columns
 from reporting.latex_export import export_summary_table
 from visualization.plots import apply_paper_style, format_axis, save_paper_figure, strategy_color, strategy_marker
 
@@ -101,6 +102,7 @@ def main() -> None:
 
 def build_method_family_summary(data: pd.DataFrame) -> pd.DataFrame:
     """Return representative method-family rows from generated Favorita outputs."""
+    data = add_oracle_gap_columns(data)
     required = {
         "scenario_name",
         "strategy",
@@ -113,7 +115,8 @@ def build_method_family_summary(data: pd.DataFrame) -> pd.DataFrame:
         "model_switch_count",
         "max_period_plan_change_pct",
         "normalized_total_loss",
-        "gap_to_oracle",
+        "gap_to_dp_oracle",
+        "gap_to_perfect_oracle",
     }
     missing = required.difference(data.columns)
     if missing:
@@ -145,7 +148,8 @@ def build_method_family_summary(data: pd.DataFrame) -> pd.DataFrame:
         "model_switch_count",
         "max_period_plan_change_pct",
         "normalized_total_loss",
-        "gap_to_oracle",
+        "gap_to_dp_oracle",
+        "gap_to_perfect_oracle",
     ]
     return table[output_columns].sort_values(["scenario_name", "normalized_total_loss", "method_name"]).reset_index(drop=True)
 

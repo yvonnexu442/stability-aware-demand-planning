@@ -54,7 +54,7 @@
 - `paper/figures/favorita_example_planning_signal.pdf`
 - `paper/figures/favorita_execution_penalty_by_execution_scenario.pdf`
 - `paper/figures/favorita_feasibility_ensemble_tradeoff.pdf`
-- `paper/figures/favorita_gap_to_oracle_by_method.pdf`
+- `paper/figures/favorita_gap_to_perfect_oracle_by_method.pdf`
 - `paper/figures/favorita_improved_method_rank_reordering.pdf`
 - `paper/figures/favorita_improved_methods_accuracy_vs_execution_penalty.pdf`
 - `paper/figures/favorita_method_family_accuracy_vs_execution_penalty.pdf`

@@ -37,7 +37,12 @@ from evaluation.forecast_metrics import (
     weighted_absolute_percentage_error,
 )
 from evaluation.inventory_metrics import compute_holding_cost, compute_service_level, compute_shortage_cost
-from evaluation.planning_utility import add_normalized_planning_loss, compute_total_planning_loss
+from evaluation.planning_utility import (
+    add_normalized_planning_loss,
+    add_oracle_gap_columns,
+    compute_total_planning_loss,
+    planning_loss_weight,
+)
 from evaluation.stability_metrics import compute_absolute_plan_change, compute_percentage_plan_change
 from planning_environment.execution_capacity import compute_execution_capacity, compute_execution_violation
 from planning_environment.planning_actions import forecast_to_inventory_target
@@ -831,7 +836,7 @@ def _stability_aware_selection(
     forecast_metrics: pd.DataFrame,
     config: Mapping[str, object],
 ) -> pd.DataFrame:
-    """Select models with validation loss, switching cost, and plan-change burden."""
+    """Select models with optional validation loss, switching cost, and plan-change burden."""
     require_no_future_outcomes(test_forecasts, "_stability_aware_selection")
     validation_family_losses = _family_model_validation_losses(all_forecasts)
     validation_global_losses = (
@@ -844,8 +849,9 @@ def _stability_aware_selection(
     favorita_config = config.get("favorita_pipeline", {})
     switch_penalty = float(favorita_config.get("stability_switch_penalty", 0.02))
     max_plan_change_rate = float(stability_config.get("max_plan_change_rate", 0.20))
-    lambda_switch = float(weights.get("lambda_switch", 0.5))
-    lambda_volatility = float(weights.get("lambda_volatility", 0.5))
+    lambda_forecast = planning_loss_weight(weights, "alpha_forecast")
+    lambda_switch = planning_loss_weight(weights, "lambda_switch")
+    lambda_volatility = planning_loss_weight(weights, "lambda_volatility")
 
     candidate_groups = {
         key: group.copy()
@@ -880,7 +886,11 @@ def _stability_aware_selection(
                 plan_change_pct = abs(planning_signal - float(previous_plan)) / max(abs(float(previous_plan)), 1e-8)
             switch_cost = 0.0 if previous_model is None or previous_model == candidate.model_name else switch_penalty
             volatility_cost = max(plan_change_pct - max_plan_change_rate, 0.0)
-            adjusted_score = float(expected_loss) + lambda_switch * switch_cost + lambda_volatility * volatility_cost
+            adjusted_score = (
+                lambda_forecast * float(expected_loss)
+                + lambda_switch * switch_cost
+                + lambda_volatility * volatility_cost
+            )
             if best_score is None or adjusted_score < best_score:
                 best_score = adjusted_score
                 best_candidate = candidate
@@ -969,11 +979,11 @@ def _feasibility_aware_selection(
             switch_cost = 0.0 if previous_model is None or previous_model == candidate.model_name else switch_penalty
             normalized_execution_violation = execution_violation_units / max(abs(float(previous_plan or planning_signal)), 1e-8)
             score = (
-                float(weights.get("alpha_forecast", 1.0)) * expected_forecast_loss
-                + float(weights.get("beta_inventory", 1.0)) * expected_inventory_loss
-                + float(weights.get("lambda_volatility", 0.5)) * plan_change_pct
-                + float(weights.get("lambda_switch", 0.5)) * switch_cost
-                + float(weights.get("lambda_execution", 1.0)) * normalized_execution_violation
+                planning_loss_weight(weights, "alpha_forecast") * expected_forecast_loss
+                + planning_loss_weight(weights, "beta_inventory") * expected_inventory_loss
+                + planning_loss_weight(weights, "lambda_volatility") * plan_change_pct
+                + planning_loss_weight(weights, "lambda_switch") * switch_cost
+                + planning_loss_weight(weights, "lambda_execution") * normalized_execution_violation
             )
             scored_candidates.append(
                 {
@@ -1372,11 +1382,11 @@ def _evaluate_selected_decisions(selected_decisions: pd.DataFrame, config: Mappi
 
     forecast_error = (frame["actual"] - frame["forecast"]).abs()
     frame["total_planning_loss"] = (
-        float(weights.get("alpha_forecast", 1.0)) * forecast_error
-        + float(weights.get("beta_inventory", 1.0)) * frame["total_inventory_cost"]
-        + float(weights.get("lambda_volatility", 0.5)) * frame["plan_change_pct"]
-        + float(weights.get("lambda_switch", 0.5)) * frame["model_switch_flag"]
-        + float(weights.get("lambda_execution", 1.0)) * frame["execution_adaptation_penalty"]
+        planning_loss_weight(weights, "alpha_forecast") * forecast_error
+        + planning_loss_weight(weights, "beta_inventory") * frame["total_inventory_cost"]
+        + planning_loss_weight(weights, "lambda_volatility") * frame["plan_change_pct"]
+        + planning_loss_weight(weights, "lambda_switch") * frame["model_switch_flag"]
+        + planning_loss_weight(weights, "lambda_execution") * frame["execution_adaptation_penalty"]
     )
     return frame
 
@@ -1703,9 +1713,7 @@ def _baseline_comparison_table(summary: pd.DataFrame) -> pd.DataFrame:
     table["planning_volatility"] = table["planning_signal_volatility_total"]
     table["execution_penalty"] = table["execution_adaptation_penalty_total"]
     table["model_switch_count"] = table["model_switch_count"].astype(int)
-    oracle_loss = table.loc[table["strategy"] == "oracle_realized_demand", "normalized_total_loss"]
-    oracle_value = float(oracle_loss.iloc[0]) if not oracle_loss.empty else np.nan
-    table["gap_to_oracle"] = table["normalized_total_loss"] - oracle_value
+    table = add_oracle_gap_columns(table)
     table["non_deployable_upper_bound"] = ~table["deployable"]
     output_columns = [
         "method_name",
@@ -1729,7 +1737,8 @@ def _baseline_comparison_table(summary: pd.DataFrame) -> pd.DataFrame:
         "normalized_execution_component",
         "normalized_switch_component",
         "normalized_total_loss",
-        "gap_to_oracle",
+        "gap_to_dp_oracle",
+        "gap_to_perfect_oracle",
     ]
     return table[output_columns].sort_values(["normalized_total_loss", "method_name"]).reset_index(drop=True)
 
@@ -2001,7 +2010,10 @@ def _generate_execution_risk_scenario_table(
                 "scenario_name": scenario_name,
                 "percentile_anchor": percentile_anchors.get(scenario_name, 0),
                 "late_delivery_rate_anchor": np.nan,
-                "lambda_execution": float(fallback_config.get(scenario_name, {}).get("lambda_execution", 0.10)),
+                "lambda_execution": planning_loss_weight(
+                    fallback_config.get(scenario_name, {}),
+                    "lambda_execution",
+                ),
                 "mapping_formula": formula,
                 "source": "config_fallback",
                 "fallback_used": True,
@@ -2137,9 +2149,7 @@ def _run_improved_feasibility_method_outputs(
         summary["rank_by_normalized_total_loss"] = summary["normalized_total_loss"].rank(method="min").astype(int)
         summary["rank_by_WAPE"] = summary["WAPE"].rank(method="min").astype(int)
         summary["rank_by_execution_penalty"] = summary["execution_penalty"].rank(method="min").astype(int)
-        oracle_loss = summary.loc[summary["strategy"] == "oracle_realized_demand", "normalized_total_loss"]
-        oracle_value = float(oracle_loss.iloc[0]) if not oracle_loss.empty else np.nan
-        summary["gap_to_oracle"] = summary["normalized_total_loss"] - oracle_value
+        summary = add_oracle_gap_columns(summary)
         rows.append(summary)
 
         method_metadata["scenario_name"] = scenario.scenario_name
@@ -2439,11 +2449,11 @@ def _feasibility_aware_smoothed_selection(
             switch_cost = 0.0 if previous_model is None or previous_model == candidate.model_name else switch_penalty
             normalized_execution_violation = execution_violation_units / max(abs(float(previous_plan or final_plan)), 1e-8)
             score = (
-                float(weights.get("alpha_forecast", 1.0)) * expected_forecast_loss
-                + float(weights.get("beta_inventory", 1.0)) * expected_inventory_loss
-                + float(weights.get("lambda_volatility", 0.5)) * plan_change_pct
-                + float(weights.get("lambda_switch", 0.5)) * switch_cost
-                + float(weights.get("lambda_execution", 1.0)) * normalized_execution_violation
+                planning_loss_weight(weights, "alpha_forecast") * expected_forecast_loss
+                + planning_loss_weight(weights, "beta_inventory") * expected_inventory_loss
+                + planning_loss_weight(weights, "lambda_volatility") * plan_change_pct
+                + planning_loss_weight(weights, "lambda_switch") * switch_cost
+                + planning_loss_weight(weights, "lambda_execution") * normalized_execution_violation
             )
             scored_candidates.append(
                 {
@@ -2739,14 +2749,14 @@ def _validation_operational_loss_by_model(
     references = metrics.loc[reference_model].replace(0.0, np.nan)
     references = references.fillna(metrics.replace(0.0, np.nan).median()).fillna(1.0)
     loss = (
-        float(scenario_weights.get("alpha_forecast", 1.0)) * metrics["wape"] / max(float(references["wape"]), 1e-8)
-        + float(scenario_weights.get("beta_inventory", 1.0))
+        planning_loss_weight(scenario_weights, "alpha_forecast") * metrics["wape"] / max(float(references["wape"]), 1e-8)
+        + planning_loss_weight(scenario_weights, "beta_inventory")
         * metrics["inventory_cost"]
         / max(float(references["inventory_cost"]), 1e-8)
-        + float(scenario_weights.get("lambda_volatility", 0.5))
+        + planning_loss_weight(scenario_weights, "lambda_volatility")
         * metrics["planning_volatility"]
         / max(float(references["planning_volatility"]), 1e-8)
-        + float(scenario_weights.get("lambda_execution", 1.0))
+        + planning_loss_weight(scenario_weights, "lambda_execution")
         * metrics["execution_penalty"]
         / max(float(references["execution_penalty"]), 1e-8)
     )
@@ -2915,6 +2925,7 @@ def _method_family_from_strategy(strategy: str) -> str:
 def _improved_method_output_columns(result: pd.DataFrame) -> pd.DataFrame:
     """Return the requested improved-method output columns in a stable order."""
     result = ensure_strategy_metadata(result)
+    result = add_oracle_gap_columns(result)
     if "scenario_fallback_used" not in result.columns:
         result["scenario_fallback_used"] = False
     optional_columns = [
@@ -2957,7 +2968,8 @@ def _improved_method_output_columns(result: pd.DataFrame) -> pd.DataFrame:
         "rank_by_normalized_total_loss",
         "rank_by_WAPE",
         "rank_by_execution_penalty",
-        "gap_to_oracle",
+        "gap_to_dp_oracle",
+        "gap_to_perfect_oracle",
     ]
     for column in optional_columns:
         if column not in result.columns:
@@ -2985,7 +2997,8 @@ def _build_improved_method_rankings(improved_methods: pd.DataFrame) -> pd.DataFr
         ("model_switch_count", "model_switch_count", True),
         ("max_period_plan_change_pct", "max_period_plan_change_pct", True),
         ("normalized_total_loss", "normalized_total_loss", True),
-        ("gap_to_oracle", "gap_to_oracle", True),
+        ("gap_to_dp_oracle", "gap_to_dp_oracle", True),
+        ("gap_to_perfect_oracle", "gap_to_perfect_oracle", True),
     ]
     for scenario_name, group in improved_methods.groupby("scenario_name", sort=False):
         for objective_name, metric_column, ascending in objectives:
@@ -3179,8 +3192,8 @@ def _run_weight_sensitivity_analysis(
         summary["lambda_volatility"] = float(lambda_volatility)
         summary["lambda_switch"] = float(lambda_switch)
         summary["lambda_execution"] = float(lambda_execution)
-        summary["alpha_forecast"] = float(scenario_weights.get("alpha_forecast", 1.0))
-        summary["beta_inventory"] = float(scenario_weights.get("beta_inventory", 1.0))
+        summary["alpha_forecast"] = planning_loss_weight(scenario_weights, "alpha_forecast")
+        summary["beta_inventory"] = planning_loss_weight(scenario_weights, "beta_inventory")
         rows.append(summary)
     result = pd.concat(rows, ignore_index=True)
     result["is_best_total_loss"] = result["normalized_total_loss"] == result.groupby("scenario_id")["normalized_total_loss"].transform("min")
@@ -3780,12 +3793,12 @@ def _make_improved_feasibility_figures(
     )
     figure_paths.append(paper_figure_dir / "favorita_improved_method_rank_reordering.pdf")
 
-    _save_gap_to_oracle_plot(
+    _save_oracle_gap_plot(
         improved_methods,
-        output_figure_dir / "favorita_gap_to_oracle_by_method.png",
-        paper_figure_dir / "favorita_gap_to_oracle_by_method.pdf",
+        output_figure_dir / "favorita_gap_to_dp_oracle_by_method.png",
+        paper_figure_dir / "favorita_gap_to_dp_oracle_by_method.pdf",
     )
-    figure_paths.append(paper_figure_dir / "favorita_gap_to_oracle_by_method.pdf")
+    figure_paths.append(paper_figure_dir / "favorita_gap_to_dp_oracle_by_method.pdf")
     return figure_paths
 
 
@@ -3929,8 +3942,8 @@ def _save_improved_rank_reordering_plot(data: pd.DataFrame, png_path: Path, pdf_
     save_paper_figure(fig, png_path, pdf_path)
 
 
-def _save_gap_to_oracle_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
-    """Save gap to non-deployable oracle by method and scenario."""
+def _save_oracle_gap_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save gap to non-deployable DP oracle by method and scenario."""
     plot_data = data[data["strategy"].isin(_improved_plot_strategies())].copy()
     scenario_order = list(dict.fromkeys(plot_data["scenario_name"].tolist()))
     positions = {scenario: index for index, scenario in enumerate(scenario_order)}
@@ -3943,7 +3956,7 @@ def _save_gap_to_oracle_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path)
         strategy_data = strategy_data.sort_values("scenario_position")
         ax.plot(
             strategy_data["scenario_position"],
-            strategy_data["gap_to_oracle"],
+            strategy_data["gap_to_dp_oracle"],
             marker=strategy_marker(strategy),
             markersize=5.2,
             markeredgecolor="white",
@@ -3956,7 +3969,7 @@ def _save_gap_to_oracle_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path)
     ax.axhline(0.0, color="#333333", linewidth=0.8)
     ax.set_xticks(list(positions.values()))
     ax.set_xticklabels([scenario.replace("_", "\n").title() for scenario in scenario_order])
-    format_axis(ax, x_label="Execution-Risk Scenario", y_label="Gap to Oracle")
+    format_axis(ax, x_label="Execution-Risk Scenario", y_label="Gap to DP Oracle")
     place_legend(ax, columns=3)
     save_paper_figure(fig, png_path, pdf_path)
 

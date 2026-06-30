@@ -25,7 +25,12 @@ from decision_layer.no_leakage import attach_actuals_for_evaluation, drop_future
 from decision_layer.strategy_metadata import ensure_strategy_metadata, summarize_strategy_metadata
 from evaluation.forecast_metrics import mean_absolute_error, weighted_absolute_percentage_error
 from evaluation.inventory_metrics import compute_holding_cost, compute_service_level, compute_shortage_cost
-from evaluation.planning_utility import add_normalized_planning_loss, compute_total_planning_loss
+from evaluation.planning_utility import (
+    add_normalized_planning_loss,
+    add_oracle_gap_columns,
+    compute_total_planning_loss,
+    planning_loss_weight,
+)
 from evaluation.stability_metrics import compute_absolute_plan_change, compute_percentage_plan_change
 from planning_environment.execution_capacity import compute_execution_capacity, compute_execution_violation
 from planning_environment.planning_actions import forecast_to_inventory_target
@@ -79,7 +84,8 @@ REQUIRED_SUMMARY_COLUMNS = [
     "normalized_execution_component",
     "normalized_switch_component",
     "normalized_total_loss",
-    "gap_to_oracle",
+    "gap_to_dp_oracle",
+    "gap_to_perfect_oracle",
     "rank_by_WAPE",
     "rank_by_execution_penalty",
     "rank_by_normalized_total_loss",
@@ -270,7 +276,10 @@ def run_grain_experiment(
         grain_level=grain_level,
         intermittency_bucket="all",
         scenario_name=scenario_name,
-        lambda_execution=float(scenario_config.get("planning_loss_weights", {}).get("lambda_execution", 1.0)),
+        lambda_execution=planning_loss_weight(
+            scenario_config.get("planning_loss_weights", {}),
+            "lambda_execution",
+        ),
     )
     return summary, decisions
 
@@ -467,11 +476,11 @@ def feasibility_aware_selection(
             losses = expected_losses.get((row.series_id, candidate.model_name), expected_losses.get(("global", candidate.model_name), {}))
             switch_cost = 0.0 if previous_model is None or previous_model == candidate.model_name else switch_penalty
             score = (
-                float(weights.get("alpha_forecast", 1.0)) * float(losses.get("wape", 1.0))
-                + float(weights.get("beta_inventory", 1.0)) * float(losses.get("inventory_cost_per_demand_unit", 0.0))
-                + float(weights.get("lambda_volatility", 0.5)) * plan_change_pct
-                + float(weights.get("lambda_switch", 0.5)) * switch_cost
-                + float(weights.get("lambda_execution", 1.0)) * execution_violation / max(abs(float(previous_plan or planning_signal)), 1e-8)
+                planning_loss_weight(weights, "alpha_forecast") * float(losses.get("wape", 1.0))
+                + planning_loss_weight(weights, "beta_inventory") * float(losses.get("inventory_cost_per_demand_unit", 0.0))
+                + planning_loss_weight(weights, "lambda_volatility") * plan_change_pct
+                + planning_loss_weight(weights, "lambda_switch") * switch_cost
+                + planning_loss_weight(weights, "lambda_execution") * execution_violation / max(abs(float(previous_plan or planning_signal)), 1e-8)
             )
             scored.append((score, candidate, planning_signal))
         _, best_candidate, best_plan = min(scored, key=lambda value: (value[0], value[1].model_name))
@@ -798,11 +807,11 @@ def evaluate_selected_decisions(selected_decisions: pd.DataFrame, config: Mappin
         frame.loc[index, "model_switch_flag"] = switches
     forecast_error = (frame["actual"] - frame["forecast"]).abs()
     frame["total_planning_loss"] = (
-        float(weights.get("alpha_forecast", 1.0)) * forecast_error
-        + float(weights.get("beta_inventory", 1.0)) * frame["total_inventory_cost"]
-        + float(weights.get("lambda_volatility", 0.5)) * frame["plan_change_pct"]
-        + float(weights.get("lambda_switch", 0.5)) * frame["model_switch_flag"]
-        + float(weights.get("lambda_execution", 1.0)) * frame["execution_adaptation_penalty"]
+        planning_loss_weight(weights, "alpha_forecast") * forecast_error
+        + planning_loss_weight(weights, "beta_inventory") * frame["total_inventory_cost"]
+        + planning_loss_weight(weights, "lambda_volatility") * frame["plan_change_pct"]
+        + planning_loss_weight(weights, "lambda_switch") * frame["model_switch_flag"]
+        + planning_loss_weight(weights, "lambda_execution") * frame["execution_adaptation_penalty"]
     )
     return frame
 
@@ -886,9 +895,7 @@ def finalize_summary(
     table["inventory_cost"] = table["total_inventory_cost"]
     table["planning_volatility"] = table["planning_signal_volatility_total"]
     table["execution_penalty"] = table["execution_adaptation_penalty_total"]
-    oracle_loss = table.loc[table["strategy"] == "oracle_realized_demand", "normalized_total_loss"]
-    oracle_value = float(oracle_loss.iloc[0]) if not oracle_loss.empty else np.nan
-    table["gap_to_oracle"] = table["normalized_total_loss"] - oracle_value
+    table = add_oracle_gap_columns(table)
     table["rank_by_WAPE"] = table["WAPE"].rank(method="min").astype(int)
     table["rank_by_execution_penalty"] = table["execution_penalty"].rank(method="min").astype(int)
     table["rank_by_normalized_total_loss"] = table["normalized_total_loss"].rank(method="min").astype(int)
@@ -957,7 +964,7 @@ def run_intermittent_demand_stress(decisions: pd.DataFrame, config: Mapping[str,
     profile["intermittency_bucket"] = profile["intermittency_bucket"].astype(str)
     frame = decisions.merge(profile[["series_id", "intermittency_bucket"]], on="series_id", how="left")
     rows = []
-    lambda_execution = float(config.get("planning_loss_weights", {}).get("lambda_execution", 1.0))
+    lambda_execution = planning_loss_weight(config.get("planning_loss_weights", {}), "lambda_execution")
     for bucket, group in frame.groupby("intermittency_bucket"):
         rows.append(
             summarize_decisions_for_scenario(
@@ -992,7 +999,10 @@ def load_dataco_execution_scenarios(config: Mapping[str, object], table_dir: Pat
         records.append(
             {
                 "scenario_name": scenario_name,
-                "lambda_execution": float(fallback.get(scenario_name, {}).get("lambda_execution", 0.10)),
+                "lambda_execution": planning_loss_weight(
+                    fallback.get(scenario_name, {}),
+                    "lambda_execution",
+                ),
                 "source": "config_fallback",
                 "fallback_used": True,
             }

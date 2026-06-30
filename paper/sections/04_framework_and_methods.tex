@@ -32,7 +32,7 @@ Smoothing changes the executed planning signal, not the underlying demand realiz
 
 \subsection{Feasibility-Aware Adaptive Selection}
 
-The Feasibility-Aware Selector evaluates candidate model changes using expected planning utility rather than forecast error alone. It considers forecast error, expected inventory cost, planning volatility, model-switching burden, and expected execution violations. A switch is accepted only when the expected planning utility improves after feasibility penalties. This method is intentionally interpretable; it is not a reinforcement-learning or black-box control policy.
+The Feasibility-Aware Selector evaluates candidate model changes using expected planning utility rather than forecast error alone. In the default operational objective, it considers expected inventory cost, planning volatility, model-switching burden, and expected execution violations; forecast error remains a reported diagnostic unless an explicit sensitivity setting assigns it positive weight. A switch is accepted only when the expected planning utility improves after feasibility penalties. This method is intentionally interpretable; it is not a reinforcement-learning or black-box control policy.
 
 \subsection{Finite-Horizon DP Selection}
 
@@ -44,7 +44,7 @@ The BudgetedDPFeasibilitySelector adds a hard maximum switch budget $K$ to the f
 
 \subsection{Oracle Diagnostic}
 
-The Realized-Inventory Oracle DP is non-deployable. It uses validation-derived forecast loss together with period-specific realized test inventory outcomes keyed by series, candidate model, and date. It is not a perfect-forecast oracle and does not replace model forecasts with realized demand. Instead, it is an upper-bound diagnostic for the value of knowing inventory-outcome information before deployment.
+The Realized-Inventory Oracle DP is non-deployable. It uses period-specific realized test inventory outcomes keyed by series, candidate model, and date. It is not a perfect-forecast oracle and does not replace model forecasts with realized demand. Instead, it is an upper-bound diagnostic for the value of knowing inventory-outcome information before deployment.
 
 The Realized Demand Oracle is a separate non-deployable diagnostic that uses realized demand as the forecast. Because realized demand may be more volatile than a feasible planning signal, a perfect-demand reference can have zero forecast error while still producing large execution penalties. The paper therefore treats Oracle diagnostics as information-access references rather than deployable planning strategies.
 
