@@ -1,10 +1,10 @@
-# Prompt 3 Takeaways: Feasibility Stress Tests and Pareto Analysis
+# Favorita Feasibility Tradeoff Takeaways
 
-These notes summarize the current quick-mode Favorita Prompt 3 outputs. They are preliminary research takeaways, not final paper claims. The results should be rechecked after larger runs, additional datasets, and any changes to the planning-loss weights.
+These notes summarize the current quick-mode Favorita feasibility stress-test and Pareto-analysis outputs. They are preliminary research takeaways, not final paper claims. The results should be rechecked after larger runs, additional datasets, and any changes to the planning-loss weights.
 
 ## Main Takeaway
 
-Prompt 3 supports the central thesis that operational demand planning is a multi-objective feasibility problem, not a pure forecast-accuracy leaderboard. Under the current quick-mode Favorita setting, the accuracy-only LightGBM/global-best strategy remains strongest on weighted forecast error, inventory cost, and baseline total planning loss. However, the stability-aware and feasibility-aware strategies reduce planning volatility, execution adaptation penalty, and execution violation rate, which makes their value visible when execution capacity is constrained or execution burden receives more weight.
+The Favorita feasibility analysis supports the central thesis that operational demand planning is a multi-objective feasibility problem, not a pure forecast-accuracy leaderboard. Under the current quick-mode Favorita setting, the accuracy-only LightGBM/global-best strategy remains strongest on weighted forecast error, inventory cost, and baseline total planning loss. However, the stability-aware and feasibility-aware strategies reduce planning volatility, execution adaptation penalty, and execution violation rate, which makes their value visible when execution capacity is constrained or execution burden receives more weight.
 
 This is a useful research signal because the desired claim is not that a stability-aware selector should always dominate. The stronger claim is that forecast accuracy, inventory cost, planning stability, and execution burden should be reported separately and jointly.
 
@@ -38,7 +38,7 @@ The Pareto analysis shows why scalar loss alone is insufficient.
 
 ## Interpretation for the Paper
 
-Prompt 3 should be framed as evidence for a feasibility-aware evaluation layer rather than a claim that one selector universally wins. The results currently suggest:
+The feasibility stress-test and Pareto-analysis layer should be framed as evidence for a feasibility-aware evaluation layer rather than a claim that one selector universally wins. The results currently suggest:
 
 - If execution infrastructure is flexible, accuracy-only planning may be reasonable.
 - If execution changes are costly or capacity is constrained, feasibility-aware decision layers become more important.

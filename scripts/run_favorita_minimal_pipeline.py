@@ -160,7 +160,7 @@ def main() -> None:
 
     table_assets = _export_latex_tables(forecast_metrics, inventory_metrics, stability_metrics, planning_utility, paper_table_dir)
     figure_assets = _make_figures(planning_utility, stability_metrics, decisions, figure_dir, paper_figure_dir)
-    prompt3_tables, prompt3_figures = _run_feasibility_analyses(
+    feasibility_tables, feasibility_figures = _run_feasibility_analyses(
         forecasts=forecasts,
         modeling_table=modeling_table,
         forecast_metrics=forecast_metrics,
@@ -171,8 +171,8 @@ def main() -> None:
         paper_figure_dir=paper_figure_dir,
         logger=logger,
     )
-    table_assets.extend(prompt3_tables)
-    figure_assets.extend(prompt3_figures)
+    table_assets.extend(feasibility_tables)
+    figure_assets.extend(feasibility_figures)
     manifest_path = write_asset_manifest(args.asset_manifest_path, table_assets, figure_assets)
     logger.info("Saved LaTeX-ready tables to %s.", paper_table_dir)
     logger.info("Saved LaTeX-ready PDF figures to %s.", paper_figure_dir)
@@ -1079,7 +1079,7 @@ def _run_feasibility_analyses(
     paper_figure_dir: Path,
     logger: logging.Logger,
 ) -> Tuple[List[Path], List[Path]]:
-    """Run Prompt 3 feasibility stress tests and Pareto analysis.
+    """Run Favorita feasibility stress tests and Pareto analysis.
 
     These analyses intentionally report the tradeoff surface instead of tuning
     weights until one selector wins. If execution infrastructure is strong,
@@ -1087,7 +1087,7 @@ def _run_feasibility_analyses(
     weak, feasibility-aware planning becomes more important. The data should
     show where those regimes appear.
     """
-    logger.info("Running Prompt 3 feasibility stress tests and Pareto analysis.")
+    logger.info("Running Favorita feasibility stress tests and Pareto analysis.")
     decisions = _build_decision_outputs(forecasts, modeling_table, forecast_metrics, config, logger)
     weight_results = _run_weight_sensitivity_analysis(forecasts, modeling_table, forecast_metrics, config, logger)
     capacity_results = _run_execution_capacity_stress_test(forecasts, modeling_table, forecast_metrics, config, logger)
@@ -1097,20 +1097,20 @@ def _run_feasibility_analyses(
     capacity_results.to_csv(output_table_dir / "execution_capacity_stress_test.csv", index=False)
     pareto_summary.to_csv(output_table_dir / "pareto_summary.csv", index=False)
 
-    table_assets = _export_prompt3_latex_tables(
+    table_assets = _export_feasibility_latex_tables(
         weight_results=weight_results,
         capacity_results=capacity_results,
         pareto_summary=pareto_summary,
         paper_table_dir=paper_table_dir,
     )
-    figure_assets = _make_prompt3_figures(
+    figure_assets = _make_feasibility_figures(
         weight_results=weight_results,
         capacity_results=capacity_results,
         pareto_summary=pareto_summary,
         output_figure_dir=output_figure_dir,
         paper_figure_dir=paper_figure_dir,
     )
-    logger.info("Saved Prompt 3 feasibility tables and figures.")
+    logger.info("Saved Favorita feasibility tables and figures.")
     return table_assets, figure_assets
 
 
@@ -1242,13 +1242,13 @@ def _execution_capacity_scenarios(config: Mapping[str, object]) -> Dict[str, flo
     return {name: float(value) for name, value in configured.items()}
 
 
-def _export_prompt3_latex_tables(
+def _export_feasibility_latex_tables(
     weight_results: pd.DataFrame,
     capacity_results: pd.DataFrame,
     pareto_summary: pd.DataFrame,
     paper_table_dir: Path,
 ) -> List[Path]:
-    """Export compact Prompt 3 tables for manuscript inclusion."""
+    """Export compact feasibility-analysis tables for manuscript inclusion."""
     weight_table = _compact_weight_sensitivity_table(weight_results)
     capacity_table = _compact_strategy_table(
         capacity_results,
@@ -1596,14 +1596,14 @@ def _make_figures(
     ]
 
 
-def _make_prompt3_figures(
+def _make_feasibility_figures(
     weight_results: pd.DataFrame,
     capacity_results: pd.DataFrame,
     pareto_summary: pd.DataFrame,
     output_figure_dir: Path,
     paper_figure_dir: Path,
 ) -> List[Path]:
-    """Create Prompt 3 tradeoff figures for outputs and the LaTeX paper."""
+    """Create feasibility tradeoff figures for outputs and the LaTeX paper."""
     apply_paper_style()
     output_figure_dir.mkdir(parents=True, exist_ok=True)
     paper_figure_dir.mkdir(parents=True, exist_ok=True)

@@ -92,16 +92,16 @@ Paper-ready figure and table conventions are documented in `docs/figure_style_gu
 
 ## Research Progress Log
 
-### Prompt 3: Feasibility Stress Tests and Pareto Analysis
+### Favorita Feasibility Stress Tests and Pareto Analysis
 
-Prompt 3 added weight-sensitivity analysis, execution-capacity stress tests,
-Pareto summaries, and a more interpretable feasibility-aware selector for the
-Favorita quick-mode proof of concept. The current results support a tradeoff
-interpretation: accuracy-only LightGBM/global-best remains strong under the
-baseline scalar loss, while feasibility-aware and stability-aware strategies
-reduce planning volatility and execution burden under more constrained or more
-execution-sensitive settings. The main takeaway is documented in
-`docs/prompt3_takeaways.md`.
+The Favorita feasibility analysis added weight-sensitivity analysis,
+execution-capacity stress tests, Pareto summaries, and a more interpretable
+feasibility-aware selector for the quick-mode proof of concept. The current
+results support a tradeoff interpretation: accuracy-only LightGBM/global-best
+remains strong under the baseline scalar loss, while feasibility-aware and
+stability-aware strategies reduce planning volatility and execution burden under
+more constrained or more execution-sensitive settings. The main takeaway is
+documented in `docs/favorita_feasibility_tradeoff_takeaways.md`.
 
 ### Favorita Sample-Size Reproducibility
 
