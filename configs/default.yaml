@@ -1,0 +1,60 @@
+project:
+  random_seed: 42
+  run_mode: quick
+  output_dir: outputs
+
+data:
+  dataset_name: placeholder_public_demand_dataset
+  raw_data_dir: data/raw
+  processed_data_dir: data/processed
+  quick_mode_max_series: 100
+  full_mode_max_series: null
+  min_history_length: 90
+  min_nonzero_observations: 30
+  date_column: date
+  target_column: demand
+  series_id_columns:
+    - item_id
+    - location_id
+
+splits:
+  train_start_date: null
+  train_end_date: null
+  validation_start_date: null
+  validation_end_date: null
+  test_start_date: null
+  test_end_date: null
+
+forecasting:
+  horizon: 28
+  rolling_window_size: 56
+  models_to_run:
+    - naive_last_value
+    - rolling_mean
+    - seasonal_naive
+
+planning:
+  safety_stock_method: constant
+  service_level_target: 0.95
+  holding_cost_rate: 1.0
+  shortage_cost_rate: 5.0
+
+stability:
+  jump_threshold: 0.25
+  max_plan_change_rate: 0.20
+  max_model_switches_per_window: 2
+  switch_window_size: 28
+  execution_latency: 1
+  frozen_planning_window: 7
+
+planning_loss_weights:
+  alpha_forecast: 1.0
+  beta_inventory: 1.0
+  lambda_volatility: 0.5
+  lambda_switch: 0.5
+  lambda_execution: 1.0
+
+experiments:
+  save_plots: true
+  save_tables: true
+  save_config_snapshot: true

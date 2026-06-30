@@ -1,40 +1,51 @@
-# Beyond Forecast Accuracy
+# operational_planning_stability
 
-Working title: **Beyond Forecast Accuracy: A Stability-Aware Decision Layer for Operational Demand Planning**
+Working title: **Beyond Forecast Accuracy: Stability-Aware Operational Demand Planning under Execution Constraints**
 
-This repository starts a research workflow for testing whether operational demand planning should evaluate forecasts through downstream decision quality, not forecast accuracy alone. The first framework compares simple demand forecasts with a decision layer that trades off expected demand coverage against plan stability.
+This repository is a research-grade Python skeleton for studying stability-aware operational demand planning. It is designed for paper development, mathematical clarity, and reproducible evaluation logic. It is not intended to become a Kaggle-style forecasting leaderboard.
 
 ## Core Problem Statement
 
-Existing forecasting research usually evaluates models by prediction error. However, real operational planning systems do not only need accurate forecasts; they also need stable and executable planning signals. A numerically better forecast may require frequent model switching, large plan changes, or infrastructure updates that the operation cannot absorb. This creates a planning-infrastructure gap: the forecasting layer can adapt faster than the execution system.
+Forecast accuracy alone is not enough for real operational planning. Real supply chain and demand planning systems execute planning signals, not raw forecasts. A numerically better forecast can still create unstable planning signals, frequent model switching, large inventory target jumps, and execution burden that infrastructure, planners, or downstream operational systems cannot absorb.
 
-This project studies a stability-aware decision layer that converts forecasts into operational plans and evaluates the combined system on both accuracy and execution stability.
+This creates a planning-infrastructure gap: the forecasting layer can adapt faster than the execution system. The central research question is:
+
+> When forecast signals change faster than execution infrastructure can absorb, how should an operational planning system balance forecast accuracy, planning stability, model switching cost, and execution adaptability?
+
+This repository evaluates planning utility as a multi-objective concept. Forecast error is only one part of the evaluation. The project also tracks inventory cost, planning signal volatility, model switching cost, and execution adaptation penalties.
 
 ## First Research Questions
 
 1. When do forecast improvements fail to improve operational decision quality?
-2. Can a lightweight stability-aware layer reduce plan churn with limited service or shortage cost?
-3. Which metrics make the accuracy-stability tradeoff visible enough for operational planning?
+2. When does a more accurate forecast create planning instability that the operation cannot absorb?
+3. How should a decision layer trade off forecast error, inventory cost, planning stability, and execution capacity?
+4. Which outputs should be reported as weighted scalar losses, and which should remain visible as Pareto-style tradeoffs?
 
-## Initial Public Data Tables
+## Repository Scope
 
-- UCI Bike Sharing: daily and hourly bike rental counts from the Capital Bikeshare system.
-- UCI Online Retail: transactional product quantities for a UK-based online retail business.
-- Synthetic demo: generated panel demand data used for smoke tests and framework development.
+This first step implements the repository skeleton and core research modules only. Dataset-specific loaders and full experiments are intentionally left as later work.
 
-Large benchmark datasets such as M5/Favorita are useful later, but the first pass keeps the download and preprocessing path simple.
+Candidate public datasets for future experiments include Favorita, M5/Walmart-style retail demand, Walmart recruiting demand data, and Rossmann sales. These loaders are represented as placeholders so the paper logic can develop before the project becomes a dataset ingestion exercise.
 
 ## Repository Layout
 
 ```text
-configs/                         Dataset registry and experiment defaults
-data/raw/                        Downloaded source files, ignored by git
-data/processed/                  Standardized demand tables, ignored by git
-experiments/                     Command-line experiment runners
-paper/                           Paper outline and research notes
-results/                         Experiment outputs, ignored by git
-src/stability_demand_planning/   Reusable framework code
-tests/                           Smoke tests
+configs/default.yaml             Research configuration template
+docs/mathematical_model.md       Formal notation and objective functions
+docs/system_flow.md              End-to-end system flow diagram
+data/raw/                        Raw public datasets, ignored by git
+data/processed/                  Processed tables, ignored by git
+src/data_loaders/                Dataset loader interfaces
+src/features/                    Forecast and planning signal features
+src/models/                      Forecast model interfaces and baselines
+src/planning_environment/        Execution capacity and planning simulator logic
+src/decision_layer/              Hard selection, ensemble, and stability-aware selection
+src/evaluation/                  Forecast, inventory, stability, and planning utility metrics
+src/visualization/               Plotting helpers
+src/utils/                       Config, logging, and time split utilities
+scripts/                         Experiment entry points
+outputs/                         Tables, figures, logs, and config snapshots, ignored by git
+tests/                           Smoke tests for core modules
 ```
 
 ## Quickstart
@@ -45,50 +56,17 @@ Run the smoke test:
 PYTHONPATH=src python3 -m unittest discover -s tests
 ```
 
-Run the first synthetic experiment:
+## Evaluation Philosophy
 
-```bash
-PYTHONPATH=src python3 -m experiments.run_experiment --dataset synthetic_demo
-```
+The repository separates forecast quality from operational planning utility:
 
-Download and run a public UCI dataset:
+- Forecast metrics measure prediction error.
+- Inventory metrics measure holding, shortage, and service outcomes.
+- Stability metrics measure planning signal volatility and model switching.
+- Planning utility combines forecast, inventory, stability, switching, and execution adaptation terms.
 
-```bash
-PYTHONPATH=src python3 -m experiments.run_experiment --dataset uci_bike_sharing_day
-```
-
-The Online Retail dataset is an Excel workbook. Install an Excel reader such as `openpyxl` if your Python environment cannot read `.xlsx` files.
-
-## Standard Table Schema
-
-All datasets are normalized into:
-
-```text
-date,item_id,demand
-```
-
-- `date`: daily timestamp
-- `item_id`: SKU, product, service, or aggregate demand entity
-- `demand`: non-negative observed demand quantity
-
-## Metrics
-
-Forecast layer:
-
-- MAE
-- RMSE
-- WAPE
-- bias
-
-Decision layer:
-
-- underage units
-- overage units
-- service level proxy
-- asymmetric decision cost
-- total plan variation
-- normalized plan variation
+The paper should report both a weighted scalar planning loss and Pareto-style multi-objective outputs. A single score is useful for optimization, but the tradeoff surface is essential for explaining the planning-infrastructure gap.
 
 ## Current Status
 
-This is an initial research scaffold. The title, problem statement, metrics, and decision policies are expected to evolve as experiments expose sharper claims.
+The current implementation is a clean first-step skeleton. It contains core modules and documentation, but it does not yet implement full dataset-specific experiments.
