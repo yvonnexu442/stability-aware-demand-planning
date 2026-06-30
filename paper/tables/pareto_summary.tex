@@ -7,15 +7,19 @@
 \toprule
           Strategy &  WAPE &  Inventory Cost &  Volatility Total &  Execution Penalty &  Violation Rate &  Pareto Efficient \\
 \midrule
+   Simple Ensemble & 0.129 &     3412038.615 &           246.143 &          47421.135 &           0.066 &              True \\
+    Best Stability & 0.188 &     5263648.540 &            14.814 &              0.000 &           0.000 &              True \\
+       Moving Avg. & 0.188 &     5263648.540 &            14.814 &              0.000 &           0.000 &              True \\
+            Oracle & 0.000 &     1633182.571 &           487.867 &         680523.022 &           0.345 &              True \\
+           XGBoost & 0.111 &     3084473.829 &           402.688 &         503760.533 &           0.269 &              True \\
+   Stability-Aware & 0.113 &     3251369.903 &           384.274 &         402775.817 &           0.258 &              True \\
+       Family Best & 0.110 &     3064462.341 &           411.535 &         537406.724 &           0.279 &              True \\
+    Best Inventory & 0.109 &     3010924.926 &           414.964 &         546133.345 &           0.284 &              True \\
        Global Best & 0.109 &     3010924.926 &           414.964 &         546133.345 &           0.284 &              True \\
           LightGBM & 0.109 &     3010924.926 &           414.964 &         546133.345 &           0.284 &              True \\
-           XGBoost & 0.111 &     3084473.829 &           402.688 &         503760.533 &           0.269 &              True \\
-       Family Best & 0.110 &     3064462.341 &           411.535 &         537406.724 &           0.279 &              True \\
-   Stability-Aware & 0.113 &     3251369.903 &           384.274 &         402775.817 &           0.258 &              True \\
  Feasibility-Aware & 0.116 &     3375551.068 &           364.328 &         365116.914 &           0.232 &              True \\
-       Moving Avg. & 0.188 &     5263648.540 &            14.814 &              0.000 &           0.000 &              True \\
-          Seasonal & 0.157 &     4085181.846 &           516.778 &         782783.410 &           0.379 &             False \\
        Exp. Smooth & 0.194 &     5430867.016 &           135.826 &           4315.721 &           0.008 &             False \\
+          Seasonal & 0.157 &     4085181.846 &           516.778 &         782783.410 &           0.379 &             False \\
              Naive & 0.208 &     5414019.631 &           495.346 &         705809.932 &           0.351 &             False \\
 \bottomrule
 \end{tabular}

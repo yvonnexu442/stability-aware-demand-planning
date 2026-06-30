@@ -110,3 +110,20 @@ The project evaluates planning utility through a multi-objective loss:
 \end{align}
 
 The weighted scalar loss is useful for optimization and policy comparison. The paper will also report Pareto-style multi-objective outputs so that tradeoffs among accuracy, inventory cost, stability, switching, and execution adaptation remain visible.
+
+\subsection{Normalized Planning Loss}
+
+Raw operational metrics remain reported in their natural units. For scalar ranking, the analysis also reports a normalized planning loss:
+\begin{align}
+    \text{normalized\_loss}
+    ={}&
+    \beta \frac{\text{inventory\_cost}}{\text{inventory\_cost}_{\mathrm{ref}}}
+    + \lambda_{\text{volatility}}
+    \frac{\text{planning\_signal\_volatility}}{\text{volatility}_{\mathrm{ref}}} \notag \\
+    &+ \lambda_{\text{execution}}
+    \frac{\text{execution\_adaptation\_penalty}}{\text{execution\_penalty}_{\mathrm{ref}}}
+    + \lambda_{\text{switch}}
+    \frac{\text{model\_switching\_cost}}{\text{switch\_count}_{\mathrm{ref}}}.
+\end{align}
+
+The default reference strategy is the accuracy-first BestAccuracy or Global Best baseline within the same dataset, run mode, and comparison split. If a reference value is zero or unavailable, the implementation uses a median nonzero strategy value and records the fallback in an audit table. Normalized loss allows the study to compare operational preferences across objectives without allowing the dollar-scale inventory term to mechanically dominate execution feasibility terms.

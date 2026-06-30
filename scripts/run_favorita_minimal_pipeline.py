@@ -22,13 +22,14 @@ except ImportError:
     sns = None
 
 from data_loaders.favorita_loader import load_favorita_modeling_table
+from data_loaders.dataco_loader import load_dataco_orders
 from evaluation.forecast_metrics import (
     mean_absolute_error,
     root_mean_squared_error,
     weighted_absolute_percentage_error,
 )
 from evaluation.inventory_metrics import compute_holding_cost, compute_service_level, compute_shortage_cost
-from evaluation.planning_utility import compute_total_planning_loss
+from evaluation.planning_utility import add_normalized_planning_loss, compute_total_planning_loss
 from evaluation.stability_metrics import compute_absolute_plan_change, compute_percentage_plan_change
 from planning_environment.execution_capacity import compute_execution_capacity, compute_execution_violation
 from planning_environment.planning_actions import forecast_to_inventory_target
@@ -55,11 +56,36 @@ MODEL_FEATURE_MAP = {
 
 PAPER_STRATEGY_ORDER = [
     "global_best_model",
+    "family_best_model",
     "feasibility_aware_selector",
     "stability_aware_selector",
+    "simple_ensemble",
+    "best_inventory_cost_model",
+    "best_stability_model",
     "individual_global_lightgbm",
     "individual_global_xgboost",
     "individual_moving_average",
+    "oracle_realized_demand",
+]
+
+BASELINE_COMPARISON_STRATEGIES = [
+    "global_best_model",
+    "family_best_model",
+    "feasibility_aware_selector",
+    "stability_aware_selector",
+    "simple_ensemble",
+    "best_inventory_cost_model",
+    "best_stability_model",
+    "oracle_realized_demand",
+]
+
+RANKING_OBJECTIVES = [
+    ("WAPE", "WAPE", True),
+    ("inventory_cost", "inventory_cost", True),
+    ("planning_volatility", "planning_volatility", True),
+    ("execution_penalty", "execution_penalty", True),
+    ("execution_violation_rate", "execution_violation_rate", True),
+    ("normalized_total_loss", "normalized_total_loss", True),
 ]
 
 
@@ -94,6 +120,7 @@ def main() -> None:
         config.setdefault("favorita_pipeline", {})["max_ml_training_rows"] = int(args.max_ml_training_rows)
 
     run_mode = _normalize_run_mode(args.run_mode or config.get("project", {}).get("run_mode", "quick"))
+    config.setdefault("project", {})["run_mode"] = run_mode
     output_dir = Path(args.output_dir or config.get("project", {}).get("output_dir", "outputs"))
     table_dir = output_dir / "tables"
     figure_dir = output_dir / "figures"
@@ -160,6 +187,18 @@ def main() -> None:
 
     table_assets = _export_latex_tables(forecast_metrics, inventory_metrics, stability_metrics, planning_utility, paper_table_dir)
     figure_assets = _make_figures(planning_utility, stability_metrics, decisions, figure_dir, paper_figure_dir)
+    baseline_tables, baseline_figures = _run_baseline_and_execution_risk_outputs(
+        decisions=decisions,
+        config=config,
+        run_mode=run_mode,
+        output_table_dir=table_dir,
+        output_figure_dir=figure_dir,
+        paper_table_dir=paper_table_dir,
+        paper_figure_dir=paper_figure_dir,
+        logger=logger,
+    )
+    table_assets.extend(baseline_tables)
+    figure_assets.extend(baseline_figures)
     feasibility_tables, feasibility_figures = _run_feasibility_analyses(
         forecasts=forecasts,
         modeling_table=modeling_table,
@@ -611,6 +650,11 @@ def _build_decision_outputs(
     family_selected["selected_model"] = family_selected["family_best_model"]
     selected_frames.append(family_selected.drop(columns=["family_best_model"]))
 
+    selected_frames.append(_simple_ensemble_selection(test_forecasts))
+    selected_frames.append(_best_inventory_cost_selection(test_forecasts, forecasts, modeling_table, forecast_metrics, config))
+    selected_frames.append(_best_stability_selection(test_forecasts, forecasts, modeling_table, global_best_model, config))
+    selected_frames.append(_oracle_realized_demand_selection(test_forecasts))
+
     stability_selected = _stability_aware_selection(test_forecasts, forecasts, forecast_metrics, config)
     selected_frames.append(stability_selected)
 
@@ -619,6 +663,74 @@ def _build_decision_outputs(
 
     selected_decisions = pd.concat(selected_frames, ignore_index=True)
     return _evaluate_selected_decisions(selected_decisions, config)
+
+
+def _simple_ensemble_selection(test_forecasts: pd.DataFrame) -> pd.DataFrame:
+    """Return an equal-weight average of candidate forecasts."""
+    base_columns = ["date", "series_id", "family", "store_nbr", "actual", "split", "horizon", "safety_stock"]
+    ensemble = (
+        test_forecasts.groupby(base_columns, dropna=False)
+        .agg(forecast=("forecast", "mean"))
+        .reset_index()
+    )
+    ensemble["model_name"] = "simple_ensemble"
+    ensemble["selected_model"] = "simple_ensemble"
+    ensemble["strategy"] = "simple_ensemble"
+    return ensemble
+
+
+def _best_inventory_cost_selection(
+    test_forecasts: pd.DataFrame,
+    all_forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+) -> pd.DataFrame:
+    """Select the validation model with the lowest inventory cost per demand unit."""
+    expected_losses = _validation_expected_planning_losses(all_forecasts, modeling_table, config)
+    global_losses = _global_validation_expected_planning_losses(expected_losses, forecast_metrics)
+    if global_losses:
+        best_model = min(
+            global_losses.items(),
+            key=lambda item: (float(item[1].get("inventory_cost_per_demand_unit", np.inf)), item[0]),
+        )[0]
+    else:
+        validation_metrics = forecast_metrics[forecast_metrics["split"] == "validation"].copy()
+        best_model = validation_metrics.sort_values("weighted_absolute_percentage_error").iloc[0]["model_name"]
+    selected = test_forecasts[test_forecasts["model_name"] == best_model].copy()
+    selected["strategy"] = "best_inventory_cost_model"
+    selected["selected_model"] = best_model
+    return selected
+
+
+def _best_stability_selection(
+    test_forecasts: pd.DataFrame,
+    all_forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    fallback_model: str,
+    config: Mapping[str, object],
+) -> pd.DataFrame:
+    """Select the validation model with the lowest planning-signal volatility."""
+    stability = _validation_stability_by_model(all_forecasts, modeling_table, config)
+    if stability.empty:
+        best_model = fallback_model
+    else:
+        best_model = stability.sort_values(["planning_signal_volatility_total", "model_name"]).iloc[0]["model_name"]
+    selected = test_forecasts[test_forecasts["model_name"] == best_model].copy()
+    selected["strategy"] = "best_stability_model"
+    selected["selected_model"] = best_model
+    return selected
+
+
+def _oracle_realized_demand_selection(test_forecasts: pd.DataFrame) -> pd.DataFrame:
+    """Return a non-deployable realized-demand upper bound for comparison."""
+    base_columns = ["date", "series_id", "family", "store_nbr", "actual", "split", "horizon", "safety_stock"]
+    oracle = test_forecasts[base_columns].drop_duplicates(["date", "series_id"]).copy()
+    oracle["forecast"] = oracle["actual"]
+    oracle["model_name"] = "oracle_realized_demand"
+    oracle["selected_model"] = "oracle_realized_demand"
+    oracle["strategy"] = "oracle_realized_demand"
+    return oracle
 
 
 def _family_best_models(forecasts: pd.DataFrame, global_best_model: str) -> Dict[str, str]:
@@ -919,6 +1031,43 @@ def _global_validation_expected_planning_losses(
     return output
 
 
+def _validation_stability_by_model(
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    config: Mapping[str, object],
+) -> pd.DataFrame:
+    """Return validation planning-signal volatility by model."""
+    validation = forecasts[forecasts["split"] == "validation"].copy()
+    if validation.empty:
+        return pd.DataFrame(columns=["model_name", "planning_signal_volatility_total"])
+    safety_lookup = modeling_table[modeling_table["split"] == "validation"][
+        ["date", "series_id", "demand_rolling_std_28"]
+    ].copy()
+    safety_multiplier = float(config.get("favorita_pipeline", {}).get("safety_stock_multiplier", 0.5))
+    safety_lookup["safety_stock"] = (
+        pd.to_numeric(safety_lookup["demand_rolling_std_28"], errors="coerce").fillna(0.0) * safety_multiplier
+    ).clip(lower=0.0)
+    validation = validation.merge(
+        safety_lookup[["date", "series_id", "safety_stock"]],
+        on=["date", "series_id"],
+        how="left",
+    )
+    validation["safety_stock"] = validation["safety_stock"].fillna(0.0)
+    validation["planning_signal"] = forecast_to_inventory_target(validation["forecast"], validation["safety_stock"])
+    records = []
+    for model_name, model_group in validation.groupby("model_name"):
+        total_volatility = 0.0
+        for _, series_group in model_group.sort_values(["series_id", "date"]).groupby("series_id"):
+            total_volatility += float(np.sum(compute_percentage_plan_change(series_group["planning_signal"])))
+        records.append(
+            {
+                "model_name": model_name,
+                "planning_signal_volatility_total": total_volatility,
+            }
+        )
+    return pd.DataFrame(records)
+
+
 def _family_model_validation_losses(forecasts: pd.DataFrame) -> Dict[Tuple[str, str], float]:
     """Return validation WAPE by family and model."""
     validation = forecasts[forecasts["split"] == "validation"].copy()
@@ -1058,14 +1207,686 @@ def _summarize_planning_utility(decisions: pd.DataFrame, loss_weights: Mapping[s
                 "total_inventory_cost": float(group["total_inventory_cost"].sum()),
                 "planning_signal_volatility_total": float(group["plan_change_pct"].sum()),
                 "model_switching_cost_total": float(group["model_switch_flag"].sum()),
+                "model_switch_count": int(group["model_switch_flag"].sum()),
                 "execution_adaptation_penalty_total": float(group["execution_adaptation_penalty"].sum()),
                 "total_planning_loss": total_loss,
                 "service_level": compute_service_level(group["inventory_target"], actual),
                 "large_jump_rate": float(group["large_jump_flag"].mean()),
                 "execution_violation_rate": float(group["execution_violation"].mean()),
+                "max_period_plan_change_pct": float(group["plan_change_pct"].max()),
             }
         )
     return pd.DataFrame(records).sort_values("total_planning_loss")
+
+
+def _run_baseline_and_execution_risk_outputs(
+    decisions: pd.DataFrame,
+    config: Mapping[str, object],
+    run_mode: str,
+    output_table_dir: Path,
+    output_figure_dir: Path,
+    paper_table_dir: Path,
+    paper_figure_dir: Path,
+    logger: logging.Logger,
+) -> Tuple[List[Path], List[Path]]:
+    """Export baseline comparisons, normalized loss audits, and risk scenarios."""
+    table_assets: List[Path] = []
+    figure_assets: List[Path] = []
+    weights = config.get("planning_loss_weights", {})
+    baseline_summary, reference_values, scale_audit = _baseline_normalized_summary(decisions, weights, run_mode)
+    baseline_comparison = _baseline_comparison_table(baseline_summary)
+
+    table_assets.append(
+        _save_output_and_paper_table(
+            baseline_comparison,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="favorita_baseline_weights_comparison",
+            paper_stem="favorita_baseline_weights_comparison_table",
+            caption="Favorita baseline-weight comparison with normalized planning loss.",
+            label="tab:favorita-baseline-weights-comparison",
+            resize_to_textwidth=True,
+        )
+    )
+    table_assets.append(
+        _save_output_and_paper_table(
+            scale_audit,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="favorita_loss_component_scale_audit",
+            paper_stem="favorita_loss_component_scale_audit_table",
+            caption="Loss-component scale audit for normalized planning loss.",
+            label="tab:favorita-loss-component-scale-audit",
+            resize_to_textwidth=True,
+        )
+    )
+    table_assets.append(
+        _save_output_and_paper_table(
+            reference_values,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="normalization_reference_values",
+            paper_stem="normalization_reference_values_table",
+            caption="Normalization reference values for the Favorita comparison split.",
+            label="tab:normalization-reference-values",
+            resize_to_textwidth=True,
+        )
+    )
+    _save_baseline_weights_tradeoff_plot(
+        baseline_comparison,
+        output_figure_dir / "favorita_baseline_weights_tradeoff.png",
+        paper_figure_dir / "favorita_baseline_weights_tradeoff.pdf",
+    )
+    figure_assets.append(paper_figure_dir / "favorita_baseline_weights_tradeoff.pdf")
+
+    dataco_percentiles, dataco_calibration, dataco_context_rates = _compute_dataco_execution_risk_tables(config, logger)
+    table_assets.append(
+        _save_output_and_paper_table(
+            dataco_percentiles,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="dataco_execution_risk_percentiles",
+            paper_stem="dataco_execution_risk_percentiles_table",
+            caption="DataCo late-delivery risk percentiles used as execution-risk anchors.",
+            label="tab:dataco-execution-risk-percentiles",
+            resize_to_textwidth=True,
+        )
+    )
+    table_assets.append(
+        _save_output_and_paper_table(
+            dataco_calibration,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="dataco_execution_risk_calibration",
+            paper_stem="dataco_execution_risk_calibration_table",
+            caption="DataCo execution-risk calibration audit.",
+            label="tab:dataco-execution-risk-calibration",
+            resize_to_textwidth=True,
+        )
+    )
+    _save_dataco_context_risk_plot(
+        dataco_context_rates,
+        output_figure_dir / "dataco_late_delivery_risk_by_context.png",
+        paper_figure_dir / "dataco_late_delivery_risk_by_context.pdf",
+    )
+    figure_assets.append(paper_figure_dir / "dataco_late_delivery_risk_by_context.pdf")
+
+    scenario_table = _generate_execution_risk_scenario_table(dataco_percentiles, config, logger)
+    table_assets.append(
+        _save_output_and_paper_table(
+            scenario_table,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="generated_execution_risk_scenarios",
+            paper_stem="generated_execution_risk_scenarios_table",
+            caption="Generated execution-risk scenarios for DataCo-informed re-evaluation.",
+            label="tab:generated-execution-risk-scenarios",
+            resize_to_textwidth=True,
+        )
+    )
+    _save_lambda_scenarios_plot(
+        scenario_table,
+        output_figure_dir / "dataco_execution_lambda_scenarios.png",
+        paper_figure_dir / "dataco_execution_lambda_scenarios.pdf",
+    )
+    figure_assets.append(paper_figure_dir / "dataco_execution_lambda_scenarios.pdf")
+
+    scenario_results = _evaluate_dataco_informed_scenarios(decisions, scenario_table, config, run_mode)
+    rank_reordering = _build_strategy_rank_reordering_by_weight(scenario_results)
+    objective_ranking = _build_model_ranking_by_objective(scenario_results)
+    table_assets.append(
+        _save_output_and_paper_table(
+            scenario_results,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="favorita_dataco_informed_weight_sensitivity",
+            paper_stem="favorita_dataco_informed_weight_sensitivity_table",
+            caption="Favorita re-evaluation under generated DataCo-informed execution-risk scenarios.",
+            label="tab:favorita-dataco-informed-weight-sensitivity",
+            resize_to_textwidth=True,
+        )
+    )
+    table_assets.append(
+        _save_output_and_paper_table(
+            rank_reordering,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="favorita_strategy_rank_reordering_by_weight",
+            paper_stem="favorita_strategy_rank_reordering_by_weight_table",
+            caption="Strategy rank reordering as execution-risk sensitivity changes.",
+            label="tab:favorita-strategy-rank-reordering-by-weight",
+            resize_to_textwidth=True,
+        )
+    )
+    table_assets.append(
+        _save_output_and_paper_table(
+            objective_ranking,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="favorita_model_ranking_by_objective",
+            paper_stem="favorita_model_ranking_by_objective_table",
+            caption="Favorita model ranking by objective and execution-risk scenario.",
+            label="tab:favorita-model-ranking-by-objective",
+            paper_data=_compact_objective_ranking_table(objective_ranking),
+            resize_to_textwidth=True,
+        )
+    )
+
+    _save_strategy_rank_by_execution_weight_plot(
+        scenario_results,
+        output_figure_dir / "favorita_strategy_rank_by_execution_weight.png",
+        paper_figure_dir / "favorita_strategy_rank_by_execution_weight.pdf",
+    )
+    _save_scenario_metric_plot(
+        scenario_results,
+        metric_column="normalized_total_loss",
+        y_label="Normalized Total Loss",
+        png_path=output_figure_dir / "favorita_normalized_loss_by_execution_scenario.png",
+        pdf_path=paper_figure_dir / "favorita_normalized_loss_by_execution_scenario.pdf",
+    )
+    _save_scenario_metric_plot(
+        scenario_results,
+        metric_column="execution_penalty",
+        y_label="Execution Penalty",
+        png_path=output_figure_dir / "favorita_execution_penalty_by_execution_scenario.png",
+        pdf_path=paper_figure_dir / "favorita_execution_penalty_by_execution_scenario.pdf",
+    )
+    _save_rank_reordering_by_execution_weight_plot(
+        rank_reordering,
+        output_figure_dir / "favorita_rank_reordering_by_execution_weight.png",
+        paper_figure_dir / "favorita_rank_reordering_by_execution_weight.pdf",
+    )
+    _save_model_rank_reordering_plot(
+        objective_ranking,
+        output_figure_dir / "favorita_model_rank_reordering.png",
+        paper_figure_dir / "favorita_model_rank_reordering.pdf",
+    )
+    figure_assets.extend(
+        [
+            paper_figure_dir / "favorita_strategy_rank_by_execution_weight.pdf",
+            paper_figure_dir / "favorita_normalized_loss_by_execution_scenario.pdf",
+            paper_figure_dir / "favorita_execution_penalty_by_execution_scenario.pdf",
+            paper_figure_dir / "favorita_rank_reordering_by_execution_weight.pdf",
+            paper_figure_dir / "favorita_model_rank_reordering.pdf",
+        ]
+    )
+    return table_assets, figure_assets
+
+
+def _baseline_normalized_summary(
+    decisions: pd.DataFrame,
+    weights: Mapping[str, float],
+    run_mode: str,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Return baseline strategy summary with normalized loss and audit tables."""
+    summary = _summarize_planning_utility(decisions, weights)
+    summary, reference_values, scale_audit = add_normalized_planning_loss(
+        summary,
+        weights,
+        dataset_name="favorita",
+        run_mode=run_mode,
+        split_name="test",
+    )
+    return summary, reference_values, scale_audit
+
+
+def _baseline_comparison_table(summary: pd.DataFrame) -> pd.DataFrame:
+    """Build the requested baseline comparison table."""
+    table = summary[summary["strategy"].isin(BASELINE_COMPARISON_STRATEGIES)].copy()
+    table["method_name"] = table["strategy"].map(_short_strategy_label)
+    table["WAPE"] = table["weighted_absolute_percentage_error"]
+    table["inventory_cost"] = table["total_inventory_cost"]
+    table["planning_volatility"] = table["planning_signal_volatility_total"]
+    table["execution_penalty"] = table["execution_adaptation_penalty_total"]
+    table["model_switch_count"] = table["model_switch_count"].astype(int)
+    oracle_loss = table.loc[table["strategy"] == "oracle_realized_demand", "normalized_total_loss"]
+    oracle_value = float(oracle_loss.iloc[0]) if not oracle_loss.empty else np.nan
+    table["gap_to_oracle"] = table["normalized_total_loss"] - oracle_value
+    table["non_deployable_upper_bound"] = table["strategy"] == "oracle_realized_demand"
+    output_columns = [
+        "method_name",
+        "strategy",
+        "non_deployable_upper_bound",
+        "WAPE",
+        "inventory_cost",
+        "planning_volatility",
+        "execution_penalty",
+        "execution_violation_rate",
+        "model_switch_count",
+        "max_period_plan_change_pct",
+        "raw_total_planning_loss",
+        "normalized_inventory_component",
+        "normalized_volatility_component",
+        "normalized_execution_component",
+        "normalized_switch_component",
+        "normalized_total_loss",
+        "gap_to_oracle",
+    ]
+    return table[output_columns].sort_values(["normalized_total_loss", "method_name"]).reset_index(drop=True)
+
+
+def _compute_dataco_execution_risk_tables(
+    config: Mapping[str, object],
+    logger: logging.Logger,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Compute DataCo late-delivery risk percentiles and calibration tables."""
+    dataco_dir = Path(config.get("data", {}).get("raw_data_dir", "data/raw")) / "dataco"
+    try:
+        orders = load_dataco_orders(raw_data_dir=dataco_dir)
+    except Exception as exc:  # pragma: no cover - exercised when local raw data is absent.
+        logger.warning(
+            "DataCo-derived execution scenarios could not be computed. Falling back to configured default scenario values."
+        )
+        reason = "DataCo orders could not be loaded from {}: {}".format(dataco_dir, exc)
+        return _fallback_dataco_risk_tables(reason)
+
+    if "late_delivery_risk" not in orders.columns or orders["late_delivery_risk"].dropna().empty:
+        logger.warning(
+            "DataCo-derived execution scenarios could not be computed. Falling back to configured default scenario values."
+        )
+        return _fallback_dataco_risk_tables("The late_delivery_risk field is unavailable or empty.")
+
+    orders["late_delivery_risk"] = pd.to_numeric(orders["late_delivery_risk"], errors="coerce")
+    context_rates = _dataco_context_late_delivery_rates(orders)
+    if context_rates.empty:
+        logger.warning(
+            "DataCo-derived execution scenarios could not be computed. Falling back to configured default scenario values."
+        )
+        return _fallback_dataco_risk_tables("No context-level late delivery rates could be computed.")
+
+    percentiles = []
+    for percentile in [30, 50, 75, 95]:
+        percentiles.append(
+            {
+                "percentile_name": "p{}_late_delivery_rate".format(percentile),
+                "percentile": percentile,
+                "late_delivery_rate": float(np.percentile(context_rates["late_delivery_rate"], percentile)),
+                "source": "dataco_derived",
+                "fallback_used": False,
+                "fallback_reason": "",
+            }
+        )
+    percentile_table = pd.DataFrame(percentiles)
+    calibration = _dataco_calibration_table(orders, context_rates, percentile_table)
+    return percentile_table, calibration, context_rates
+
+
+def _fallback_dataco_risk_tables(reason: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Return explicit fallback audit tables when DataCo risk cannot be computed."""
+    percentile_table = pd.DataFrame(
+        [
+            {
+                "percentile_name": "p{}_late_delivery_rate".format(percentile),
+                "percentile": percentile,
+                "late_delivery_rate": np.nan,
+                "source": "config_fallback",
+                "fallback_used": True,
+                "fallback_reason": reason,
+            }
+            for percentile in [30, 50, 75, 95]
+        ]
+    )
+    calibration = pd.DataFrame(
+        [
+            {
+                "metric_name": "dataco_execution_risk_status",
+                "metric_value": np.nan,
+                "metric_unit": "not_available",
+                "context_type": "dataset",
+                "source": "config_fallback",
+                "fallback_used": True,
+                "notes": reason,
+            }
+        ]
+    )
+    context_rates = pd.DataFrame(
+        columns=["context_type", "context_value", "row_count", "late_delivery_rate"]
+    )
+    return percentile_table, calibration, context_rates
+
+
+def _dataco_context_late_delivery_rates(orders: pd.DataFrame) -> pd.DataFrame:
+    """Return context-level late-delivery rates for available DataCo fields."""
+    context_columns = [
+        ("shipping_mode", "shipping_mode"),
+        ("market", "market"),
+        ("region", "order_region"),
+        ("country", "order_country"),
+        ("product_category", "category_name" if "category_name" in orders.columns else "category_id"),
+    ]
+    frames = []
+    for context_type, column in context_columns:
+        if column not in orders.columns:
+            continue
+        grouped = (
+            orders.groupby(column, dropna=False)
+            .agg(row_count=("late_delivery_risk", "size"), late_delivery_rate=("late_delivery_risk", "mean"))
+            .reset_index()
+            .rename(columns={column: "context_value"})
+        )
+        grouped["context_type"] = context_type
+        frames.append(grouped[["context_type", "context_value", "row_count", "late_delivery_rate"]])
+    if not frames:
+        return pd.DataFrame(columns=["context_type", "context_value", "row_count", "late_delivery_rate"])
+    return pd.concat(frames, ignore_index=True).dropna(subset=["late_delivery_rate"])
+
+
+def _dataco_calibration_table(
+    orders: pd.DataFrame,
+    context_rates: pd.DataFrame,
+    percentile_table: pd.DataFrame,
+) -> pd.DataFrame:
+    """Return a compact audit table for DataCo execution-risk calibration."""
+    records = [
+        {
+            "metric_name": "global_late_delivery_rate",
+            "metric_value": float(orders["late_delivery_risk"].mean()),
+            "metric_unit": "rate",
+            "context_type": "dataset",
+            "source": "dataco_derived",
+            "fallback_used": False,
+            "notes": "Computed from the local DataCo late_delivery_risk field.",
+        },
+        {
+            "metric_name": "context_rate_count",
+            "metric_value": float(len(context_rates)),
+            "metric_unit": "count",
+            "context_type": "all_contexts",
+            "source": "dataco_derived",
+            "fallback_used": False,
+            "notes": "Number of context-level late-delivery rates used for percentile anchors.",
+        },
+    ]
+    for row in percentile_table.itertuples(index=False):
+        records.append(
+            {
+                "metric_name": row.percentile_name,
+                "metric_value": float(row.late_delivery_rate),
+                "metric_unit": "rate",
+                "context_type": "context_distribution",
+                "source": "dataco_derived",
+                "fallback_used": False,
+                "notes": "Percentile of late-delivery rates across available DataCo contexts.",
+            }
+        )
+    if "shipment_delay_days" in orders.columns:
+        delay = pd.to_numeric(orders["shipment_delay_days"], errors="coerce").dropna()
+        if not delay.empty:
+            records.extend(
+                [
+                    {
+                        "metric_name": "mean_delay_days",
+                        "metric_value": float(delay.mean()),
+                        "metric_unit": "days",
+                        "context_type": "dataset",
+                        "source": "dataco_derived",
+                        "fallback_used": False,
+                        "notes": "Computed from actual minus scheduled shipping days.",
+                    },
+                    {
+                        "metric_name": "p95_delay_days",
+                        "metric_value": float(np.percentile(delay, 95)),
+                        "metric_unit": "days",
+                        "context_type": "dataset",
+                        "source": "dataco_derived",
+                        "fallback_used": False,
+                        "notes": "Computed from actual minus scheduled shipping days.",
+                    },
+                ]
+            )
+    order_value_column = "sales" if "sales" in orders.columns else None
+    if order_value_column is not None:
+        values = pd.to_numeric(orders[order_value_column], errors="coerce").fillna(0.0)
+        late_mask = orders["late_delivery_risk"].fillna(0.0) > 0
+        records.append(
+            {
+                "metric_name": "order_value_at_risk",
+                "metric_value": float(values[late_mask].sum()),
+                "metric_unit": "sales_value",
+                "context_type": "dataset",
+                "source": "dataco_derived",
+                "fallback_used": False,
+                "notes": "Total sales value attached to rows marked as late-delivery risk.",
+            }
+        )
+    return pd.DataFrame(records)
+
+
+def build_execution_risk_scenarios(
+    risk_percentiles: Mapping[int, float],
+    base_lambda: float,
+    risk_sensitivity: float,
+    min_lambda: float,
+    max_lambda: float,
+    percentile_anchors: Optional[Mapping[str, int]] = None,
+) -> Dict[str, Dict[str, object]]:
+    """Generate execution-risk scenarios from late-delivery percentile anchors."""
+    anchors = percentile_anchors or {
+        "dataco_low": 30,
+        "dataco_median": 50,
+        "dataco_high": 75,
+        "dataco_severe": 95,
+    }
+    formula = "lambda_execution = clip(base_lambda + risk_sensitivity * late_delivery_rate_anchor, min_lambda, max_lambda)"
+    scenarios: Dict[str, Dict[str, object]] = {
+        "baseline": {
+            "scenario_name": "baseline",
+            "percentile_anchor": 0,
+            "late_delivery_rate_anchor": 0.0,
+            "lambda_execution": float(np.clip(base_lambda, min_lambda, max_lambda)),
+            "mapping_formula": formula,
+            "source": "dataco_derived",
+            "fallback_used": False,
+        }
+    }
+    for scenario_name, percentile in anchors.items():
+        anchor_value = float(risk_percentiles[int(percentile)])
+        scenarios[scenario_name] = {
+            "scenario_name": scenario_name,
+            "percentile_anchor": int(percentile),
+            "late_delivery_rate_anchor": anchor_value,
+            "lambda_execution": float(np.clip(base_lambda + risk_sensitivity * anchor_value, min_lambda, max_lambda)),
+            "mapping_formula": formula,
+            "source": "dataco_derived",
+            "fallback_used": False,
+        }
+    return scenarios
+
+
+def _generate_execution_risk_scenario_table(
+    percentile_table: pd.DataFrame,
+    config: Mapping[str, object],
+    logger: logging.Logger,
+) -> pd.DataFrame:
+    """Return generated DataCo-informed or fallback execution-risk scenarios."""
+    mapping_config = config.get("execution_risk_scenario_mapping", {})
+    fallback_config = config.get("execution_risk_scenarios_fallback", {})
+    percentile_anchors = mapping_config.get(
+        "percentile_anchors",
+        {"dataco_low": 30, "dataco_median": 50, "dataco_high": 75, "dataco_severe": 95},
+    )
+    usable_percentiles = {
+        int(row.percentile): float(row.late_delivery_rate)
+        for row in percentile_table.itertuples(index=False)
+        if not bool(row.fallback_used) and pd.notna(row.late_delivery_rate)
+    }
+    if usable_percentiles and all(int(value) in usable_percentiles for value in percentile_anchors.values()):
+        scenarios = build_execution_risk_scenarios(
+            usable_percentiles,
+            base_lambda=float(mapping_config.get("base_lambda", 0.05)),
+            risk_sensitivity=float(mapping_config.get("risk_sensitivity", 0.50)),
+            min_lambda=float(mapping_config.get("min_lambda", 0.05)),
+            max_lambda=float(mapping_config.get("max_lambda", 0.60)),
+            percentile_anchors=percentile_anchors,
+        )
+        return pd.DataFrame([scenarios[name] for name in ["baseline"] + list(percentile_anchors.keys())])
+
+    logger.warning(
+        "DataCo-derived execution scenarios could not be computed. Falling back to configured default scenario values."
+    )
+    records = []
+    formula = "Configured fallback lambda_execution values were used because DataCo anchors were unavailable."
+    for scenario_name in ["baseline", "dataco_low", "dataco_median", "dataco_high", "dataco_severe"]:
+        records.append(
+            {
+                "scenario_name": scenario_name,
+                "percentile_anchor": percentile_anchors.get(scenario_name, 0),
+                "late_delivery_rate_anchor": np.nan,
+                "lambda_execution": float(fallback_config.get(scenario_name, {}).get("lambda_execution", 0.10)),
+                "mapping_formula": formula,
+                "source": "config_fallback",
+                "fallback_used": True,
+            }
+        )
+    return pd.DataFrame(records)
+
+
+def _evaluate_dataco_informed_scenarios(
+    decisions: pd.DataFrame,
+    scenario_table: pd.DataFrame,
+    config: Mapping[str, object],
+    run_mode: str,
+) -> pd.DataFrame:
+    """Re-evaluate baseline strategies under generated execution-risk weights."""
+    rows = []
+    base_weights = config.get("planning_loss_weights", {})
+    for scenario in scenario_table.itertuples(index=False):
+        scenario_weights = dict(base_weights)
+        scenario_weights["lambda_execution"] = float(scenario.lambda_execution)
+        summary = _summarize_planning_utility(decisions, scenario_weights)
+        summary, _, _ = add_normalized_planning_loss(
+            summary,
+            scenario_weights,
+            dataset_name="favorita",
+            run_mode=run_mode,
+            split_name="test",
+        )
+        summary = summary[summary["strategy"].isin(BASELINE_COMPARISON_STRATEGIES)].copy()
+        summary["scenario_name"] = scenario.scenario_name
+        summary["lambda_execution"] = float(scenario.lambda_execution)
+        summary["late_delivery_rate_anchor"] = scenario.late_delivery_rate_anchor
+        summary["source"] = scenario.source
+        summary["fallback_used"] = bool(scenario.fallback_used)
+        summary["method_name"] = summary["strategy"].map(_short_strategy_label)
+        summary["WAPE"] = summary["weighted_absolute_percentage_error"]
+        summary["inventory_cost"] = summary["total_inventory_cost"]
+        summary["planning_volatility"] = summary["planning_signal_volatility_total"]
+        summary["execution_penalty"] = summary["execution_adaptation_penalty_total"]
+        summary["rank_by_normalized_total_loss"] = summary["normalized_total_loss"].rank(method="min").astype(int)
+        summary["rank_by_WAPE"] = summary["WAPE"].rank(method="min").astype(int)
+        summary["rank_by_execution_penalty"] = summary["execution_penalty"].rank(method="min").astype(int)
+        rows.append(summary)
+    result = pd.concat(rows, ignore_index=True)
+    output_columns = [
+        "scenario_name",
+        "lambda_execution",
+        "late_delivery_rate_anchor",
+        "source",
+        "fallback_used",
+        "method_name",
+        "strategy",
+        "WAPE",
+        "inventory_cost",
+        "planning_volatility",
+        "execution_penalty",
+        "execution_violation_rate",
+        "model_switch_count",
+        "normalized_inventory_component",
+        "normalized_volatility_component",
+        "normalized_execution_component",
+        "normalized_switch_component",
+        "normalized_total_loss",
+        "raw_total_planning_loss",
+        "rank_by_normalized_total_loss",
+        "rank_by_WAPE",
+        "rank_by_execution_penalty",
+    ]
+    return result[output_columns].sort_values(["scenario_name", "rank_by_normalized_total_loss", "method_name"])
+
+
+def _build_strategy_rank_reordering_by_weight(scenario_results: pd.DataFrame) -> pd.DataFrame:
+    """Summarize normalized-loss rank changes across execution-risk scenarios."""
+    baseline = scenario_results[scenario_results["scenario_name"] == "baseline"][
+        ["strategy", "rank_by_normalized_total_loss"]
+    ].rename(columns={"rank_by_normalized_total_loss": "baseline_rank_by_normalized_total_loss"})
+    table = scenario_results.merge(baseline, on="strategy", how="left")
+    table["rank_change_vs_baseline"] = (
+        table["rank_by_normalized_total_loss"] - table["baseline_rank_by_normalized_total_loss"]
+    )
+    return table[
+        [
+            "scenario_name",
+            "lambda_execution",
+            "method_name",
+            "strategy",
+            "rank_by_normalized_total_loss",
+            "baseline_rank_by_normalized_total_loss",
+            "rank_change_vs_baseline",
+            "normalized_total_loss",
+        ]
+    ].sort_values(["scenario_name", "rank_by_normalized_total_loss", "method_name"])
+
+
+def _build_model_ranking_by_objective(scenario_results: pd.DataFrame) -> pd.DataFrame:
+    """Return ranks by objective for every execution-risk scenario."""
+    records = []
+    for scenario_name, group in scenario_results.groupby("scenario_name", sort=False):
+        for objective_name, metric_column, ascending in RANKING_OBJECTIVES:
+            ranks = group[metric_column].rank(method="min", ascending=ascending).astype(int)
+            for (_, row), rank in zip(group.iterrows(), ranks):
+                records.append(
+                    {
+                        "scenario_name": scenario_name,
+                        "lambda_execution": float(row["lambda_execution"]),
+                        "objective_name": objective_name,
+                        "method_name": row["method_name"],
+                        "strategy": row["strategy"],
+                        "metric_value": float(row[metric_column]),
+                        "objective_rank": int(rank),
+                    }
+                )
+    return pd.DataFrame(records).sort_values(["scenario_name", "objective_name", "objective_rank", "method_name"])
+
+
+def _compact_objective_ranking_table(objective_ranking: pd.DataFrame) -> pd.DataFrame:
+    """Return a compact paper table with the top method per objective."""
+    compact = objective_ranking[objective_ranking["objective_rank"] == 1].copy()
+    return compact[
+        [
+            "scenario_name",
+            "lambda_execution",
+            "objective_name",
+            "method_name",
+            "metric_value",
+            "objective_rank",
+        ]
+    ].sort_values(["scenario_name", "objective_name", "method_name"])
+
+
+def _save_output_and_paper_table(
+    data: pd.DataFrame,
+    output_table_dir: Path,
+    paper_table_dir: Path,
+    output_stem: str,
+    paper_stem: str,
+    caption: str,
+    label: str,
+    paper_data: Optional[pd.DataFrame] = None,
+    resize_to_textwidth: bool = False,
+) -> Path:
+    """Save a raw CSV table and a LaTeX-ready paper table."""
+    output_table_dir.mkdir(parents=True, exist_ok=True)
+    data.to_csv(output_table_dir / "{}.csv".format(output_stem), index=False)
+    exported = export_summary_table(
+        data=data if paper_data is None else paper_data,
+        table_name=paper_stem,
+        output_dir=paper_table_dir,
+        caption=caption,
+        label=label,
+        numeric_precision=3,
+        resize_to_textwidth=resize_to_textwidth,
+    )
+    return exported["tex"]
 
 
 def _run_feasibility_analyses(
@@ -1145,6 +1966,13 @@ def _run_weight_sensitivity_analysis(
         scenario_config = _copy_config_with_updates(config, loss_weights=scenario_weights)
         decisions = _build_decision_outputs(forecasts, modeling_table, forecast_metrics, scenario_config, logger)
         summary = _summarize_planning_utility(decisions, scenario_weights)
+        summary, _, _ = add_normalized_planning_loss(
+            summary,
+            scenario_weights,
+            dataset_name="favorita",
+            run_mode=_normalize_run_mode(config.get("project", {}).get("run_mode", "quick")),
+            split_name="test",
+        )
         summary["scenario_id"] = scenario_id
         summary["lambda_volatility"] = float(lambda_volatility)
         summary["lambda_switch"] = float(lambda_switch)
@@ -1153,13 +1981,13 @@ def _run_weight_sensitivity_analysis(
         summary["beta_inventory"] = float(scenario_weights.get("beta_inventory", 1.0))
         rows.append(summary)
     result = pd.concat(rows, ignore_index=True)
-    result["is_best_total_loss"] = result["total_planning_loss"] == result.groupby("scenario_id")["total_planning_loss"].transform("min")
+    result["is_best_total_loss"] = result["normalized_total_loss"] == result.groupby("scenario_id")["normalized_total_loss"].transform("min")
     global_losses = result[result["strategy"] == "global_best_model"][
-        ["scenario_id", "total_planning_loss"]
-    ].rename(columns={"total_planning_loss": "global_best_total_loss"})
+        ["scenario_id", "normalized_total_loss"]
+    ].rename(columns={"normalized_total_loss": "global_best_total_loss"})
     result = result.merge(global_losses, on="scenario_id", how="left")
-    result["loss_gap_to_global_best"] = result["total_planning_loss"] - result["global_best_total_loss"]
-    return result.sort_values(["scenario_id", "total_planning_loss", "strategy"])
+    result["loss_gap_to_global_best"] = result["normalized_total_loss"] - result["global_best_total_loss"]
+    return result.sort_values(["scenario_id", "normalized_total_loss", "strategy"])
 
 
 def _run_execution_capacity_stress_test(
@@ -1182,15 +2010,29 @@ def _run_execution_capacity_stress_test(
         scenario_config = _copy_config_with_updates(config, max_plan_change_rate=float(max_plan_change_rate))
         decisions = _build_decision_outputs(forecasts, modeling_table, forecast_metrics, scenario_config, logger)
         summary = _summarize_planning_utility(decisions, scenario_config.get("planning_loss_weights", {}))
+        summary, _, _ = add_normalized_planning_loss(
+            summary,
+            scenario_config.get("planning_loss_weights", {}),
+            dataset_name="favorita",
+            run_mode=_normalize_run_mode(config.get("project", {}).get("run_mode", "quick")),
+            split_name="test",
+        )
         summary["capacity_scenario"] = scenario_name
         summary["max_plan_change_rate"] = float(max_plan_change_rate)
         rows.append(summary)
-    return pd.concat(rows, ignore_index=True).sort_values(["capacity_scenario", "total_planning_loss", "strategy"])
+    return pd.concat(rows, ignore_index=True).sort_values(["capacity_scenario", "normalized_total_loss", "strategy"])
 
 
 def _build_pareto_summary(decisions: pd.DataFrame, config: Mapping[str, object]) -> pd.DataFrame:
     """Return a Pareto-style summary over accuracy, cost, stability, and execution."""
     summary = _summarize_planning_utility(decisions, config.get("planning_loss_weights", {}))
+    summary, _, _ = add_normalized_planning_loss(
+        summary,
+        config.get("planning_loss_weights", {}),
+        dataset_name="favorita",
+        run_mode=_normalize_run_mode(config.get("project", {}).get("run_mode", "quick")),
+        split_name="test",
+    )
     objective_columns = [
         "weighted_absolute_percentage_error",
         "total_inventory_cost",
@@ -1200,7 +2042,7 @@ def _build_pareto_summary(decisions: pd.DataFrame, config: Mapping[str, object])
     ]
     summary["pareto_efficient"] = _mark_pareto_efficient(summary, objective_columns)
     summary["dominated"] = ~summary["pareto_efficient"]
-    return summary.sort_values(["pareto_efficient", "total_planning_loss", "strategy"], ascending=[False, True, True])
+    return summary.sort_values(["pareto_efficient", "normalized_total_loss", "strategy"], ascending=[False, True, True])
 
 
 def _mark_pareto_efficient(data: pd.DataFrame, objective_columns: Sequence[str]) -> pd.Series:
@@ -1284,10 +2126,10 @@ def _export_feasibility_latex_tables(
                 "lambda_switch": "Switch Weight",
                 "lambda_execution": "Execution Weight",
                 "best_strategy": "Best Strategy",
-                "global_best_loss": "Global Best Loss",
-                "feasibility_aware_loss": "Feasibility-Aware Loss",
-                "stability_aware_loss": "Stability-Aware Loss",
-                "moving_average_loss": "Moving Avg. Loss",
+                "global_best_loss": "Global Best Normalized Loss",
+                "feasibility_aware_loss": "Feasibility-Aware Normalized Loss",
+                "stability_aware_loss": "Stability-Aware Normalized Loss",
+                "moving_average_loss": "Moving Avg. Normalized Loss",
             },
             resize_to_textwidth=True,
         )["tex"]
@@ -1308,7 +2150,8 @@ def _export_feasibility_latex_tables(
                 "planning_signal_volatility_total": "Volatility Total",
                 "execution_adaptation_penalty_total": "Execution Penalty",
                 "execution_violation_rate": "Violation Rate",
-                "total_planning_loss": "Total Loss",
+                "normalized_total_loss": "Normalized Total Loss",
+                "total_planning_loss": "Raw Total Loss",
                 "service_level": "Service Level",
             },
             resize_to_textwidth=True,
@@ -1342,7 +2185,7 @@ def _compact_weight_sensitivity_table(weight_results: pd.DataFrame) -> pd.DataFr
     records = []
     for scenario_id, group in weight_results.groupby("scenario_id"):
         by_strategy = group.set_index("strategy")
-        best_row = group.sort_values("total_planning_loss").iloc[0]
+        best_row = group.sort_values("normalized_total_loss").iloc[0]
         records.append(
             {
                 "scenario_id": scenario_id,
@@ -1350,10 +2193,10 @@ def _compact_weight_sensitivity_table(weight_results: pd.DataFrame) -> pd.DataFr
                 "lambda_switch": float(best_row["lambda_switch"]),
                 "lambda_execution": float(best_row["lambda_execution"]),
                 "best_strategy": _short_strategy_label(best_row["strategy"]),
-                "global_best_loss": _strategy_metric(by_strategy, "global_best_model", "total_planning_loss"),
-                "feasibility_aware_loss": _strategy_metric(by_strategy, "feasibility_aware_selector", "total_planning_loss"),
-                "stability_aware_loss": _strategy_metric(by_strategy, "stability_aware_selector", "total_planning_loss"),
-                "moving_average_loss": _strategy_metric(by_strategy, "individual_moving_average", "total_planning_loss"),
+                "global_best_loss": _strategy_metric(by_strategy, "global_best_model", "normalized_total_loss"),
+                "feasibility_aware_loss": _strategy_metric(by_strategy, "feasibility_aware_selector", "normalized_total_loss"),
+                "stability_aware_loss": _strategy_metric(by_strategy, "stability_aware_selector", "normalized_total_loss"),
+                "moving_average_loss": _strategy_metric(by_strategy, "individual_moving_average", "normalized_total_loss"),
             }
         )
     return pd.DataFrame(records)
@@ -1371,6 +2214,7 @@ def _compact_strategy_table(data: pd.DataFrame, group_column: str, include_strat
             "planning_signal_volatility_total",
             "execution_adaptation_penalty_total",
             "execution_violation_rate",
+            "normalized_total_loss",
             "total_planning_loss",
             "service_level",
         ]
@@ -1379,9 +2223,9 @@ def _compact_strategy_table(data: pd.DataFrame, group_column: str, include_strat
     if group_column == "capacity_scenario":
         scenario_order = {name: index for index, name in enumerate(_execution_capacity_scenarios({}).keys())}
         table["_scenario_order"] = table[group_column].map(scenario_order)
-        table = table.sort_values(["_scenario_order", "total_planning_loss"]).drop(columns=["_scenario_order"])
+        table = table.sort_values(["_scenario_order", "normalized_total_loss"]).drop(columns=["_scenario_order"])
         return table
-    return table.sort_values([group_column, "total_planning_loss"])
+    return table.sort_values([group_column, "normalized_total_loss"])
 
 
 def _strategy_metric(by_strategy: pd.DataFrame, strategy: str, metric: str) -> float:
@@ -1612,9 +2456,9 @@ def _make_feasibility_figures(
     base_weight_slice = _weight_plot_slice(weight_results)
     _save_weight_sensitivity_plot(
         base_weight_slice,
-        metric_column="total_planning_loss",
-        y_label="Total Planning Loss",
-        title="Weight Sensitivity: Total Loss",
+        metric_column="normalized_total_loss",
+        y_label="Normalized Total Loss",
+        title="Weight Sensitivity: Normalized Loss",
         png_path=output_figure_dir / "plot_weight_sensitivity_total_loss.png",
         pdf_path=paper_figure_dir / "plot_weight_sensitivity_total_loss.pdf",
     )
@@ -1631,9 +2475,9 @@ def _make_feasibility_figures(
 
     _save_capacity_stress_plot(
         capacity_results,
-        metric_column="total_planning_loss",
-        y_label="Total Planning Loss",
-        title="Execution Capacity vs. Total Loss",
+        metric_column="normalized_total_loss",
+        y_label="Normalized Total Loss",
+        title="Execution Capacity vs. Normalized Loss",
         png_path=output_figure_dir / "execution_capacity_vs_total_loss.png",
         pdf_path=paper_figure_dir / "execution_capacity_vs_total_loss.pdf",
     )
@@ -1691,6 +2535,189 @@ def _make_feasibility_figures(
     )
     figure_paths.append(paper_figure_dir / "pareto_inventory_cost_vs_execution_penalty.pdf")
     return figure_paths
+
+
+def _save_baseline_weights_tradeoff_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save baseline WAPE versus normalized planning loss tradeoff."""
+    apply_paper_style()
+    plot_data = data.copy()
+    fig, ax = plt.subplots(figsize=(7.25, 4.35))
+    for index, row in enumerate(plot_data.itertuples(index=False)):
+        strategy = row.strategy
+        ax.scatter(
+            row.WAPE,
+            row.normalized_total_loss,
+            s=46,
+            color=strategy_color(strategy, index),
+            marker=strategy_marker(strategy),
+            edgecolor="white",
+            linewidth=0.55,
+            zorder=3,
+        )
+        ax.annotate(
+            row.method_name,
+            (row.WAPE, row.normalized_total_loss),
+            xytext=(4, 4),
+            textcoords="offset points",
+            fontsize=7.5,
+            color="#333333",
+        )
+    format_axis(
+        ax,
+        x_label="Weighted Absolute Percentage Error",
+        y_label="Normalized Total Loss",
+        grid_axis="both",
+    )
+    save_paper_figure(fig, png_path, pdf_path)
+
+
+def _save_dataco_context_risk_plot(context_rates: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save a DataCo context late-delivery risk figure or an explicit fallback figure."""
+    apply_paper_style()
+    fig, ax = plt.subplots(figsize=(7.25, 4.35))
+    if context_rates.empty:
+        ax.text(
+            0.5,
+            0.5,
+            "DataCo late-delivery contexts were unavailable.\nConfigured fallback execution-risk scenarios were used.",
+            ha="center",
+            va="center",
+            fontsize=9,
+            transform=ax.transAxes,
+        )
+        ax.set_axis_off()
+        save_paper_figure(fig, png_path, pdf_path)
+        return
+    plot_data = context_rates.sort_values("late_delivery_rate", ascending=False).head(20).copy()
+    plot_data["context_label"] = plot_data["context_type"].astype(str) + ": " + plot_data["context_value"].astype(str)
+    ax.barh(plot_data["context_label"], plot_data["late_delivery_rate"], color="#0072B2")
+    ax.invert_yaxis()
+    format_axis(ax, x_label="Late Delivery Rate", y_label="DataCo Context", grid_axis="x")
+    save_paper_figure(fig, png_path, pdf_path)
+
+
+def _save_lambda_scenarios_plot(scenario_table: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save generated execution lambda scenarios."""
+    apply_paper_style()
+    fig, ax = plt.subplots(figsize=(7.25, 4.0))
+    plot_data = scenario_table.copy()
+    positions = np.arange(len(plot_data))
+    colors = ["#0072B2" if source == "dataco_derived" else "#999999" for source in plot_data["source"]]
+    ax.bar(positions, plot_data["lambda_execution"], color=colors)
+    ax.set_xticks(positions)
+    ax.set_xticklabels([str(value).replace("_", "\n") for value in plot_data["scenario_name"]])
+    format_axis(ax, x_label="Execution-Risk Scenario", y_label="Lambda Execution")
+    save_paper_figure(fig, png_path, pdf_path)
+
+
+def _save_strategy_rank_by_execution_weight_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save strategy rank by generated execution weight."""
+    apply_paper_style()
+    fig, ax = plt.subplots(figsize=(7.25, 4.35))
+    plot_data = data[data["strategy"].isin(BASELINE_COMPARISON_STRATEGIES)].copy()
+    for index, strategy in enumerate(BASELINE_COMPARISON_STRATEGIES):
+        strategy_data = plot_data[plot_data["strategy"] == strategy].sort_values("lambda_execution")
+        if strategy_data.empty:
+            continue
+        ax.plot(
+            strategy_data["lambda_execution"],
+            strategy_data["rank_by_normalized_total_loss"],
+            marker=strategy_marker(strategy),
+            color=strategy_color(strategy, index),
+            linestyle=strategy_linestyle(strategy),
+            linewidth=1.7,
+            label=_short_strategy_label(strategy),
+        )
+    ax.invert_yaxis()
+    format_axis(ax, x_label="Lambda Execution", y_label="Rank by Normalized Total Loss")
+    place_legend(ax, columns=4)
+    save_paper_figure(fig, png_path, pdf_path)
+
+
+def _save_scenario_metric_plot(
+    data: pd.DataFrame,
+    metric_column: str,
+    y_label: str,
+    png_path: Path,
+    pdf_path: Path,
+) -> None:
+    """Save a scenario line plot for one metric."""
+    apply_paper_style()
+    fig, ax = plt.subplots(figsize=(7.25, 4.35))
+    plot_data = data[data["strategy"].isin(BASELINE_COMPARISON_STRATEGIES)].copy()
+    scenario_order = list(dict.fromkeys(plot_data["scenario_name"].tolist()))
+    positions = {scenario: index for index, scenario in enumerate(scenario_order)}
+    for index, strategy in enumerate(BASELINE_COMPARISON_STRATEGIES):
+        strategy_data = plot_data[plot_data["strategy"] == strategy].copy()
+        if strategy_data.empty:
+            continue
+        strategy_data["scenario_position"] = strategy_data["scenario_name"].map(positions)
+        strategy_data = strategy_data.sort_values("scenario_position")
+        ax.plot(
+            strategy_data["scenario_position"],
+            strategy_data[metric_column],
+            marker=strategy_marker(strategy),
+            color=strategy_color(strategy, index),
+            linestyle=strategy_linestyle(strategy),
+            linewidth=1.7,
+            label=_short_strategy_label(strategy),
+        )
+    ax.set_xticks(list(positions.values()))
+    ax.set_xticklabels([scenario.replace("_", "\n").title() for scenario in scenario_order])
+    format_axis(ax, x_label="Execution-Risk Scenario", y_label=y_label)
+    place_legend(ax, columns=4)
+    save_paper_figure(fig, png_path, pdf_path)
+
+
+def _save_rank_reordering_by_execution_weight_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save rank change versus baseline by execution weight."""
+    apply_paper_style()
+    fig, ax = plt.subplots(figsize=(7.25, 4.35))
+    for index, strategy in enumerate(BASELINE_COMPARISON_STRATEGIES):
+        strategy_data = data[data["strategy"] == strategy].sort_values("lambda_execution")
+        if strategy_data.empty:
+            continue
+        ax.plot(
+            strategy_data["lambda_execution"],
+            strategy_data["rank_change_vs_baseline"],
+            marker=strategy_marker(strategy),
+            color=strategy_color(strategy, index),
+            linestyle=strategy_linestyle(strategy),
+            linewidth=1.7,
+            label=_short_strategy_label(strategy),
+        )
+    ax.axhline(0, color="#333333", linewidth=0.8)
+    format_axis(ax, x_label="Lambda Execution", y_label="Rank Change versus Baseline")
+    place_legend(ax, columns=4)
+    save_paper_figure(fig, png_path, pdf_path)
+
+
+def _save_model_rank_reordering_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save a heatmap-style view of method ranks across objectives."""
+    apply_paper_style()
+    baseline = data[data["scenario_name"] == "baseline"].copy()
+    if baseline.empty:
+        baseline = data.copy()
+    pivot = baseline.pivot_table(
+        index="method_name",
+        columns="objective_name",
+        values="objective_rank",
+        aggfunc="min",
+    )
+    fig, ax = plt.subplots(figsize=(7.25, 4.35))
+    if sns is not None and not pivot.empty:
+        sns.heatmap(pivot, annot=True, fmt=".0f", cmap="viridis_r", cbar_kws={"label": "Rank"}, ax=ax)
+        ax.set_xlabel("Objective")
+        ax.set_ylabel("Method")
+    else:
+        ax.imshow(pivot.fillna(0).to_numpy(), aspect="auto")
+        ax.set_xticks(np.arange(len(pivot.columns)))
+        ax.set_xticklabels(pivot.columns, rotation=30, ha="right")
+        ax.set_yticks(np.arange(len(pivot.index)))
+        ax.set_yticklabels(pivot.index)
+        ax.set_xlabel("Objective")
+        ax.set_ylabel("Method")
+    save_paper_figure(fig, png_path, pdf_path)
 
 
 def _weight_plot_slice(weight_results: pd.DataFrame) -> pd.DataFrame:
@@ -1948,8 +2975,12 @@ def _short_strategy_label(strategy: str) -> str:
         "individual_global_sklearn": "sklearn",
         "global_best_model": "Global Best",
         "family_best_model": "Family Best",
+        "simple_ensemble": "Simple Ensemble",
+        "best_inventory_cost_model": "Best Inventory",
+        "best_stability_model": "Best Stability",
         "stability_aware_selector": "Stability-Aware",
         "feasibility_aware_selector": "Feasibility-Aware",
+        "oracle_realized_demand": "Oracle",
     }
     return replacements.get(strategy, strategy.replace("_", " ").title())
 

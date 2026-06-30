@@ -42,7 +42,7 @@ def load_dataco_orders(
     later research code can evaluate delivery risk and execution burden without
     repeatedly reconstructing these basics.
     """
-    path = Path(raw_data_dir) / ORDERS_FILE
+    path = _resolve_dataco_file(raw_data_dir, ORDERS_FILE)
     frame = _read_csv_with_fallback_encoding(path, nrows=nrows)
     if normalize_columns:
         frame = normalize_column_names(frame)
@@ -62,7 +62,7 @@ def load_dataco_description(raw_data_dir: PathLike = "data/raw/dataco") -> pd.Da
     field meanings and decide which columns are appropriate for forecasting,
     fulfillment, risk, and planning-stability analyses.
     """
-    path = Path(raw_data_dir) / DESCRIPTION_FILE
+    path = _resolve_dataco_file(raw_data_dir, DESCRIPTION_FILE)
     frame = _read_csv_with_fallback_encoding(path)
     return normalize_column_names(frame)
 
@@ -79,7 +79,7 @@ def load_dataco_access_logs(
     time. Their date range is shorter than the order table, so they should be
     used carefully in experiments.
     """
-    path = Path(raw_data_dir) / ACCESS_LOG_FILE
+    path = _resolve_dataco_file(raw_data_dir, ACCESS_LOG_FILE)
     frame = _read_csv_with_fallback_encoding(path, nrows=nrows)
     if normalize_columns:
         frame = normalize_column_names(frame)
@@ -374,6 +374,18 @@ def to_snake_case(value: str) -> str:
     text = re.sub(r"[^a-z0-9]+", "_", text)
     text = re.sub(r"_+", "_", text).strip("_")
     return text
+
+
+def _resolve_dataco_file(raw_data_dir: PathLike, filename: str) -> Path:
+    """Return a DataCo CSV path, allowing one nested extraction directory."""
+    root = Path(raw_data_dir)
+    direct_path = root / filename
+    if direct_path.exists():
+        return direct_path
+    matches = sorted(root.rglob(filename)) if root.exists() else []
+    if matches:
+        return matches[0]
+    return direct_path
 
 
 def _read_csv_with_fallback_encoding(path: Path, nrows: Optional[int] = None) -> pd.DataFrame:

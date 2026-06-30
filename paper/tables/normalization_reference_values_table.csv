@@ -1,0 +1,2 @@
+dataset_name,run_mode,split_name,reference_strategy,inventory_cost_ref,volatility_ref,execution_penalty_ref,switch_count_ref,fallback_used,fallback_reason
+favorita,quick,test,global_best_model,3010924.926,414.964,546133.345,497.0,True,Reference strategy value was zero or unavailable; used median nonzero strategy value.

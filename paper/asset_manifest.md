@@ -1,21 +1,38 @@
 # Paper Asset Manifest
 
 ## Tables
+- `paper/tables/dataco_execution_risk_calibration_table.tex`
+- `paper/tables/dataco_execution_risk_percentiles_table.tex`
 - `paper/tables/execution_capacity_stress_test.tex`
+- `paper/tables/favorita_baseline_weights_comparison_table.tex`
+- `paper/tables/favorita_dataco_informed_weight_sensitivity_table.tex`
 - `paper/tables/favorita_forecast_metrics_table.tex`
 - `paper/tables/favorita_inventory_metrics_table.tex`
+- `paper/tables/favorita_loss_component_scale_audit_table.tex`
+- `paper/tables/favorita_model_ranking_by_objective_table.tex`
 - `paper/tables/favorita_planning_utility_table.tex`
 - `paper/tables/favorita_stability_metrics_table.tex`
+- `paper/tables/favorita_strategy_rank_reordering_by_weight_table.tex`
+- `paper/tables/generated_execution_risk_scenarios_table.tex`
+- `paper/tables/normalization_reference_values_table.tex`
 - `paper/tables/pareto_summary.tex`
 - `paper/tables/weight_sensitivity_results.tex`
 
 ## Figures
+- `paper/figures/dataco_execution_lambda_scenarios.pdf`
+- `paper/figures/dataco_late_delivery_risk_by_context.pdf`
 - `paper/figures/execution_capacity_vs_inventory_cost.pdf`
 - `paper/figures/execution_capacity_vs_total_loss.pdf`
 - `paper/figures/execution_capacity_vs_violation_rate.pdf`
 - `paper/figures/favorita_accuracy_vs_inventory_cost.pdf`
 - `paper/figures/favorita_accuracy_vs_volatility.pdf`
+- `paper/figures/favorita_baseline_weights_tradeoff.pdf`
 - `paper/figures/favorita_example_planning_signal.pdf`
+- `paper/figures/favorita_execution_penalty_by_execution_scenario.pdf`
+- `paper/figures/favorita_model_rank_reordering.pdf`
+- `paper/figures/favorita_normalized_loss_by_execution_scenario.pdf`
+- `paper/figures/favorita_rank_reordering_by_execution_weight.pdf`
+- `paper/figures/favorita_strategy_rank_by_execution_weight.pdf`
 - `paper/figures/pareto_accuracy_vs_execution_penalty.pdf`
 - `paper/figures/pareto_accuracy_vs_planning_volatility.pdf`
 - `paper/figures/pareto_inventory_cost_vs_execution_penalty.pdf`

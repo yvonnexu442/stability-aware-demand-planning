@@ -71,6 +71,29 @@ feasibility_analysis:
     switch_penalty: 0.02
     minimum_utility_gain: 0.0
 
+execution_risk_scenario_mapping:
+  base_lambda: 0.05
+  risk_sensitivity: 0.50
+  min_lambda: 0.05
+  max_lambda: 0.60
+  percentile_anchors:
+    dataco_low: 30
+    dataco_median: 50
+    dataco_high: 75
+    dataco_severe: 95
+
+execution_risk_scenarios_fallback:
+  baseline:
+    lambda_execution: 0.10
+  dataco_low:
+    lambda_execution: 0.15
+  dataco_median:
+    lambda_execution: 0.25
+  dataco_high:
+    lambda_execution: 0.35
+  dataco_severe:
+    lambda_execution: 0.45
+
 planning:
   safety_stock_method: constant
   service_level_target: 0.95

@@ -1,0 +1,6 @@
+scenario_name,percentile_anchor,late_delivery_rate_anchor,lambda_execution,mapping_formula,source,fallback_used
+baseline,0,0.0,0.05,"lambda_execution = clip(base_lambda + risk_sensitivity * late_delivery_rate_anchor, min_lambda, max_lambda)",dataco_derived,False
+dataco_low,30,0.535,0.318,"lambda_execution = clip(base_lambda + risk_sensitivity * late_delivery_rate_anchor, min_lambda, max_lambda)",dataco_derived,False
+dataco_median,50,0.552,0.326,"lambda_execution = clip(base_lambda + risk_sensitivity * late_delivery_rate_anchor, min_lambda, max_lambda)",dataco_derived,False
+dataco_high,75,0.581,0.341,"lambda_execution = clip(base_lambda + risk_sensitivity * late_delivery_rate_anchor, min_lambda, max_lambda)",dataco_derived,False
+dataco_severe,95,0.901,0.5,"lambda_execution = clip(base_lambda + risk_sensitivity * late_delivery_rate_anchor, min_lambda, max_lambda)",dataco_derived,False

@@ -90,6 +90,92 @@ Results will be inserted after running the Favorita minimal pipeline.
 \label{fig:weight-sensitivity-execution-penalty}
 \end{figure}
 
+\subsection{Baseline Weights and Normalized Loss}
+
+Results will be inserted after reviewing the baseline-weight comparison and normalized-loss audit.
+
+\input{tables/favorita_baseline_weights_comparison_table.tex}
+
+\input{tables/favorita_loss_component_scale_audit_table.tex}
+
+\input{tables/normalization_reference_values_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_baseline_weights_tradeoff.pdf}
+\caption{Favorita baseline-weight tradeoff placeholder.}
+\label{fig:favorita-baseline-weights-tradeoff}
+\end{figure}
+
+\subsection{DataCo Execution-Risk Scenario Generation}
+
+DataCo is used to construct data-informed execution-risk scenarios rather than to directly estimate the exact economic cost of execution violations in the demand-planning datasets. Results will be inserted after reviewing the generated scenario tables.
+
+\input{tables/dataco_execution_risk_percentiles_table.tex}
+
+\input{tables/dataco_execution_risk_calibration_table.tex}
+
+\input{tables/generated_execution_risk_scenarios_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/dataco_late_delivery_risk_by_context.pdf}
+\caption{DataCo late-delivery risk by context placeholder.}
+\label{fig:dataco-late-delivery-risk-context}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/dataco_execution_lambda_scenarios.pdf}
+\caption{Generated execution-risk lambda scenarios placeholder.}
+\label{fig:dataco-execution-lambda-scenarios}
+\end{figure}
+
+\subsection{DataCo-Informed Favorita Re-evaluation}
+
+Normalized planning loss is reported relative to the accuracy-first BestAccuracy baseline, allowing the analysis to show how model rankings change as execution feasibility becomes more important. Final interpretation will be inserted after reviewing the generated outputs.
+
+\input{tables/favorita_dataco_informed_weight_sensitivity_table.tex}
+
+\input{tables/favorita_strategy_rank_reordering_by_weight_table.tex}
+
+\input{tables/favorita_model_ranking_by_objective_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_strategy_rank_by_execution_weight.pdf}
+\caption{Favorita strategy rank by execution weight placeholder.}
+\label{fig:favorita-strategy-rank-execution-weight}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_normalized_loss_by_execution_scenario.pdf}
+\caption{Favorita normalized loss by execution-risk scenario placeholder.}
+\label{fig:favorita-normalized-loss-execution-scenario}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_execution_penalty_by_execution_scenario.pdf}
+\caption{Favorita execution penalty by execution-risk scenario placeholder.}
+\label{fig:favorita-execution-penalty-execution-scenario}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_rank_reordering_by_execution_weight.pdf}
+\caption{Favorita rank reordering by execution weight placeholder.}
+\label{fig:favorita-rank-reordering-execution-weight}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_model_rank_reordering.pdf}
+\caption{Favorita model rank reordering by objective placeholder.}
+\label{fig:favorita-model-rank-reordering}
+\end{figure}
+
 \subsection{Pareto Analysis}
 
 Results will be inserted after running the Favorita minimal pipeline.

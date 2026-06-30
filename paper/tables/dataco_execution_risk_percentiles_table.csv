@@ -1,0 +1,5 @@
+percentile_name,percentile,late_delivery_rate,source,fallback_used,fallback_reason
+p30_late_delivery_rate,30,0.535,dataco_derived,False,
+p50_late_delivery_rate,50,0.552,dataco_derived,False,
+p75_late_delivery_rate,75,0.581,dataco_derived,False,
+p95_late_delivery_rate,95,0.901,dataco_derived,False,

@@ -12,13 +12,19 @@ This subsection will describe candidate forecasting models. Initial models may i
 
 This subsection will describe decision strategies, including forecast pass-through, hard model selection, soft ensemble composition, and stability-aware selection with switching or volatility penalties.
 
+The baseline comparison includes BestAccuracy, Family Best, Feasibility-Aware, Stability-Aware, Simple Ensemble, Best Inventory Cost, Best Stability, and an Oracle upper bound. The Oracle strategy may use realized test-period outcomes and is therefore non-deployable; it is included only as a diagnostic upper bound.
+
 \subsection{Evaluation Metrics}
 
 This subsection will define forecast metrics, inventory metrics, stability metrics, execution adaptation metrics, and the weighted planning utility objective used in the experiments.
 
+Normalized planning loss is reported relative to the accuracy-first BestAccuracy baseline within the same run mode and split. Raw WAPE, inventory cost, planning volatility, execution penalty, violation rate, switch count, and raw total planning loss remain visible in the result tables.
+
 \subsection{Execution Capacity Scenarios}
 
 This subsection will describe execution capacity stress tests. These scenarios evaluate how planning strategies behave when downstream operations can absorb only limited period-to-period plan changes.
+
+DataCo is used to construct data-informed execution-risk scenarios rather than to directly estimate the exact economic cost of execution violations in the demand-planning datasets. When DataCo late-delivery anchors are unavailable, the pipeline records fallback usage and applies configured default scenario values.
 
 \subsection{Policy and Context Drift Scenarios}
 

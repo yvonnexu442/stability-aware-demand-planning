@@ -1,0 +1,44 @@
+\begin{table}
+\centering
+\caption{Favorita model ranking by objective and execution-risk scenario.}
+\label{tab:favorita-model-ranking-by-objective}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrllrr}
+\toprule
+ scenario\_name &  lambda\_execution &            objective\_name &      method\_name &  metric\_value &  objective\_rank \\
+\midrule
+      baseline &             0.050 &                      WAPE &           Oracle &         0.000 &               1 \\
+      baseline &             0.050 &         execution\_penalty &   Best Stability &         0.000 &               1 \\
+      baseline &             0.050 &  execution\_violation\_rate &   Best Stability &         0.000 &               1 \\
+      baseline &             0.050 &            inventory\_cost &           Oracle &   1633182.571 &               1 \\
+      baseline &             0.050 &     normalized\_total\_loss &           Oracle &         1.193 &               1 \\
+      baseline &             0.050 &       planning\_volatility &   Best Stability &        14.814 &               1 \\
+   dataco\_high &             0.341 &                      WAPE &           Oracle &         0.000 &               1 \\
+   dataco\_high &             0.341 &         execution\_penalty &   Best Stability &         0.000 &               1 \\
+   dataco\_high &             0.341 &  execution\_violation\_rate &   Best Stability &         0.000 &               1 \\
+   dataco\_high &             0.341 &            inventory\_cost &           Oracle &   1633182.571 &               1 \\
+   dataco\_high &             0.341 &     normalized\_total\_loss &  Simple Ensemble &         1.459 &               1 \\
+   dataco\_high &             0.341 &       planning\_volatility &   Best Stability &        14.814 &               1 \\
+    dataco\_low &             0.318 &                      WAPE &           Oracle &         0.000 &               1 \\
+    dataco\_low &             0.318 &         execution\_penalty &   Best Stability &         0.000 &               1 \\
+    dataco\_low &             0.318 &  execution\_violation\_rate &   Best Stability &         0.000 &               1 \\
+    dataco\_low &             0.318 &            inventory\_cost &           Oracle &   1633182.571 &               1 \\
+    dataco\_low &             0.318 &     normalized\_total\_loss &  Simple Ensemble &         1.457 &               1 \\
+    dataco\_low &             0.318 &       planning\_volatility &   Best Stability &        14.814 &               1 \\
+ dataco\_median &             0.326 &                      WAPE &           Oracle &         0.000 &               1 \\
+ dataco\_median &             0.326 &         execution\_penalty &   Best Stability &         0.000 &               1 \\
+ dataco\_median &             0.326 &  execution\_violation\_rate &   Best Stability &         0.000 &               1 \\
+ dataco\_median &             0.326 &            inventory\_cost &           Oracle &   1633182.571 &               1 \\
+ dataco\_median &             0.326 &     normalized\_total\_loss &  Simple Ensemble &         1.458 &               1 \\
+ dataco\_median &             0.326 &       planning\_volatility &   Best Stability &        14.814 &               1 \\
+ dataco\_severe &             0.500 &                      WAPE &           Oracle &         0.000 &               1 \\
+ dataco\_severe &             0.500 &         execution\_penalty &   Best Stability &         0.000 &               1 \\
+ dataco\_severe &             0.500 &  execution\_violation\_rate &   Best Stability &         0.000 &               1 \\
+ dataco\_severe &             0.500 &            inventory\_cost &           Oracle &   1633182.571 &               1 \\
+ dataco\_severe &             0.500 &     normalized\_total\_loss &  Simple Ensemble &         1.473 &               1 \\
+ dataco\_severe &             0.500 &       planning\_volatility &   Best Stability &        14.814 &               1 \\
+\bottomrule
+\end{tabular}
+}
+
+\end{table}

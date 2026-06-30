@@ -1,0 +1,31 @@
+scenario_name,lambda_execution,objective_name,method_name,metric_value,objective_rank
+baseline,0.05,WAPE,Oracle,0.0,1
+baseline,0.05,execution_penalty,Best Stability,0.0,1
+baseline,0.05,execution_violation_rate,Best Stability,0.0,1
+baseline,0.05,inventory_cost,Oracle,1633182.571,1
+baseline,0.05,normalized_total_loss,Oracle,1.193,1
+baseline,0.05,planning_volatility,Best Stability,14.814,1
+dataco_high,0.341,WAPE,Oracle,0.0,1
+dataco_high,0.341,execution_penalty,Best Stability,0.0,1
+dataco_high,0.341,execution_violation_rate,Best Stability,0.0,1
+dataco_high,0.341,inventory_cost,Oracle,1633182.571,1
+dataco_high,0.341,normalized_total_loss,Simple Ensemble,1.459,1
+dataco_high,0.341,planning_volatility,Best Stability,14.814,1
+dataco_low,0.318,WAPE,Oracle,0.0,1
+dataco_low,0.318,execution_penalty,Best Stability,0.0,1
+dataco_low,0.318,execution_violation_rate,Best Stability,0.0,1
+dataco_low,0.318,inventory_cost,Oracle,1633182.571,1
+dataco_low,0.318,normalized_total_loss,Simple Ensemble,1.457,1
+dataco_low,0.318,planning_volatility,Best Stability,14.814,1
+dataco_median,0.326,WAPE,Oracle,0.0,1
+dataco_median,0.326,execution_penalty,Best Stability,0.0,1
+dataco_median,0.326,execution_violation_rate,Best Stability,0.0,1
+dataco_median,0.326,inventory_cost,Oracle,1633182.571,1
+dataco_median,0.326,normalized_total_loss,Simple Ensemble,1.458,1
+dataco_median,0.326,planning_volatility,Best Stability,14.814,1
+dataco_severe,0.5,WAPE,Oracle,0.0,1
+dataco_severe,0.5,execution_penalty,Best Stability,0.0,1
+dataco_severe,0.5,execution_violation_rate,Best Stability,0.0,1
+dataco_severe,0.5,inventory_cost,Oracle,1633182.571,1
+dataco_severe,0.5,normalized_total_loss,Simple Ensemble,1.473,1
+dataco_severe,0.5,planning_volatility,Best Stability,14.814,1

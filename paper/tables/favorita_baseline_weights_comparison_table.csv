@@ -1,0 +1,9 @@
+method_name,strategy,non_deployable_upper_bound,WAPE,inventory_cost,planning_volatility,execution_penalty,execution_violation_rate,model_switch_count,max_period_plan_change_pct,raw_total_planning_loss,normalized_inventory_component,normalized_volatility_component,normalized_execution_component,normalized_switch_component,normalized_total_loss,gap_to_oracle
+Simple Ensemble,simple_ensemble,False,0.129,3412038.615,246.143,47421.135,0.066,0,0.578,5104226.251,1.133,0.297,0.087,0.0,1.517,-0.86
+Best Stability,best_stability_model,False,0.188,5263648.54,14.814,0.0,0.0,0,0.184,7650785.842,1.748,0.018,0.0,0.0,1.766,-0.61
+Oracle,oracle_realized_demand,True,0.0,1633182.571,487.867,680523.022,0.345,0,1.351,2313949.526,0.542,0.588,1.246,0.0,2.376,0.0
+Stability-Aware,stability_aware_selector,False,0.113,3251369.903,384.274,402775.817,0.258,213,0.531,5091782.931,1.08,0.463,0.738,0.214,2.495,0.118
+Family Best,family_best_model,False,0.11,3064462.341,411.535,537406.724,0.279,0,0.764,4998825.419,1.018,0.496,0.984,0.0,2.498,0.121
+Best Inventory,best_inventory_cost_model,False,0.109,3010924.926,414.964,546133.345,0.284,0,0.764,4936997.873,1.0,0.5,1.0,0.0,2.5,0.124
+Global Best,global_best_model,False,0.109,3010924.926,414.964,546133.345,0.284,0,0.764,4936997.873,1.0,0.5,1.0,0.0,2.5,0.124
+Feasibility-Aware,feasibility_aware_selector,False,0.116,3375551.068,364.328,365116.914,0.232,781,0.581,5219396.697,1.121,0.439,0.669,0.786,3.014,0.638

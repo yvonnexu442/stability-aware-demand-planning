@@ -1,0 +1,23 @@
+\begin{table}
+\centering
+\caption{DataCo execution-risk calibration audit.}
+\label{tab:dataco-execution-risk-calibration}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrlllll}
+\toprule
+               metric\_name &  metric\_value &  metric\_unit &          context\_type &          source &  fallback\_used &                                              notes \\
+\midrule
+ global\_late\_delivery\_rate &         0.548 &         rate &               dataset &  dataco\_derived &          False &  Computed from the local DataCo late\_delivery\_r... \\
+        context\_rate\_count &       246.000 &        count &          all\_contexts &  dataco\_derived &          False &  Number of context-level late-delivery rates us... \\
+    p30\_late\_delivery\_rate &         0.535 &         rate &  context\_distribution &  dataco\_derived &          False &  Percentile of late-delivery rates across avail... \\
+    p50\_late\_delivery\_rate &         0.552 &         rate &  context\_distribution &  dataco\_derived &          False &  Percentile of late-delivery rates across avail... \\
+    p75\_late\_delivery\_rate &         0.581 &         rate &  context\_distribution &  dataco\_derived &          False &  Percentile of late-delivery rates across avail... \\
+    p95\_late\_delivery\_rate &         0.901 &         rate &  context\_distribution &  dataco\_derived &          False &  Percentile of late-delivery rates across avail... \\
+           mean\_delay\_days &         0.566 &         days &               dataset &  dataco\_derived &          False &  Computed from actual minus scheduled shipping ... \\
+            p95\_delay\_days &         3.000 &         days &               dataset &  dataco\_derived &          False &  Computed from actual minus scheduled shipping ... \\
+       order\_value\_at\_risk &  20126395.265 &  sales\_value &               dataset &  dataco\_derived &          False &  Total sales value attached to rows marked as l... \\
+\bottomrule
+\end{tabular}
+}
+
+\end{table}

@@ -1,0 +1,5 @@
+dataset_name,run_mode,split_name,component_name,raw_min,raw_median,raw_max,reference_strategy,reference_value,component_weight,fallback_used,fallback_reason,normalized_median,normalized_max
+favorita,quick,test,inventory_cost,1633182.571,3313460.486,5430867.016,global_best_model,3010924.926,1.0,False,,1.1,1.804
+favorita,quick,test,planning_volatility,14.814,407.111,516.778,global_best_model,414.964,0.5,False,,0.491,0.623
+favorita,quick,test,execution_penalty,0.0,520583.629,782783.41,global_best_model,546133.345,1.0,False,,0.953,1.433
+favorita,quick,test,model_switch_count,0.0,0.0,781.0,global_best_model,497.0,0.5,True,Reference strategy value was zero or unavailable; used median nonzero strategy value.,0.0,0.786

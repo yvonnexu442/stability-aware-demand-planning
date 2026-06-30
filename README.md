@@ -120,6 +120,15 @@ forecast-driven demand planning as feasibility-constrained model selection. The
 wording is stored in `docs/research_thesis.md` and reflected in the manuscript
 abstract and introduction placeholders.
 
+### Normalized Loss and DataCo-Informed Execution Risk
+
+The pipeline now exports a baseline strategy comparison, normalized planning-loss
+components, normalization reference audits, and DataCo-informed execution-risk
+scenario tables. DataCo late-delivery behavior is used as an empirical anchor
+for execution-risk sensitivity scenarios when local DataCo files are available;
+otherwise, the pipeline records a clear fallback to configured default scenario
+values. The scenario design is documented in `docs/dataco_execution_scenarios.md`.
+
 ## Raw Data Workflow
 
 Raw benchmark datasets are stored under `data/raw/` with one directory per source:

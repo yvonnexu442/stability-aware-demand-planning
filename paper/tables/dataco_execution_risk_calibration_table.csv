@@ -1,0 +1,10 @@
+metric_name,metric_value,metric_unit,context_type,source,fallback_used,notes
+global_late_delivery_rate,0.548,rate,dataset,dataco_derived,False,Computed from the local DataCo late_delivery_risk field.
+context_rate_count,246.0,count,all_contexts,dataco_derived,False,Number of context-level late-delivery rates used for percentile anchors.
+p30_late_delivery_rate,0.535,rate,context_distribution,dataco_derived,False,Percentile of late-delivery rates across available DataCo contexts.
+p50_late_delivery_rate,0.552,rate,context_distribution,dataco_derived,False,Percentile of late-delivery rates across available DataCo contexts.
+p75_late_delivery_rate,0.581,rate,context_distribution,dataco_derived,False,Percentile of late-delivery rates across available DataCo contexts.
+p95_late_delivery_rate,0.901,rate,context_distribution,dataco_derived,False,Percentile of late-delivery rates across available DataCo contexts.
+mean_delay_days,0.566,days,dataset,dataco_derived,False,Computed from actual minus scheduled shipping days.
+p95_delay_days,3.0,days,dataset,dataco_derived,False,Computed from actual minus scheduled shipping days.
+order_value_at_risk,20126395.265,sales_value,dataset,dataco_derived,False,Total sales value attached to rows marked as late-delivery risk.

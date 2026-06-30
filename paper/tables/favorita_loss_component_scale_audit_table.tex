@@ -1,0 +1,18 @@
+\begin{table}
+\centering
+\caption{Loss-component scale audit for normalized planning loss.}
+\label{tab:favorita-loss-component-scale-audit}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llllrrrlrrllrr}
+\toprule
+dataset\_name & run\_mode & split\_name &       component\_name &     raw\_min &  raw\_median &     raw\_max & reference\_strategy &  reference\_value &  component\_weight &  fallback\_used &                                    fallback\_reason &  normalized\_median &  normalized\_max \\
+\midrule
+    favorita &    quick &       test &       inventory\_cost & 1633182.571 & 3313460.486 & 5430867.016 &  global\_best\_model &      3010924.926 &             1.000 &          False &                                                    &              1.100 &           1.804 \\
+    favorita &    quick &       test &  planning\_volatility &      14.814 &     407.111 &     516.778 &  global\_best\_model &          414.964 &             0.500 &          False &                                                    &              0.491 &           0.623 \\
+    favorita &    quick &       test &    execution\_penalty &       0.000 &  520583.629 &  782783.410 &  global\_best\_model &       546133.345 &             1.000 &          False &                                                    &              0.953 &           1.433 \\
+    favorita &    quick &       test &   model\_switch\_count &       0.000 &       0.000 &     781.000 &  global\_best\_model &          497.000 &             0.500 &           True &  Reference strategy value was zero or unavailab... &              0.000 &           0.786 \\
+\bottomrule
+\end{tabular}
+}
+
+\end{table}

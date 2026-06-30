@@ -1,0 +1,19 @@
+\begin{table}
+\centering
+\caption{Generated execution-risk scenarios for DataCo-informed re-evaluation.}
+\label{tab:generated-execution-risk-scenarios}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrlll}
+\toprule
+ scenario\_name &  percentile\_anchor &  late\_delivery\_rate\_anchor &  lambda\_execution &                                    mapping\_formula &          source &  fallback\_used \\
+\midrule
+      baseline &                  0 &                      0.000 &             0.050 &  lambda\_execution = clip(base\_lambda + risk\_sen... &  dataco\_derived &          False \\
+    dataco\_low &                 30 &                      0.535 &             0.318 &  lambda\_execution = clip(base\_lambda + risk\_sen... &  dataco\_derived &          False \\
+ dataco\_median &                 50 &                      0.552 &             0.326 &  lambda\_execution = clip(base\_lambda + risk\_sen... &  dataco\_derived &          False \\
+   dataco\_high &                 75 &                      0.581 &             0.341 &  lambda\_execution = clip(base\_lambda + risk\_sen... &  dataco\_derived &          False \\
+ dataco\_severe &                 95 &                      0.901 &             0.500 &  lambda\_execution = clip(base\_lambda + risk\_sen... &  dataco\_derived &          False \\
+\bottomrule
+\end{tabular}
+}
+
+\end{table}

@@ -61,6 +61,24 @@ total_loss =
 
 This objective makes forecast accuracy only one part of the evaluation. A model can reduce prediction error while increasing operational burden.
 
+## Normalized Planning Loss
+
+Raw operational metrics are still reported in their natural units. However, the main scalar ranking objective is also reported as a normalized planning loss so that the dollar-scale inventory term does not mechanically dominate execution feasibility terms.
+
+For each dataset, run mode, and split, the accuracy-first BestAccuracy or Global Best strategy is used as the default reference:
+
+```text
+normalized_total_loss =
+  beta * inventory_cost / inventory_cost_ref
+  + lambda_volatility * planning_signal_volatility / volatility_ref
+  + lambda_execution * execution_penalty / execution_penalty_ref
+  + lambda_switch * model_switch_count / switch_count_ref
+```
+
+The reference values are computed within the same run mode and split. For example, quick-mode results use the quick-mode Global Best reference, while medium-mode results use the medium-mode Global Best reference. If a reference value is zero or unavailable, the implementation uses the median nonzero strategy value as a fallback and records the fallback in an audit table.
+
+Normalized loss is not a replacement for raw metrics. It is a scalar comparison device that lets the paper examine how operational preferences change when execution feasibility receives more weight.
+
 ## Inventory Cost
 
 The inventory component penalizes both excess and insufficient planning signals:
