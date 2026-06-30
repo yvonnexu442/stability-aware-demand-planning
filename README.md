@@ -82,6 +82,30 @@ PYTHONPATH=src python3 scripts/export_latex_assets.py
 
 Major result tables should be saved as both `.csv` and `.tex`. Research figures should be saved as PDF for LaTeX compatibility, with optional PNG copies for quick viewing. The LaTeX manuscript can then import generated assets from `paper/tables/` and `paper/figures/`.
 
+## Raw Data Workflow
+
+Raw benchmark datasets are stored under `data/raw/` with one directory per source:
+
+```text
+data/raw/
+  favorita/
+  m5/
+  walmart/
+  rossmann/
+```
+
+These data files are not committed to Git. After installing and authenticating the Kaggle CLI, raw datasets can be downloaded with:
+
+```bash
+PYTHONPATH=src python3 scripts/download_raw_data.py --unzip
+```
+
+To create the expected folder structure without downloading data, run:
+
+```bash
+PYTHONPATH=src python3 scripts/download_raw_data.py --create-directories-only
+```
+
 ## Current Status
 
 The current implementation is a clean first-step skeleton. It contains core modules and documentation, but it does not yet implement full dataset-specific experiments.

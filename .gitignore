@@ -9,8 +9,13 @@ __pycache__/
 venv/
 env/
 
-data/raw/*
+data/raw/**
+!data/raw/
 !data/raw/.gitkeep
+!data/raw/README.md
+!data/raw/*/
+!data/raw/*/.gitkeep
+!data/raw/*/README.md
 data/processed/*
 !data/processed/.gitkeep
 results/*
