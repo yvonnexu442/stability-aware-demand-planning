@@ -28,6 +28,7 @@ from decision_layer.feasibility_dp_selector import (
     DPFeasibilitySelector,
     GreedyFeasibilitySelector,
 )
+from decision_layer.no_leakage import attach_actuals_for_evaluation, drop_future_outcomes, require_no_future_outcomes
 from evaluation.forecast_metrics import (
     mean_absolute_error,
     root_mean_squared_error,
@@ -672,6 +673,7 @@ def _build_decision_outputs(
         how="left",
     )
     test_forecasts["safety_stock"] = test_forecasts["safety_stock"].fillna(0.0)
+    deployable_test_forecasts = drop_future_outcomes(test_forecasts)
 
     validation_metrics = forecast_metrics[forecast_metrics["split"] == "validation"].copy()
     global_best_model = validation_metrics.sort_values("weighted_absolute_percentage_error").iloc[0]["model_name"]
@@ -679,45 +681,51 @@ def _build_decision_outputs(
     logger.info("Global best validation model: %s", global_best_model)
 
     selected_frames: List[pd.DataFrame] = []
-    for model_name in sorted(test_forecasts["model_name"].unique()):
-        selected = test_forecasts[test_forecasts["model_name"] == model_name].copy()
+    for model_name in sorted(deployable_test_forecasts["model_name"].unique()):
+        selected = deployable_test_forecasts[deployable_test_forecasts["model_name"] == model_name].copy()
         selected["strategy"] = "individual_{}".format(model_name)
         selected["selected_model"] = model_name
         selected_frames.append(selected)
 
-    global_selected = test_forecasts[test_forecasts["model_name"] == global_best_model].copy()
+    global_selected = deployable_test_forecasts[deployable_test_forecasts["model_name"] == global_best_model].copy()
     global_selected["strategy"] = "global_best_model"
     global_selected["selected_model"] = global_best_model
     selected_frames.append(global_selected)
 
-    family_selected = test_forecasts.copy()
+    family_selected = deployable_test_forecasts.copy()
     family_selected["family_best_model"] = family_selected["family"].map(family_best).fillna(global_best_model)
     family_selected = family_selected[family_selected["model_name"] == family_selected["family_best_model"]].copy()
     family_selected["strategy"] = "family_best_model"
     family_selected["selected_model"] = family_selected["family_best_model"]
     selected_frames.append(family_selected.drop(columns=["family_best_model"]))
 
-    selected_frames.append(_simple_ensemble_selection(test_forecasts))
-    selected_frames.append(_best_inventory_cost_selection(test_forecasts, forecasts, modeling_table, forecast_metrics, config))
-    selected_frames.append(_best_stability_selection(test_forecasts, forecasts, modeling_table, global_best_model, config))
-    selected_frames.append(_oracle_realized_demand_selection(test_forecasts))
+    selected_frames.append(_simple_ensemble_selection(deployable_test_forecasts))
+    selected_frames.append(_best_inventory_cost_selection(deployable_test_forecasts, forecasts, modeling_table, forecast_metrics, config))
+    selected_frames.append(_best_stability_selection(deployable_test_forecasts, forecasts, modeling_table, global_best_model, config))
 
-    stability_selected = _stability_aware_selection(test_forecasts, forecasts, forecast_metrics, config)
+    stability_selected = _stability_aware_selection(deployable_test_forecasts, forecasts, forecast_metrics, config)
     selected_frames.append(stability_selected)
 
-    feasibility_selected = _feasibility_aware_selection(test_forecasts, forecasts, modeling_table, forecast_metrics, config)
+    feasibility_selected = _feasibility_aware_selection(deployable_test_forecasts, forecasts, modeling_table, forecast_metrics, config)
     selected_frames.append(feasibility_selected)
-    selected_frames.append(_greedy_feasibility_selection(test_forecasts, forecasts, modeling_table, forecast_metrics, config))
-    selected_frames.append(_dp_feasibility_selection(test_forecasts, forecasts, modeling_table, forecast_metrics, config))
-    selected_frames.append(_budgeted_dp_feasibility_selection(test_forecasts, forecasts, modeling_table, forecast_metrics, config))
+    selected_frames.append(_greedy_feasibility_selection(deployable_test_forecasts, forecasts, modeling_table, forecast_metrics, config))
+    selected_frames.append(_dp_feasibility_selection(deployable_test_forecasts, forecasts, modeling_table, forecast_metrics, config))
+    selected_frames.append(_budgeted_dp_feasibility_selection(deployable_test_forecasts, forecasts, modeling_table, forecast_metrics, config))
 
-    selected_decisions = pd.concat(selected_frames, ignore_index=True)
+    deployable_decisions = attach_actuals_for_evaluation(
+        pd.concat(selected_frames, ignore_index=True),
+        test_forecasts,
+        key_columns=("date", "series_id"),
+    )
+    oracle_decisions = _oracle_realized_demand_selection(test_forecasts)
+    selected_decisions = pd.concat([deployable_decisions, oracle_decisions], ignore_index=True)
     return _evaluate_selected_decisions(selected_decisions, config)
 
 
 def _simple_ensemble_selection(test_forecasts: pd.DataFrame) -> pd.DataFrame:
     """Return an equal-weight average of candidate forecasts."""
-    base_columns = ["date", "series_id", "family", "store_nbr", "actual", "split", "horizon", "safety_stock"]
+    require_no_future_outcomes(test_forecasts, "_simple_ensemble_selection")
+    base_columns = ["date", "series_id", "family", "store_nbr", "split", "horizon", "safety_stock"]
     ensemble = (
         test_forecasts.groupby(base_columns, dropna=False)
         .agg(forecast=("forecast", "mean"))
@@ -737,6 +745,7 @@ def _best_inventory_cost_selection(
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Select the validation model with the lowest inventory cost per demand unit."""
+    require_no_future_outcomes(test_forecasts, "_best_inventory_cost_selection")
     expected_losses = _validation_expected_planning_losses(all_forecasts, modeling_table, config)
     global_losses = _global_validation_expected_planning_losses(expected_losses, forecast_metrics)
     if global_losses:
@@ -761,6 +770,7 @@ def _best_stability_selection(
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Select the validation model with the lowest planning-signal volatility."""
+    require_no_future_outcomes(test_forecasts, "_best_stability_selection")
     stability = _validation_stability_by_model(all_forecasts, modeling_table, config)
     if stability.empty:
         best_model = fallback_model
@@ -812,6 +822,7 @@ def _stability_aware_selection(
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Select models with validation loss, switching cost, and plan-change burden."""
+    require_no_future_outcomes(test_forecasts, "_stability_aware_selection")
     validation_family_losses = _family_model_validation_losses(all_forecasts)
     validation_global_losses = (
         forecast_metrics[forecast_metrics["split"] == "validation"]
@@ -831,7 +842,7 @@ def _stability_aware_selection(
         for key, group in test_forecasts.groupby(["series_id", "date"], sort=False)
     }
     base_rows = (
-        test_forecasts[["date", "series_id", "family", "store_nbr", "actual", "split", "horizon", "safety_stock"]]
+        test_forecasts[["date", "series_id", "family", "store_nbr", "split", "horizon", "safety_stock"]]
         .drop_duplicates(["date", "series_id"])
         .sort_values(["series_id", "date"])
     )
@@ -878,7 +889,6 @@ def _stability_aware_selection(
                 "model_name": best_candidate.model_name,
                 "selected_model": best_candidate.model_name,
                 "forecast": float(best_candidate.forecast),
-                "actual": float(row.actual),
                 "split": row.split,
                 "horizon": int(row.horizon),
                 "safety_stock": float(row.safety_stock),
@@ -903,6 +913,7 @@ def _feasibility_aware_selection(
     inventory exposure, large plan movement, switching burden, or execution
     violations that the operation cannot absorb.
     """
+    require_no_future_outcomes(test_forecasts, "_feasibility_aware_selection")
     expected_losses = _validation_expected_planning_losses(all_forecasts, modeling_table, config)
     global_expected_losses = _global_validation_expected_planning_losses(expected_losses, forecast_metrics)
     weights = config.get("planning_loss_weights", {})
@@ -918,7 +929,7 @@ def _feasibility_aware_selection(
         for key, group in test_forecasts.groupby(["series_id", "date"], sort=False)
     }
     base_rows = (
-        test_forecasts[["date", "series_id", "family", "store_nbr", "actual", "split", "horizon", "safety_stock"]]
+        test_forecasts[["date", "series_id", "family", "store_nbr", "split", "horizon", "safety_stock"]]
         .drop_duplicates(["date", "series_id"])
         .sort_values(["series_id", "date"])
     )
@@ -986,7 +997,6 @@ def _feasibility_aware_selection(
                 "model_name": best_candidate.model_name,
                 "selected_model": best_candidate.model_name,
                 "forecast": float(best_candidate.forecast),
-                "actual": float(row.actual),
                 "split": row.split,
                 "horizon": int(row.horizon),
                 "safety_stock": float(row.safety_stock),
@@ -1004,6 +1014,7 @@ def _greedy_feasibility_selection(
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Select one-step minimum expected operational-cost forecasts."""
+    require_no_future_outcomes(test_forecasts, "_greedy_feasibility_selection")
     expected_losses, global_expected_losses = _favorita_dp_expected_losses(all_forecasts, modeling_table, forecast_metrics, config)
     selector = GreedyFeasibilitySelector(
         expected_losses=expected_losses,
@@ -1025,6 +1036,7 @@ def _dp_feasibility_selection(
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Select finite-horizon DP minimum expected cumulative operational loss."""
+    require_no_future_outcomes(test_forecasts, "_dp_feasibility_selection")
     expected_losses, global_expected_losses = _favorita_dp_expected_losses(all_forecasts, modeling_table, forecast_metrics, config)
     selector = DPFeasibilitySelector(
         expected_losses=expected_losses,
@@ -1046,6 +1058,7 @@ def _budgeted_dp_feasibility_selection(
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Select finite-horizon DP forecasts under a hard switch-count budget."""
+    require_no_future_outcomes(test_forecasts, "_budgeted_dp_feasibility_selection")
     expected_losses, global_expected_losses = _favorita_dp_expected_losses(all_forecasts, modeling_table, forecast_metrics, config)
     selector = BudgetedDPFeasibilitySelector(
         expected_losses=expected_losses,
@@ -2122,7 +2135,8 @@ def _build_improved_feasibility_method_selections(
     scenario_weights: Mapping[str, float],
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Build scenario-specific improved strategy decisions and metadata."""
-    test_forecasts = _prepare_forecasts_with_safety_stock(forecasts, modeling_table, config, split_name="test")
+    test_forecasts_with_actual = _prepare_forecasts_with_safety_stock(forecasts, modeling_table, config, split_name="test")
+    test_forecasts = drop_future_outcomes(test_forecasts_with_actual)
     expected_losses = _validation_expected_planning_losses(forecasts, modeling_table, config)
     global_expected_losses = _global_validation_expected_planning_losses(expected_losses, forecast_metrics)
     method_config = config.get("improved_feasibility_methods", {})
@@ -2266,7 +2280,12 @@ def _build_improved_feasibility_method_selections(
             }
         )
 
-    return pd.concat(selected_frames, ignore_index=True), pd.DataFrame(metadata_records)
+    selected = attach_actuals_for_evaluation(
+        pd.concat(selected_frames, ignore_index=True),
+        test_forecasts_with_actual,
+        key_columns=("date", "series_id"),
+    )
+    return selected, pd.DataFrame(metadata_records)
 
 
 def _feasibility_aware_smoothed_selection(
@@ -2278,6 +2297,7 @@ def _feasibility_aware_smoothed_selection(
     strategy: str,
 ) -> pd.DataFrame:
     """Select forecast candidates and gradually adapt the executable plan."""
+    require_no_future_outcomes(test_forecasts, "_feasibility_aware_smoothed_selection")
     weights = config.get("planning_loss_weights", {})
     stability_config = config.get("stability", {})
     feasibility_config = config.get("feasibility_analysis", {}).get("feasibility_selector", {})
@@ -2291,7 +2311,7 @@ def _feasibility_aware_smoothed_selection(
         for key, group in test_forecasts.groupby(["series_id", "date"], sort=False)
     }
     base_rows = (
-        test_forecasts[["date", "series_id", "family", "store_nbr", "actual", "split", "horizon", "safety_stock"]]
+        test_forecasts[["date", "series_id", "family", "store_nbr", "split", "horizon", "safety_stock"]]
         .drop_duplicates(["date", "series_id"])
         .sort_values(["series_id", "date"])
     )
@@ -2362,7 +2382,6 @@ def _feasibility_aware_smoothed_selection(
                 "model_name": best_candidate.model_name,
                 "selected_model": best_candidate.model_name,
                 "forecast": float(best_candidate.forecast),
-                "actual": float(row.actual),
                 "split": row.split,
                 "horizon": int(row.horizon),
                 "safety_stock": float(row.safety_stock),
@@ -2473,16 +2492,22 @@ def _cross_validate_smoothing_alpha(
             expected_losses = _expected_losses_from_prepared_forecasts(calibration, config)
             global_expected = _global_losses_from_expected_losses(expected_losses)
             best_reference_model = _best_model_from_global_losses(global_expected, forecast_metrics)
-            reference = _fixed_model_selection(evaluation, best_reference_model, "global_best_model")
+            deployable_evaluation = drop_future_outcomes(evaluation)
+            reference = _fixed_model_selection(deployable_evaluation, best_reference_model, "global_best_model")
             selected = _feasibility_aware_smoothed_selection(
-                evaluation,
+                deployable_evaluation,
                 expected_losses,
                 global_expected,
                 config,
                 alpha=float(alpha),
                 strategy="feasibility_aware_smoothed_alpha_cv",
             )
-            decisions = _evaluate_selected_decisions(pd.concat([reference, selected], ignore_index=True), config)
+            fold_decisions = attach_actuals_for_evaluation(
+                pd.concat([reference, selected], ignore_index=True),
+                evaluation,
+                key_columns=("date", "series_id"),
+            )
+            decisions = _evaluate_selected_decisions(fold_decisions, config)
             summary = _summarize_planning_utility(decisions, scenario_weights)
             summary, _, _ = add_normalized_planning_loss(
                 summary,
@@ -2687,9 +2712,15 @@ def _select_constrained_ensemble_weights(
             if evaluation.empty:
                 continue
             reference_model = _best_model_from_global_losses(_global_losses_from_expected_losses(_expected_losses_from_prepared_forecasts(validation, config)), forecast_metrics)
-            reference = _fixed_model_selection(evaluation, reference_model, "global_best_model")
-            selected = _weighted_ensemble_selection(evaluation, weights, "feasibility_aware_ensemble_cv")
-            decisions = _evaluate_selected_decisions(pd.concat([reference, selected], ignore_index=True), config)
+            deployable_evaluation = drop_future_outcomes(evaluation)
+            reference = _fixed_model_selection(deployable_evaluation, reference_model, "global_best_model")
+            selected = _weighted_ensemble_selection(deployable_evaluation, weights, "feasibility_aware_ensemble_cv")
+            fold_decisions = attach_actuals_for_evaluation(
+                pd.concat([reference, selected], ignore_index=True),
+                evaluation,
+                key_columns=("date", "series_id"),
+            )
+            decisions = _evaluate_selected_decisions(fold_decisions, config)
             summary = _summarize_planning_utility(decisions, scenario_weights)
             summary, _, _ = add_normalized_planning_loss(
                 summary,
@@ -2735,13 +2766,14 @@ def _weighted_ensemble_selection(
     strategy: str,
 ) -> pd.DataFrame:
     """Return a nonnegative weighted ensemble forecast selection."""
+    require_no_future_outcomes(prepared_forecasts, "_weighted_ensemble_selection")
     frame = prepared_forecasts.copy()
     normalized_weights = _normalize_model_weights(weights)
     available_models = sorted(frame["model_name"].unique())
     if not normalized_weights:
         normalized_weights = {str(model): 1.0 / float(len(available_models)) for model in available_models}
     frame["ensemble_weight"] = frame["model_name"].astype(str).map(normalized_weights).fillna(0.0)
-    base_columns = ["date", "series_id", "family", "store_nbr", "actual", "split", "horizon", "safety_stock"]
+    base_columns = ["date", "series_id", "family", "store_nbr", "split", "horizon", "safety_stock"]
     weighted = frame.copy()
     weighted["weighted_forecast"] = weighted["forecast"] * weighted["ensemble_weight"]
     ensemble = (

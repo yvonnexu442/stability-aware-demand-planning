@@ -20,6 +20,7 @@ from decision_layer.feasibility_dp_selector import (
     DPFeasibilitySelector,
     GreedyFeasibilitySelector,
 )
+from decision_layer.no_leakage import attach_actuals_for_evaluation, drop_future_outcomes, require_no_future_outcomes
 from evaluation.forecast_metrics import mean_absolute_error, weighted_absolute_percentage_error
 from evaluation.inventory_metrics import compute_holding_cost, compute_service_level, compute_shortage_cost
 from evaluation.planning_utility import add_normalized_planning_loss, compute_total_planning_loss
@@ -325,6 +326,7 @@ def build_decision_outputs(
     test_forecasts["safety_stock"] = (
         pd.to_numeric(test_forecasts["demand_rolling_std_28"], errors="coerce").fillna(0.0) * safety_multiplier
     ).clip(lower=0.0)
+    deployable_test_forecasts = drop_future_outcomes(test_forecasts)
     validation_metrics = forecast_metrics[forecast_metrics["split"] == "validation"].copy()
     global_best_model = str(validation_metrics.sort_values("WAPE").iloc[0]["model_name"])
     best_stability_model = best_stability_candidate(forecasts, modeling_table, config, fallback_model=global_best_model)
@@ -332,17 +334,22 @@ def build_decision_outputs(
     expected_losses = validation_expected_losses(forecasts, modeling_table, config)
 
     selected_frames = []
-    selected_frames.append(fixed_model_selection(test_forecasts, global_best_model, "global_best_model"))
-    selected_frames.append(simple_ensemble_selection(test_forecasts))
-    selected_frames.append(weighted_ensemble_selection(test_forecasts, operational_weights, "operational_loss_ensemble"))
-    selected_frames.append(smoothed_global_best_selection(test_forecasts, global_best_model, config, alpha=0.25))
-    selected_frames.append(feasibility_aware_selection(test_forecasts, expected_losses, config))
-    selected_frames.append(greedy_feasibility_selection(test_forecasts, expected_losses, config))
-    selected_frames.append(dp_feasibility_selection(test_forecasts, expected_losses, config))
-    selected_frames.append(budgeted_dp_feasibility_selection(test_forecasts, expected_losses, config))
-    selected_frames.append(fixed_model_selection(test_forecasts, best_stability_model, "best_stability_model"))
-    selected_frames.append(oracle_selection(test_forecasts))
-    return evaluate_selected_decisions(pd.concat(selected_frames, ignore_index=True), config)
+    selected_frames.append(fixed_model_selection(deployable_test_forecasts, global_best_model, "global_best_model"))
+    selected_frames.append(simple_ensemble_selection(deployable_test_forecasts))
+    selected_frames.append(weighted_ensemble_selection(deployable_test_forecasts, operational_weights, "operational_loss_ensemble"))
+    selected_frames.append(smoothed_global_best_selection(deployable_test_forecasts, global_best_model, config, alpha=0.25))
+    selected_frames.append(feasibility_aware_selection(deployable_test_forecasts, expected_losses, config))
+    selected_frames.append(greedy_feasibility_selection(deployable_test_forecasts, expected_losses, config))
+    selected_frames.append(dp_feasibility_selection(deployable_test_forecasts, expected_losses, config))
+    selected_frames.append(budgeted_dp_feasibility_selection(deployable_test_forecasts, expected_losses, config))
+    selected_frames.append(fixed_model_selection(deployable_test_forecasts, best_stability_model, "best_stability_model"))
+    deployable_decisions = attach_actuals_for_evaluation(
+        pd.concat(selected_frames, ignore_index=True),
+        test_forecasts,
+        key_columns=("date", "series_id"),
+    )
+    oracle_decisions = oracle_selection(test_forecasts)
+    return evaluate_selected_decisions(pd.concat([deployable_decisions, oracle_decisions], ignore_index=True), config)
 
 
 def fixed_model_selection(test_forecasts: pd.DataFrame, model_name: str, strategy: str) -> pd.DataFrame:
@@ -357,7 +364,8 @@ def fixed_model_selection(test_forecasts: pd.DataFrame, model_name: str, strateg
 
 def simple_ensemble_selection(test_forecasts: pd.DataFrame) -> pd.DataFrame:
     """Return equal-weight ensemble decisions."""
-    base_columns = decision_base_columns()
+    require_no_future_outcomes(test_forecasts, "simple_ensemble_selection")
+    base_columns = decision_base_columns(include_actual=False)
     ensemble = test_forecasts.groupby(base_columns, dropna=False).agg(forecast=("forecast", "mean")).reset_index()
     ensemble["model_name"] = "simple_ensemble"
     ensemble["selected_model"] = "simple_ensemble"
@@ -367,13 +375,14 @@ def simple_ensemble_selection(test_forecasts: pd.DataFrame) -> pd.DataFrame:
 
 def weighted_ensemble_selection(test_forecasts: pd.DataFrame, weights: Mapping[str, float], strategy: str) -> pd.DataFrame:
     """Return weighted ensemble decisions."""
+    require_no_future_outcomes(test_forecasts, "weighted_ensemble_selection")
     frame = test_forecasts.copy()
     if not weights:
         models = sorted(frame["model_name"].unique())
         weights = {model: 1.0 / float(len(models)) for model in models}
     frame["model_weight"] = frame["model_name"].map(weights).fillna(0.0)
     frame["weighted_forecast"] = frame["forecast"] * frame["model_weight"]
-    base_columns = decision_base_columns()
+    base_columns = decision_base_columns(include_actual=False)
     ensemble = (
         frame.groupby(base_columns, dropna=False)
         .agg(forecast=("weighted_forecast", "sum"), weight_sum=("model_weight", "sum"))
@@ -390,6 +399,7 @@ def weighted_ensemble_selection(test_forecasts: pd.DataFrame, weights: Mapping[s
 
 def smoothed_global_best_selection(test_forecasts: pd.DataFrame, model_name: str, config: Mapping[str, object], alpha: float) -> pd.DataFrame:
     """Return global-best forecasts with gradually adapted executable plans."""
+    require_no_future_outcomes(test_forecasts, "smoothed_global_best_selection")
     selected = fixed_model_selection(test_forecasts, model_name, "feasibility_aware_smoothed_alpha_0_25")
     records = []
     for _, group in selected.sort_values(["series_id", "date"]).groupby("series_id"):
@@ -410,11 +420,12 @@ def feasibility_aware_selection(
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Return a simple interpretable feasibility-aware selector."""
+    require_no_future_outcomes(test_forecasts, "feasibility_aware_selection")
     weights = config.get("planning_loss_weights", {})
     max_plan_change_rate = float(config.get("stability", {}).get("max_plan_change_rate", 0.20))
     switch_penalty = float(config.get("feasibility_analysis", {}).get("feasibility_selector", {}).get("switch_penalty", 0.02))
     candidate_groups = {key: group.copy() for key, group in test_forecasts.groupby(["series_id", "date"], sort=False)}
-    base_rows = test_forecasts[decision_base_columns()].drop_duplicates(["series_id", "date"]).sort_values(["series_id", "date"])
+    base_rows = test_forecasts[decision_base_columns(include_actual=False)].drop_duplicates(["series_id", "date"]).sort_values(["series_id", "date"])
     states: Dict[str, Dict[str, object]] = {}
     records = []
     for row in base_rows.itertuples(index=False):
@@ -457,6 +468,7 @@ def greedy_feasibility_selection(
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Return one-step minimum expected operational-cost selections."""
+    require_no_future_outcomes(test_forecasts, "greedy_feasibility_selection")
     selector = GreedyFeasibilitySelector(
         expected_losses=expected_losses,
         weights=config.get("planning_loss_weights", {}),
@@ -474,6 +486,7 @@ def dp_feasibility_selection(
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Return finite-horizon DP selections using validation-derived costs."""
+    require_no_future_outcomes(test_forecasts, "dp_feasibility_selection")
     selector = DPFeasibilitySelector(
         expected_losses=expected_losses,
         weights=config.get("planning_loss_weights", {}),
@@ -491,6 +504,7 @@ def budgeted_dp_feasibility_selection(
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Return finite-horizon DP selections under a hard switch budget."""
+    require_no_future_outcomes(test_forecasts, "budgeted_dp_feasibility_selection")
     selector = BudgetedDPFeasibilitySelector(
         expected_losses=expected_losses,
         weights=config.get("planning_loss_weights", {}),
@@ -529,14 +543,13 @@ def oracle_selection(test_forecasts: pd.DataFrame) -> pd.DataFrame:
     return oracle
 
 
-def decision_base_columns() -> List[str]:
+def decision_base_columns(include_actual: bool = True) -> List[str]:
     """Return columns that identify a M5 planning decision row."""
-    return [
+    columns = [
         "date",
         "series_id",
         "split",
         "horizon",
-        "actual",
         "item_id",
         "dept_id",
         "cat_id",
@@ -546,6 +559,9 @@ def decision_base_columns() -> List[str]:
         "zero_demand_rate_28",
         "safety_stock",
     ]
+    if include_actual:
+        columns.insert(4, "actual")
+    return columns
 
 
 def validation_expected_losses(

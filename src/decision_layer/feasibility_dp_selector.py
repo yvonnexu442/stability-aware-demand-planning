@@ -6,6 +6,7 @@ from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 
+from decision_layer.no_leakage import require_no_future_outcomes
 from planning_environment.planning_actions import forecast_to_inventory_target
 
 
@@ -51,6 +52,7 @@ class GreedyFeasibilitySelector:
 
     def select(self, candidate_forecasts: pd.DataFrame) -> pd.DataFrame:
         """Return selected forecast rows for all series and periods."""
+        require_no_future_outcomes(candidate_forecasts, "{}.select".format(self.__class__.__name__))
         selected_rows: List[pd.Series] = []
         for _, series_frame in candidate_forecasts.sort_values(["series_id", "date", "model_name"]).groupby("series_id", sort=False):
             previous_model = None
@@ -126,6 +128,7 @@ class DPFeasibilitySelector(GreedyFeasibilitySelector):
 
     def select(self, candidate_forecasts: pd.DataFrame) -> pd.DataFrame:
         """Return selected forecast rows from finite-horizon DP."""
+        require_no_future_outcomes(candidate_forecasts, "{}.select".format(self.__class__.__name__))
         selected_rows: List[pd.Series] = []
         for _, series_frame in candidate_forecasts.sort_values(["series_id", "date", "model_name"]).groupby("series_id", sort=False):
             selected_rows.extend(self._select_series(series_frame))

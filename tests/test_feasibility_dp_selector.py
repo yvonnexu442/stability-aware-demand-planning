@@ -26,7 +26,6 @@ class FeasibilityDPSelectorTest(unittest.TestCase):
                         "model_name": model_name,
                         "selected_model": model_name,
                         "forecast": forecast,
-                        "actual": 9999.0,
                         "split": "test",
                         "horizon": 1,
                         "safety_stock": 0.0,
@@ -77,19 +76,18 @@ class FeasibilityDPSelectorTest(unittest.TestCase):
         switches = sum(left != right for left, right in zip(budgeted["selected_model"], budgeted["selected_model"].iloc[1:]))
         self.assertEqual(switches, 0)
 
-    def test_deployable_selectors_do_not_use_test_actual(self):
+    def test_deployable_selectors_reject_test_actual(self):
         selector = DPFeasibilitySelector(
             expected_losses=self.expected_losses,
             weights=self.weights,
             switch_penalty=1.0,
             calibration_group_column="series_id",
         )
-        first = selector.select(self.candidates)
         modified = self.candidates.copy()
         modified["actual"] = [0.0, 1.0, 2.0, 3.0]
-        second = selector.select(modified)
 
-        self.assertEqual(first["selected_model"].tolist(), second["selected_model"].tolist())
+        with self.assertRaises(ValueError):
+            selector.select(modified)
 
 
 if __name__ == "__main__":
