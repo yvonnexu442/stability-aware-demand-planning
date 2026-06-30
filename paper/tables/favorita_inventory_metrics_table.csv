@@ -1,0 +1,9 @@
+Strategy,Total Inventory Cost,Inventory Cost Per Demand Unit,Service Level,Service Hit Rate
+Family Best,2995702.938,0.236,0.983,0.848
+Global Best,2995702.938,0.236,0.983,0.848
+Global ML,2995702.938,0.236,0.983,0.848
+Stability-Aware,3183708.381,0.251,0.98,0.836
+Seasonal,4085181.846,0.321,0.971,0.797
+Moving Avg.,5263648.54,0.414,0.956,0.754
+Naive,5414019.631,0.426,0.95,0.675
+Exp. Smooth,5430867.016,0.427,0.952,0.735

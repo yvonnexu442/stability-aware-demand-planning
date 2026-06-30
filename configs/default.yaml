@@ -30,8 +30,19 @@ forecasting:
   rolling_window_size: 56
   models_to_run:
     - naive_last_value
-    - rolling_mean
     - seasonal_naive
+    - moving_average
+    - exponential_smoothing
+    - global_ml
+
+favorita_pipeline:
+  raw_data_dir: data/raw/favorita
+  validation_horizon: 28
+  test_horizon: 28
+  minimum_train_dates: 120
+  safety_stock_multiplier: 0.5
+  max_ml_training_rows: 250000
+  stability_switch_penalty: 0.02
 
 planning:
   safety_stock_method: constant

@@ -22,6 +22,17 @@ DEFAULT_TABLE_NAMES = {
     "stability_metrics_table",
     "planning_utility_table",
     "ablation_results_table",
+    "favorita_forecast_metrics",
+    "favorita_inventory_metrics",
+    "favorita_stability_metrics",
+    "favorita_planning_utility",
+}
+
+DEFAULT_TABLE_OUTPUT_NAMES = {
+    "favorita_forecast_metrics": "favorita_forecast_metrics_table",
+    "favorita_inventory_metrics": "favorita_inventory_metrics_table",
+    "favorita_stability_metrics": "favorita_stability_metrics_table",
+    "favorita_planning_utility": "favorita_planning_utility_table",
 }
 
 DEFAULT_FIGURE_NAMES = {
@@ -30,6 +41,9 @@ DEFAULT_FIGURE_NAMES = {
     "execution_capacity_stress_test.pdf",
     "planning_signal_example.pdf",
     "pareto_accuracy_stability.pdf",
+    "favorita_accuracy_vs_inventory_cost.pdf",
+    "favorita_accuracy_vs_volatility.pdf",
+    "favorita_example_planning_signal.pdf",
 }
 
 
@@ -90,17 +104,18 @@ def export_tables(input_table_dir: Path, paper_table_dir: Path, numeric_precisio
     for csv_path in csv_files:
         data = pd.read_csv(csv_path)
         table_stem = csv_path.stem
+        output_stem = DEFAULT_TABLE_OUTPUT_NAMES.get(table_stem, table_stem)
         paths = export_summary_table(
             data=data,
-            table_name=table_stem,
+            table_name=output_stem,
             output_dir=paper_table_dir,
             caption=table_stem.replace("_", " ").title(),
             label="tab:{}".format(table_stem.replace("_", "-")),
             numeric_precision=numeric_precision,
         )
         exported_tex_paths.append(paths["tex"])
-        snippet_path = paper_table_dir / "{}_snippet.tex".format(table_stem)
-        snippet_path.write_text(latex_table_snippet("tables/{}.tex".format(table_stem)), encoding="utf-8")
+        snippet_path = paper_table_dir / "{}_snippet.tex".format(output_stem)
+        snippet_path.write_text(latex_table_snippet("tables/{}.tex".format(output_stem)), encoding="utf-8")
         logger.info("Exported table %s to %s", csv_path, paths["tex"])
 
     if not exported_tex_paths:

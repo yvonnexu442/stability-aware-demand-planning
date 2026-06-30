@@ -1,0 +1,22 @@
+\begin{table}
+\centering
+\caption{Favorita planning stability metrics from the minimal pipeline.}
+\label{tab:favorita-stability-metrics}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrr}
+\toprule
+        Strategy &  Mean Plan Change &  Large Jumps &  Model Switches &  Execution Violations &  Execution Violation Rate \\
+\midrule
+     Moving Avg. &             0.005 &            0 &               0 &                     0 &                     0.000 \\
+     Exp. Smooth &             0.049 &            6 &               0 &                    22 &                     0.008 \\
+ Stability-Aware &             0.137 &          477 &             123 &                   712 &                     0.264 \\
+     Family Best &             0.144 &          533 &               0 &                   751 &                     0.278 \\
+     Global Best &             0.144 &          533 &               0 &                   751 &                     0.278 \\
+       Global ML &             0.144 &          533 &               0 &                   751 &                     0.278 \\
+           Naive &             0.177 &          711 &               0 &                   983 &                     0.364 \\
+        Seasonal &             0.185 &          769 &               0 &                  1061 &                     0.393 \\
+\bottomrule
+\end{tabular}
+}
+
+\end{table}

@@ -40,6 +40,7 @@ def dataframe_to_latex_table(
     numeric_precision: int = 3,
     column_renames: Optional[Mapping[str, str]] = None,
     booktabs: bool = True,
+    resize_to_textwidth: bool = False,
 ) -> str:
     """Return a LaTeX table string using booktabs-style rules.
 
@@ -59,7 +60,7 @@ def dataframe_to_latex_table(
         column_renames=column_renames,
     )
     float_format = "{:." + str(int(numeric_precision)) + "f}"
-    return prepared.to_latex(
+    latex_table = prepared.to_latex(
         index=index,
         caption=caption,
         label=label,
@@ -68,6 +69,9 @@ def dataframe_to_latex_table(
         multirow=True,
         float_format=lambda value: float_format.format(value),
     )
+    if resize_to_textwidth:
+        latex_table = _wrap_tabular_in_resizebox(latex_table)
+    return latex_table
 
 
 def export_dataframe_to_latex(
@@ -80,6 +84,7 @@ def export_dataframe_to_latex(
     numeric_precision: int = 3,
     column_renames: Optional[Mapping[str, str]] = None,
     booktabs: bool = True,
+    resize_to_textwidth: bool = False,
 ) -> Dict[str, Path]:
     """Save a DataFrame as both CSV and LaTeX table files.
 
@@ -109,6 +114,7 @@ def export_dataframe_to_latex(
         numeric_precision=numeric_precision,
         column_renames=column_renames,
         booktabs=booktabs,
+        resize_to_textwidth=resize_to_textwidth,
     )
     tex_output.write_text(latex_table, encoding="utf-8")
     return {"csv": csv_output, "tex": tex_output}
@@ -122,6 +128,7 @@ def export_summary_table(
     label: Optional[str] = None,
     numeric_precision: int = 3,
     column_renames: Optional[Mapping[str, str]] = None,
+    resize_to_textwidth: bool = False,
 ) -> Dict[str, Path]:
     """Export a named summary table into the paper table directory.
 
@@ -141,6 +148,7 @@ def export_summary_table(
         label=label_text,
         numeric_precision=numeric_precision,
         column_renames=column_renames,
+        resize_to_textwidth=resize_to_textwidth,
     )
 
 
@@ -245,3 +253,21 @@ def write_asset_manifest(
 def _title_from_stem(stem: str) -> str:
     """Convert a snake_case file stem into a readable English title."""
     return stem.replace("_", " ").title()
+
+
+def _wrap_tabular_in_resizebox(latex_table: str) -> str:
+    """Wrap the tabular block in a text-width resizebox."""
+    begin_marker = "\\begin{tabular}"
+    end_marker = "\\end{tabular}"
+    begin_position = latex_table.find(begin_marker)
+    end_position = latex_table.find(end_marker)
+    if begin_position == -1 or end_position == -1:
+        return latex_table
+    end_position = end_position + len(end_marker)
+    return (
+        latex_table[:begin_position]
+        + "\\resizebox{\\textwidth}{!}{%\n"
+        + latex_table[begin_position:end_position]
+        + "\n}\n"
+        + latex_table[end_position:]
+    )

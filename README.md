@@ -107,6 +107,49 @@ To create the expected folder structure without downloading data, run:
 PYTHONPATH=src python3 scripts/download_raw_data.py --create-directories-only
 ```
 
+## How to Run the Favorita Minimal Pipeline
+
+The first real-data proof-of-concept uses the Favorita Store Sales dataset. The
+pipeline does not download Kaggle data automatically. Manually download and
+unzip the dataset, then place these CSV files under `data/raw/favorita/`:
+
+```text
+data/raw/favorita/
+  train.csv
+  stores.csv
+  oil.csv
+  holidays_events.csv
+  transactions.csv
+  test.csv                  Optional
+```
+
+Quick mode uses the top eligible store-family series configured by
+`data.quick_mode_max_series` in `configs/default.yaml`. Full mode uses
+`data.full_mode_max_series`; set that value to `null` to run every eligible
+series.
+
+Run the minimal pipeline with:
+
+```bash
+PYTHONPATH=src python3 scripts/run_favorita_minimal_pipeline.py
+```
+
+Run full mode or override the series count with:
+
+```bash
+PYTHONPATH=src python3 scripts/run_favorita_minimal_pipeline.py --run-mode full
+PYTHONPATH=src python3 scripts/run_favorita_minimal_pipeline.py --max-series 250
+```
+
+The pipeline writes analysis tables to `outputs/tables/`, figures to
+`outputs/figures/`, and the run log to
+`outputs/logs/favorita_minimal_pipeline.log`. LaTeX-ready tables are written to
+`paper/tables/`, and PDF figures for the manuscript are written to
+`paper/figures/`.
+
 ## Current Status
 
-The current implementation is a clean first-step skeleton. It contains core modules and documentation, but it does not yet implement full dataset-specific experiments.
+The current implementation contains the core planning-stability modules, the
+LaTeX paper workflow, DataCo profiling utilities, and the minimal Favorita
+real-data proof-of-concept pipeline. It does not yet implement the full
+multi-dataset experiment suite.

@@ -42,3 +42,28 @@ def add_policy_context_features(data: pd.DataFrame, service_level_target: float,
     frame["service_level_target"] = float(service_level_target)
     frame["execution_capacity"] = float(execution_capacity)
     return frame
+
+
+def add_execution_capacity_flags(
+    data: pd.DataFrame,
+    series_id_columns: Iterable[str],
+    date_column: str,
+    planning_signal_column: str,
+    max_plan_change_rate: float,
+    jump_threshold: float,
+) -> pd.DataFrame:
+    """Return a copy with execution-capacity and large-jump indicators.
+
+    The feature is useful when an experiment already has planning signals and
+    needs an auditable table showing whether the plan changes faster than the
+    operation can absorb.
+    """
+    id_columns = list(series_id_columns)
+    frame = add_planning_signal_change_features(data, id_columns, date_column, planning_signal_column)
+    previous_signal = frame.groupby(id_columns)[planning_signal_column].shift(1).abs().fillna(0.0)
+    frame["execution_capacity"] = previous_signal * float(max_plan_change_rate)
+    frame["execution_violation"] = (
+        frame["absolute_planning_signal_change"] > frame["execution_capacity"].clip(lower=0.0)
+    ).astype(int)
+    frame["large_jump_flag"] = (frame["percentage_planning_signal_change"] > float(jump_threshold)).astype(int)
+    return frame

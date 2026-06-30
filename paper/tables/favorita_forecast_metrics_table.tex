@@ -1,0 +1,24 @@
+\begin{table}
+\centering
+\caption{Favorita forecast accuracy metrics from the minimal pipeline.}
+\label{tab:favorita-forecast-metrics}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrr}
+\toprule
+      Split &        Model &  Rows &      MAE &     RMSE &  WAPE \\
+\midrule
+       test &    Global ML &  2800 &  488.565 &  721.805 & 0.108 \\
+       test &     Seasonal &  2800 &  713.025 & 1065.398 & 0.157 \\
+       test &  Moving Avg. &  2800 &  852.546 & 1198.148 & 0.188 \\
+       test &  Exp. Smooth &  2800 &  881.606 & 1244.260 & 0.194 \\
+       test &        Naive &  2800 &  942.064 & 1378.074 & 0.208 \\
+ validation &    Global ML &  2800 &  439.125 &  684.794 & 0.094 \\
+ validation &     Seasonal &  2800 &  729.933 & 1133.405 & 0.157 \\
+ validation &  Moving Avg. &  2800 & 1076.697 & 1554.387 & 0.231 \\
+ validation &        Naive &  2800 & 1146.079 & 1718.333 & 0.246 \\
+ validation &  Exp. Smooth &  2800 & 1147.294 & 1651.643 & 0.247 \\
+\bottomrule
+\end{tabular}
+}
+
+\end{table}
