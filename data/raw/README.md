@@ -12,6 +12,7 @@ data/raw/
   m5/
   walmart/
   rossmann/
+  dataco/
 ```
 
 Use `scripts/download_raw_data.py` after configuring Kaggle API credentials.

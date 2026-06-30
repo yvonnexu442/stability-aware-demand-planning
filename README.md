@@ -92,6 +92,7 @@ data/raw/
   m5/
   walmart/
   rossmann/
+  dataco/
 ```
 
 These data files are not committed to Git. After installing and authenticating the Kaggle CLI, raw datasets can be downloaded with:
