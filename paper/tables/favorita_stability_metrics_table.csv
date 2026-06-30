@@ -1,6 +1,7 @@
 Strategy,Mean Plan Change,Large Jumps,Model Switches,Execution Violations,Execution Violation Rate
 Moving Avg.,0.005,0,0,0,0.0
 Exp. Smooth,0.049,6,0,22,0.008
+Feasibility-Aware,0.13,443,781,651,0.241
 Stability-Aware,0.137,475,213,722,0.267
 XGBoost,0.144,544,0,754,0.279
 Family Best,0.147,558,0,782,0.29

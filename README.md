@@ -151,6 +151,13 @@ If LightGBM or XGBoost is installed, the pipeline keeps them as separate global
 machine-learning forecast candidates. If neither package is available, it uses a
 scikit-learn fallback model and records that choice in the run log.
 
+The same command also runs the Favorita feasibility analysis layer. It writes
+weight-sensitivity, execution-capacity stress-test, and Pareto summary tables to
+`outputs/tables/`, with LaTeX-ready versions under `paper/tables/`. It also
+writes PNG figures to `outputs/figures/` and manuscript PDF figures to
+`paper/figures/`. These analyses are intended to show the tradeoff surface, not
+to tune weights until one stability-aware strategy always wins.
+
 ## Current Status
 
 The current implementation contains the core planning-stability modules, the

@@ -1,9 +1,11 @@
 """Run the minimal real-data Favorita planning-stability pipeline."""
 
 import argparse
+import copy
 import logging
 import os
 import sys
+from itertools import product
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
@@ -37,6 +39,15 @@ MODEL_FEATURE_MAP = {
     "moving_average": "demand_rolling_mean_28",
     "exponential_smoothing": "demand_ewm_alpha_0_3",
 }
+
+PAPER_STRATEGY_ORDER = [
+    "global_best_model",
+    "feasibility_aware_selector",
+    "stability_aware_selector",
+    "individual_global_lightgbm",
+    "individual_global_xgboost",
+    "individual_moving_average",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -121,6 +132,19 @@ def main() -> None:
 
     table_assets = _export_latex_tables(forecast_metrics, inventory_metrics, stability_metrics, planning_utility)
     figure_assets = _make_figures(planning_utility, stability_metrics, decisions, figure_dir, Path("paper/figures"))
+    prompt3_tables, prompt3_figures = _run_feasibility_analyses(
+        forecasts=forecasts,
+        modeling_table=modeling_table,
+        forecast_metrics=forecast_metrics,
+        config=config,
+        output_table_dir=table_dir,
+        output_figure_dir=figure_dir,
+        paper_table_dir=Path("paper/tables"),
+        paper_figure_dir=Path("paper/figures"),
+        logger=logger,
+    )
+    table_assets.extend(prompt3_tables)
+    figure_assets.extend(prompt3_figures)
     manifest_path = write_asset_manifest("paper/asset_manifest.md", table_assets, figure_assets)
     logger.info("Saved LaTeX-ready tables to paper/tables.")
     logger.info("Saved LaTeX-ready PDF figures to paper/figures.")
@@ -543,6 +567,9 @@ def _build_decision_outputs(
     stability_selected = _stability_aware_selection(test_forecasts, forecasts, forecast_metrics, config)
     selected_frames.append(stability_selected)
 
+    feasibility_selected = _feasibility_aware_selection(test_forecasts, forecasts, modeling_table, forecast_metrics, config)
+    selected_frames.append(feasibility_selected)
+
     selected_decisions = pd.concat(selected_frames, ignore_index=True)
     return _evaluate_selected_decisions(selected_decisions, config)
 
@@ -650,6 +677,199 @@ def _stability_aware_selection(
             }
         )
     return pd.DataFrame(selected_records)
+
+
+def _feasibility_aware_selection(
+    test_forecasts: pd.DataFrame,
+    all_forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+) -> pd.DataFrame:
+    """Select forecasts with an interpretable expected feasibility objective.
+
+    The initial stability-aware selector does not need to dominate under every
+    weight setting. Operational planning is a multi-objective feasibility
+    problem: a small forecast gain can be rationally rejected when it creates
+    inventory exposure, large plan movement, switching burden, or execution
+    violations that the operation cannot absorb.
+    """
+    expected_losses = _validation_expected_planning_losses(all_forecasts, modeling_table, config)
+    global_expected_losses = _global_validation_expected_planning_losses(expected_losses, forecast_metrics)
+    weights = config.get("planning_loss_weights", {})
+    planning_config = config.get("planning", {})
+    stability_config = config.get("stability", {})
+    feasibility_config = config.get("feasibility_analysis", {}).get("feasibility_selector", {})
+    switch_penalty = float(feasibility_config.get("switch_penalty", config.get("favorita_pipeline", {}).get("stability_switch_penalty", 0.02)))
+    minimum_utility_gain = float(feasibility_config.get("minimum_utility_gain", 0.0))
+    max_plan_change_rate = float(stability_config.get("max_plan_change_rate", 0.20))
+
+    candidate_groups = {
+        key: group.copy()
+        for key, group in test_forecasts.groupby(["series_id", "date"], sort=False)
+    }
+    base_rows = (
+        test_forecasts[["date", "series_id", "family", "store_nbr", "actual", "split", "horizon", "safety_stock"]]
+        .drop_duplicates(["date", "series_id"])
+        .sort_values(["series_id", "date"])
+    )
+
+    states: Dict[str, Dict[str, object]] = {}
+    selected_records: List[Mapping[str, object]] = []
+    for row in base_rows.itertuples(index=False):
+        candidates = candidate_groups[(row.series_id, row.date)]
+        previous_state = states.get(row.series_id, {})
+        previous_model = previous_state.get("selected_model")
+        previous_plan = previous_state.get("planning_signal")
+
+        scored_candidates = []
+        for candidate in candidates.itertuples(index=False):
+            planning_signal = float(forecast_to_inventory_target([candidate.forecast], [row.safety_stock])[0])
+            plan_change_abs, plan_change_pct, execution_violation_units = _expected_plan_burden(
+                planning_signal=planning_signal,
+                previous_plan=previous_plan,
+                max_plan_change_rate=max_plan_change_rate,
+            )
+            calibrated_loss = expected_losses.get(
+                (row.family, candidate.model_name),
+                global_expected_losses.get(candidate.model_name, {}),
+            )
+            expected_forecast_loss = float(calibrated_loss.get("wape", 1.0))
+            expected_inventory_loss = float(calibrated_loss.get("inventory_cost_per_demand_unit", 0.0))
+            switch_cost = 0.0 if previous_model is None or previous_model == candidate.model_name else switch_penalty
+            normalized_execution_violation = execution_violation_units / max(abs(float(previous_plan or planning_signal)), 1e-8)
+            score = (
+                float(weights.get("alpha_forecast", 1.0)) * expected_forecast_loss
+                + float(weights.get("beta_inventory", 1.0)) * expected_inventory_loss
+                + float(weights.get("lambda_volatility", 0.5)) * plan_change_pct
+                + float(weights.get("lambda_switch", 0.5)) * switch_cost
+                + float(weights.get("lambda_execution", 1.0)) * normalized_execution_violation
+            )
+            scored_candidates.append(
+                {
+                    "candidate": candidate,
+                    "planning_signal": planning_signal,
+                    "score": score,
+                    "plan_change_abs": plan_change_abs,
+                    "plan_change_pct": plan_change_pct,
+                }
+            )
+
+        best = min(scored_candidates, key=lambda item: item["score"])
+        if previous_model is not None:
+            incumbent_matches = [item for item in scored_candidates if item["candidate"].model_name == previous_model]
+            if incumbent_matches:
+                incumbent = incumbent_matches[0]
+                if best["candidate"].model_name != previous_model and best["score"] > incumbent["score"] - minimum_utility_gain:
+                    best = incumbent
+
+        best_candidate = best["candidate"]
+        states[row.series_id] = {
+            "selected_model": best_candidate.model_name,
+            "planning_signal": best["planning_signal"],
+        }
+        selected_records.append(
+            {
+                "date": row.date,
+                "series_id": row.series_id,
+                "family": row.family,
+                "store_nbr": row.store_nbr,
+                "model_name": best_candidate.model_name,
+                "selected_model": best_candidate.model_name,
+                "forecast": float(best_candidate.forecast),
+                "actual": float(row.actual),
+                "split": row.split,
+                "horizon": int(row.horizon),
+                "safety_stock": float(row.safety_stock),
+                "strategy": "feasibility_aware_selector",
+            }
+        )
+    return pd.DataFrame(selected_records)
+
+
+def _expected_plan_burden(
+    planning_signal: float,
+    previous_plan: Optional[object],
+    max_plan_change_rate: float,
+) -> Tuple[float, float, float]:
+    """Return expected plan movement and capacity violation for one candidate."""
+    if previous_plan is None:
+        return 0.0, 0.0, 0.0
+    previous_value = float(previous_plan)
+    plan_change_abs = abs(float(planning_signal) - previous_value)
+    plan_change_pct = plan_change_abs / max(abs(previous_value), 1e-8)
+    execution_capacity = abs(previous_value) * float(max_plan_change_rate)
+    execution_violation_units = max(plan_change_abs - execution_capacity, 0.0)
+    return plan_change_abs, plan_change_pct, execution_violation_units
+
+
+def _validation_expected_planning_losses(
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    config: Mapping[str, object],
+) -> Dict[Tuple[str, str], Dict[str, float]]:
+    """Estimate normalized forecast and inventory losses on validation data."""
+    validation = forecasts[forecasts["split"] == "validation"].copy()
+    safety_lookup = modeling_table[modeling_table["split"] == "validation"][
+        ["date", "series_id", "demand_rolling_std_28"]
+    ].copy()
+    safety_multiplier = float(config.get("favorita_pipeline", {}).get("safety_stock_multiplier", 0.5))
+    safety_lookup["safety_stock"] = (
+        pd.to_numeric(safety_lookup["demand_rolling_std_28"], errors="coerce").fillna(0.0) * safety_multiplier
+    ).clip(lower=0.0)
+    validation = validation.merge(safety_lookup[["date", "series_id", "safety_stock"]], on=["date", "series_id"], how="left")
+    validation["safety_stock"] = validation["safety_stock"].fillna(0.0)
+
+    planning_config = config.get("planning", {})
+    losses: Dict[Tuple[str, str], Dict[str, float]] = {}
+    for (family, model_name), group in validation.groupby(["family", "model_name"]):
+        actual = group["actual"].to_numpy(dtype=float)
+        forecast = group["forecast"].to_numpy(dtype=float)
+        safety_stock = group["safety_stock"].to_numpy(dtype=float)
+        planning_signal = forecast_to_inventory_target(forecast, safety_stock)
+        inventory_cost = compute_holding_cost(
+            planning_signal,
+            actual,
+            holding_cost_rate=float(planning_config.get("holding_cost_rate", 1.0)),
+        ) + compute_shortage_cost(
+            planning_signal,
+            actual,
+            shortage_cost_rate=float(planning_config.get("shortage_cost_rate", 5.0)),
+        )
+        demand_total = max(float(np.sum(np.abs(actual))), 1e-8)
+        losses[(family, model_name)] = {
+            "wape": weighted_absolute_percentage_error(actual, forecast),
+            "inventory_cost_per_demand_unit": float(np.sum(inventory_cost) / demand_total),
+        }
+    return losses
+
+
+def _global_validation_expected_planning_losses(
+    family_losses: Mapping[Tuple[str, str], Mapping[str, float]],
+    forecast_metrics: pd.DataFrame,
+) -> Dict[str, Dict[str, float]]:
+    """Return global fallback losses when a family-model calibration is absent."""
+    global_losses: Dict[str, Dict[str, float]] = {}
+    for (_, model_name), metrics in family_losses.items():
+        global_losses.setdefault(model_name, {"wape_values": [], "inventory_values": []})
+        global_losses[model_name]["wape_values"].append(float(metrics["wape"]))
+        global_losses[model_name]["inventory_values"].append(float(metrics["inventory_cost_per_demand_unit"]))
+    output = {
+        model_name: {
+            "wape": float(np.mean(values["wape_values"])),
+            "inventory_cost_per_demand_unit": float(np.mean(values["inventory_values"])),
+        }
+        for model_name, values in global_losses.items()
+    }
+    for row in forecast_metrics[forecast_metrics["split"] == "validation"].itertuples(index=False):
+        output.setdefault(
+            row.model_name,
+            {
+                "wape": float(row.weighted_absolute_percentage_error),
+                "inventory_cost_per_demand_unit": 0.0,
+            },
+        )
+    return output
 
 
 def _family_model_validation_losses(forecasts: pd.DataFrame) -> Dict[Tuple[str, str], float]:
@@ -799,6 +1019,329 @@ def _summarize_planning_utility(decisions: pd.DataFrame, loss_weights: Mapping[s
             }
         )
     return pd.DataFrame(records).sort_values("total_planning_loss")
+
+
+def _run_feasibility_analyses(
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+    output_table_dir: Path,
+    output_figure_dir: Path,
+    paper_table_dir: Path,
+    paper_figure_dir: Path,
+    logger: logging.Logger,
+) -> Tuple[List[Path], List[Path]]:
+    """Run Prompt 3 feasibility stress tests and Pareto analysis.
+
+    These analyses intentionally report the tradeoff surface instead of tuning
+    weights until one selector wins. If execution infrastructure is strong,
+    accuracy-only planning can be rational. If execution infrastructure is
+    weak, feasibility-aware planning becomes more important. The data should
+    show where those regimes appear.
+    """
+    logger.info("Running Prompt 3 feasibility stress tests and Pareto analysis.")
+    decisions = _build_decision_outputs(forecasts, modeling_table, forecast_metrics, config, logger)
+    weight_results = _run_weight_sensitivity_analysis(forecasts, modeling_table, forecast_metrics, config, logger)
+    capacity_results = _run_execution_capacity_stress_test(forecasts, modeling_table, forecast_metrics, config, logger)
+    pareto_summary = _build_pareto_summary(decisions, config)
+
+    weight_results.to_csv(output_table_dir / "weight_sensitivity_results.csv", index=False)
+    capacity_results.to_csv(output_table_dir / "execution_capacity_stress_test.csv", index=False)
+    pareto_summary.to_csv(output_table_dir / "pareto_summary.csv", index=False)
+
+    table_assets = _export_prompt3_latex_tables(
+        weight_results=weight_results,
+        capacity_results=capacity_results,
+        pareto_summary=pareto_summary,
+        paper_table_dir=paper_table_dir,
+    )
+    figure_assets = _make_prompt3_figures(
+        weight_results=weight_results,
+        capacity_results=capacity_results,
+        pareto_summary=pareto_summary,
+        output_figure_dir=output_figure_dir,
+        paper_figure_dir=paper_figure_dir,
+    )
+    logger.info("Saved Prompt 3 feasibility tables and figures.")
+    return table_assets, figure_assets
+
+
+def _run_weight_sensitivity_analysis(
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+    logger: logging.Logger,
+) -> pd.DataFrame:
+    """Evaluate planning utility under a grid of feasibility weights."""
+    analysis_config = config.get("feasibility_analysis", {}).get("weight_sensitivity", {})
+    lambda_volatility_values = analysis_config.get("lambda_volatility_values", [0.5, 25.0, 100.0])
+    lambda_switch_values = analysis_config.get("lambda_switch_values", [0.5, 10.0])
+    lambda_execution_values = analysis_config.get("lambda_execution_values", [0.5, 1.0, 2.0, 5.0, 10.0])
+    base_weights = config.get("planning_loss_weights", {})
+
+    rows: List[pd.DataFrame] = []
+    for scenario_index, (lambda_volatility, lambda_switch, lambda_execution) in enumerate(
+        product(lambda_volatility_values, lambda_switch_values, lambda_execution_values),
+        start=1,
+    ):
+        scenario_id = "weights_{:02d}".format(scenario_index)
+        scenario_weights = dict(base_weights)
+        scenario_weights.update(
+            {
+                "lambda_volatility": float(lambda_volatility),
+                "lambda_switch": float(lambda_switch),
+                "lambda_execution": float(lambda_execution),
+            }
+        )
+        scenario_config = _copy_config_with_updates(config, loss_weights=scenario_weights)
+        decisions = _build_decision_outputs(forecasts, modeling_table, forecast_metrics, scenario_config, logger)
+        summary = _summarize_planning_utility(decisions, scenario_weights)
+        summary["scenario_id"] = scenario_id
+        summary["lambda_volatility"] = float(lambda_volatility)
+        summary["lambda_switch"] = float(lambda_switch)
+        summary["lambda_execution"] = float(lambda_execution)
+        summary["alpha_forecast"] = float(scenario_weights.get("alpha_forecast", 1.0))
+        summary["beta_inventory"] = float(scenario_weights.get("beta_inventory", 1.0))
+        rows.append(summary)
+    result = pd.concat(rows, ignore_index=True)
+    result["is_best_total_loss"] = result["total_planning_loss"] == result.groupby("scenario_id")["total_planning_loss"].transform("min")
+    global_losses = result[result["strategy"] == "global_best_model"][
+        ["scenario_id", "total_planning_loss"]
+    ].rename(columns={"total_planning_loss": "global_best_total_loss"})
+    result = result.merge(global_losses, on="scenario_id", how="left")
+    result["loss_gap_to_global_best"] = result["total_planning_loss"] - result["global_best_total_loss"]
+    return result.sort_values(["scenario_id", "total_planning_loss", "strategy"])
+
+
+def _run_execution_capacity_stress_test(
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+    logger: logging.Logger,
+) -> pd.DataFrame:
+    """Evaluate strategies when execution infrastructure becomes tighter.
+
+    Execution capacity stress testing is central to the planning-infrastructure
+    gap: the same forecast can be easy to execute in a high-capacity operation
+    and infeasible when planners, suppliers, systems, or stores can absorb only
+    small period-to-period changes.
+    """
+    scenario_rates = _execution_capacity_scenarios(config)
+    rows: List[pd.DataFrame] = []
+    for scenario_name, max_plan_change_rate in scenario_rates.items():
+        scenario_config = _copy_config_with_updates(config, max_plan_change_rate=float(max_plan_change_rate))
+        decisions = _build_decision_outputs(forecasts, modeling_table, forecast_metrics, scenario_config, logger)
+        summary = _summarize_planning_utility(decisions, scenario_config.get("planning_loss_weights", {}))
+        summary["capacity_scenario"] = scenario_name
+        summary["max_plan_change_rate"] = float(max_plan_change_rate)
+        rows.append(summary)
+    return pd.concat(rows, ignore_index=True).sort_values(["capacity_scenario", "total_planning_loss", "strategy"])
+
+
+def _build_pareto_summary(decisions: pd.DataFrame, config: Mapping[str, object]) -> pd.DataFrame:
+    """Return a Pareto-style summary over accuracy, cost, stability, and execution."""
+    summary = _summarize_planning_utility(decisions, config.get("planning_loss_weights", {}))
+    objective_columns = [
+        "weighted_absolute_percentage_error",
+        "total_inventory_cost",
+        "planning_signal_volatility_total",
+        "execution_adaptation_penalty_total",
+        "execution_violation_rate",
+    ]
+    summary["pareto_efficient"] = _mark_pareto_efficient(summary, objective_columns)
+    summary["dominated"] = ~summary["pareto_efficient"]
+    return summary.sort_values(["pareto_efficient", "total_planning_loss", "strategy"], ascending=[False, True, True])
+
+
+def _mark_pareto_efficient(data: pd.DataFrame, objective_columns: Sequence[str]) -> pd.Series:
+    """Mark rows that are not dominated on all minimization objectives."""
+    objectives = data[list(objective_columns)].to_numpy(dtype=float)
+    efficient = np.ones(objectives.shape[0], dtype=bool)
+    for index, candidate in enumerate(objectives):
+        other = np.delete(objectives, index, axis=0)
+        if other.size == 0:
+            continue
+        dominated = np.any(np.all(other <= candidate, axis=1) & np.any(other < candidate, axis=1))
+        efficient[index] = not dominated
+    return pd.Series(efficient, index=data.index)
+
+
+def _copy_config_with_updates(
+    config: Mapping[str, object],
+    loss_weights: Optional[Mapping[str, float]] = None,
+    max_plan_change_rate: Optional[float] = None,
+) -> Dict[str, object]:
+    """Return a deep-copied config with selected planning assumptions changed."""
+    updated = copy.deepcopy(dict(config))
+    if loss_weights is not None:
+        updated.setdefault("planning_loss_weights", {}).update(dict(loss_weights))
+    if max_plan_change_rate is not None:
+        updated.setdefault("stability", {})["max_plan_change_rate"] = float(max_plan_change_rate)
+    return updated
+
+
+def _execution_capacity_scenarios(config: Mapping[str, object]) -> Dict[str, float]:
+    """Return ordered execution capacity scenarios."""
+    default_scenarios = {
+        "high_capacity": 0.40,
+        "medium_capacity": 0.20,
+        "low_capacity": 0.10,
+        "severe_constraint": 0.05,
+    }
+    configured = config.get("feasibility_analysis", {}).get("execution_capacity_scenarios", default_scenarios)
+    return {name: float(value) for name, value in configured.items()}
+
+
+def _export_prompt3_latex_tables(
+    weight_results: pd.DataFrame,
+    capacity_results: pd.DataFrame,
+    pareto_summary: pd.DataFrame,
+    paper_table_dir: Path,
+) -> List[Path]:
+    """Export compact Prompt 3 tables for manuscript inclusion."""
+    weight_table = _compact_weight_sensitivity_table(weight_results)
+    capacity_table = _compact_strategy_table(
+        capacity_results,
+        group_column="capacity_scenario",
+        include_strategies=PAPER_STRATEGY_ORDER,
+    )
+    pareto_table = _with_strategy_display_labels(
+        pareto_summary[
+            [
+                "strategy",
+                "weighted_absolute_percentage_error",
+                "total_inventory_cost",
+                "planning_signal_volatility_total",
+                "execution_adaptation_penalty_total",
+                "execution_violation_rate",
+                "pareto_efficient",
+            ]
+        ].copy()
+    )
+
+    outputs = []
+    outputs.append(
+        export_summary_table(
+            data=weight_table,
+            table_name="weight_sensitivity_results",
+            output_dir=paper_table_dir,
+            caption="Favorita weight sensitivity summary for feasibility-aware planning.",
+            label="tab:weight-sensitivity-results",
+            numeric_precision=3,
+            column_renames={
+                "scenario_id": "Scenario",
+                "lambda_volatility": "Volatility Weight",
+                "lambda_switch": "Switch Weight",
+                "lambda_execution": "Execution Weight",
+                "best_strategy": "Best Strategy",
+                "global_best_loss": "Global Best Loss",
+                "feasibility_aware_loss": "Feasibility-Aware Loss",
+                "stability_aware_loss": "Stability-Aware Loss",
+                "moving_average_loss": "Moving Avg. Loss",
+            },
+            resize_to_textwidth=True,
+        )["tex"]
+    )
+    outputs.append(
+        export_summary_table(
+            data=capacity_table,
+            table_name="execution_capacity_stress_test",
+            output_dir=paper_table_dir,
+            caption="Favorita execution capacity stress-test summary.",
+            label="tab:execution-capacity-stress-test",
+            numeric_precision=3,
+            column_renames={
+                "capacity_scenario": "Capacity Scenario",
+                "strategy": "Strategy",
+                "weighted_absolute_percentage_error": "WAPE",
+                "total_inventory_cost": "Inventory Cost",
+                "planning_signal_volatility_total": "Volatility Total",
+                "execution_adaptation_penalty_total": "Execution Penalty",
+                "execution_violation_rate": "Violation Rate",
+                "total_planning_loss": "Total Loss",
+                "service_level": "Service Level",
+            },
+            resize_to_textwidth=True,
+        )["tex"]
+    )
+    outputs.append(
+        export_summary_table(
+            data=pareto_table,
+            table_name="pareto_summary",
+            output_dir=paper_table_dir,
+            caption="Favorita Pareto summary over accuracy, cost, stability, and execution.",
+            label="tab:pareto-summary",
+            numeric_precision=3,
+            column_renames={
+                "strategy": "Strategy",
+                "weighted_absolute_percentage_error": "WAPE",
+                "total_inventory_cost": "Inventory Cost",
+                "planning_signal_volatility_total": "Volatility Total",
+                "execution_adaptation_penalty_total": "Execution Penalty",
+                "execution_violation_rate": "Violation Rate",
+                "pareto_efficient": "Pareto Efficient",
+            },
+            resize_to_textwidth=True,
+        )["tex"]
+    )
+    return outputs
+
+
+def _compact_weight_sensitivity_table(weight_results: pd.DataFrame) -> pd.DataFrame:
+    """Return one manuscript row per weight scenario."""
+    records = []
+    for scenario_id, group in weight_results.groupby("scenario_id"):
+        by_strategy = group.set_index("strategy")
+        best_row = group.sort_values("total_planning_loss").iloc[0]
+        records.append(
+            {
+                "scenario_id": scenario_id,
+                "lambda_volatility": float(best_row["lambda_volatility"]),
+                "lambda_switch": float(best_row["lambda_switch"]),
+                "lambda_execution": float(best_row["lambda_execution"]),
+                "best_strategy": _short_strategy_label(best_row["strategy"]),
+                "global_best_loss": _strategy_metric(by_strategy, "global_best_model", "total_planning_loss"),
+                "feasibility_aware_loss": _strategy_metric(by_strategy, "feasibility_aware_selector", "total_planning_loss"),
+                "stability_aware_loss": _strategy_metric(by_strategy, "stability_aware_selector", "total_planning_loss"),
+                "moving_average_loss": _strategy_metric(by_strategy, "individual_moving_average", "total_planning_loss"),
+            }
+        )
+    return pd.DataFrame(records)
+
+
+def _compact_strategy_table(data: pd.DataFrame, group_column: str, include_strategies: Sequence[str]) -> pd.DataFrame:
+    """Return compact manuscript rows for key strategies."""
+    table = data[data["strategy"].isin(include_strategies)].copy()
+    table = table[
+        [
+            group_column,
+            "strategy",
+            "weighted_absolute_percentage_error",
+            "total_inventory_cost",
+            "planning_signal_volatility_total",
+            "execution_adaptation_penalty_total",
+            "execution_violation_rate",
+            "total_planning_loss",
+            "service_level",
+        ]
+    ]
+    table = _with_strategy_display_labels(table)
+    if group_column == "capacity_scenario":
+        scenario_order = {name: index for index, name in enumerate(_execution_capacity_scenarios({}).keys())}
+        table["_scenario_order"] = table[group_column].map(scenario_order)
+        table = table.sort_values(["_scenario_order", "total_planning_loss"]).drop(columns=["_scenario_order"])
+        return table
+    return table.sort_values([group_column, "total_planning_loss"])
+
+
+def _strategy_metric(by_strategy: pd.DataFrame, strategy: str, metric: str) -> float:
+    """Return a strategy metric from an indexed summary table."""
+    if strategy not in by_strategy.index:
+        return float("nan")
+    return float(by_strategy.loc[strategy, metric])
 
 
 def _export_latex_tables(
@@ -1004,6 +1547,221 @@ def _make_figures(
     ]
 
 
+def _make_prompt3_figures(
+    weight_results: pd.DataFrame,
+    capacity_results: pd.DataFrame,
+    pareto_summary: pd.DataFrame,
+    output_figure_dir: Path,
+    paper_figure_dir: Path,
+) -> List[Path]:
+    """Create Prompt 3 tradeoff figures for outputs and the LaTeX paper."""
+    output_figure_dir.mkdir(parents=True, exist_ok=True)
+    paper_figure_dir.mkdir(parents=True, exist_ok=True)
+
+    figure_paths = []
+    base_weight_slice = _weight_plot_slice(weight_results)
+    _save_weight_sensitivity_plot(
+        base_weight_slice,
+        metric_column="total_planning_loss",
+        y_label="Total Planning Loss",
+        title="Weight Sensitivity: Total Planning Loss",
+        png_path=output_figure_dir / "plot_weight_sensitivity_total_loss.png",
+        pdf_path=paper_figure_dir / "plot_weight_sensitivity_total_loss.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "plot_weight_sensitivity_total_loss.pdf")
+    _save_weight_sensitivity_plot(
+        base_weight_slice,
+        metric_column="execution_adaptation_penalty_total",
+        y_label="Execution Penalty",
+        title="Weight Sensitivity: Execution Penalty",
+        png_path=output_figure_dir / "plot_weight_sensitivity_execution_penalty.png",
+        pdf_path=paper_figure_dir / "plot_weight_sensitivity_execution_penalty.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "plot_weight_sensitivity_execution_penalty.pdf")
+
+    _save_capacity_stress_plot(
+        capacity_results,
+        metric_column="total_planning_loss",
+        y_label="Total Planning Loss",
+        title="Execution Capacity Versus Total Planning Loss",
+        png_path=output_figure_dir / "execution_capacity_vs_total_loss.png",
+        pdf_path=paper_figure_dir / "execution_capacity_vs_total_loss.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "execution_capacity_vs_total_loss.pdf")
+    _save_capacity_stress_plot(
+        capacity_results,
+        metric_column="execution_violation_rate",
+        y_label="Execution Violation Rate",
+        title="Execution Capacity Versus Violation Rate",
+        png_path=output_figure_dir / "execution_capacity_vs_violation_rate.png",
+        pdf_path=paper_figure_dir / "execution_capacity_vs_violation_rate.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "execution_capacity_vs_violation_rate.pdf")
+    _save_capacity_stress_plot(
+        capacity_results,
+        metric_column="total_inventory_cost",
+        y_label="Inventory Cost",
+        title="Execution Capacity Versus Inventory Cost",
+        png_path=output_figure_dir / "execution_capacity_vs_inventory_cost.png",
+        pdf_path=paper_figure_dir / "execution_capacity_vs_inventory_cost.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "execution_capacity_vs_inventory_cost.pdf")
+
+    _save_pareto_plot(
+        pareto_summary,
+        x_column="weighted_absolute_percentage_error",
+        y_column="execution_adaptation_penalty_total",
+        x_label="Weighted Absolute Percentage Error",
+        y_label="Execution Penalty",
+        title="Pareto: Accuracy Versus Execution Penalty",
+        png_path=output_figure_dir / "pareto_accuracy_vs_execution_penalty.png",
+        pdf_path=paper_figure_dir / "pareto_accuracy_vs_execution_penalty.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "pareto_accuracy_vs_execution_penalty.pdf")
+    _save_pareto_plot(
+        pareto_summary,
+        x_column="weighted_absolute_percentage_error",
+        y_column="planning_signal_volatility_total",
+        x_label="Weighted Absolute Percentage Error",
+        y_label="Planning Volatility",
+        title="Pareto: Accuracy Versus Planning Volatility",
+        png_path=output_figure_dir / "pareto_accuracy_vs_planning_volatility.png",
+        pdf_path=paper_figure_dir / "pareto_accuracy_vs_planning_volatility.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "pareto_accuracy_vs_planning_volatility.pdf")
+    _save_pareto_plot(
+        pareto_summary,
+        x_column="total_inventory_cost",
+        y_column="execution_adaptation_penalty_total",
+        x_label="Inventory Cost",
+        y_label="Execution Penalty",
+        title="Pareto: Inventory Cost Versus Execution Penalty",
+        png_path=output_figure_dir / "pareto_inventory_cost_vs_execution_penalty.png",
+        pdf_path=paper_figure_dir / "pareto_inventory_cost_vs_execution_penalty.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "pareto_inventory_cost_vs_execution_penalty.pdf")
+    return figure_paths
+
+
+def _weight_plot_slice(weight_results: pd.DataFrame) -> pd.DataFrame:
+    """Return a readable weight-sensitivity slice for plotting."""
+    base_volatility = float(weight_results["lambda_volatility"].min())
+    base_switch = float(weight_results["lambda_switch"].min())
+    subset = weight_results[
+        (weight_results["lambda_volatility"] == base_volatility)
+        & (weight_results["lambda_switch"] == base_switch)
+        & (weight_results["strategy"].isin(PAPER_STRATEGY_ORDER))
+    ].copy()
+    if subset.empty:
+        subset = weight_results[weight_results["strategy"].isin(PAPER_STRATEGY_ORDER)].copy()
+    return subset
+
+
+def _save_weight_sensitivity_plot(
+    data: pd.DataFrame,
+    metric_column: str,
+    y_label: str,
+    title: str,
+    png_path: Path,
+    pdf_path: Path,
+) -> None:
+    """Save a line plot over execution weight for key strategies."""
+    fig, ax = plt.subplots(figsize=(7.4, 4.8))
+    for strategy in PAPER_STRATEGY_ORDER:
+        strategy_data = data[data["strategy"] == strategy].sort_values("lambda_execution")
+        if strategy_data.empty:
+            continue
+        ax.plot(
+            strategy_data["lambda_execution"],
+            strategy_data[metric_column],
+            marker="o",
+            linewidth=1.8,
+            label=_short_strategy_label(strategy),
+        )
+    ax.set_title(title)
+    ax.set_xlabel("Execution Weight")
+    ax.set_ylabel(y_label)
+    ax.grid(True, alpha=0.25)
+    ax.legend(loc="best", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(png_path, dpi=180)
+    fig.savefig(pdf_path)
+    plt.close(fig)
+
+
+def _save_capacity_stress_plot(
+    data: pd.DataFrame,
+    metric_column: str,
+    y_label: str,
+    title: str,
+    png_path: Path,
+    pdf_path: Path,
+) -> None:
+    """Save a scenario line plot for execution-capacity stress testing."""
+    scenario_order = list(_execution_capacity_scenarios({}).keys())
+    scenario_positions = {scenario: position for position, scenario in enumerate(scenario_order)}
+    fig, ax = plt.subplots(figsize=(7.8, 4.8))
+    for strategy in PAPER_STRATEGY_ORDER:
+        strategy_data = data[data["strategy"] == strategy].copy()
+        if strategy_data.empty:
+            continue
+        strategy_data["scenario_position"] = strategy_data["capacity_scenario"].map(scenario_positions)
+        strategy_data = strategy_data.sort_values("scenario_position")
+        ax.plot(
+            strategy_data["scenario_position"],
+            strategy_data[metric_column],
+            marker="o",
+            linewidth=1.8,
+            label=_short_strategy_label(strategy),
+        )
+    ax.set_title(title)
+    ax.set_xlabel("Execution Capacity Scenario")
+    ax.set_ylabel(y_label)
+    ax.set_xticks(list(scenario_positions.values()))
+    ax.set_xticklabels([label.replace("_", "\n") for label in scenario_order])
+    ax.grid(True, alpha=0.25)
+    ax.legend(loc="best", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(png_path, dpi=180)
+    fig.savefig(pdf_path)
+    plt.close(fig)
+
+
+def _save_pareto_plot(
+    data: pd.DataFrame,
+    x_column: str,
+    y_column: str,
+    x_label: str,
+    y_label: str,
+    title: str,
+    png_path: Path,
+    pdf_path: Path,
+) -> None:
+    """Save a Pareto scatter plot with dominated methods shown separately."""
+    fig, ax = plt.subplots(figsize=(7.2, 4.8))
+    dominated = data[~data["pareto_efficient"]]
+    efficient = data[data["pareto_efficient"]]
+    ax.scatter(dominated[x_column], dominated[y_column], color="#999999", s=42, label="Dominated")
+    ax.scatter(efficient[x_column], efficient[y_column], color="#2f6f8f", s=58, label="Pareto Efficient")
+    for row in data.itertuples(index=False):
+        ax.annotate(
+            _short_strategy_label(getattr(row, "strategy")),
+            (getattr(row, x_column), getattr(row, y_column)),
+            textcoords="offset points",
+            xytext=(5, 4),
+            fontsize=8,
+        )
+    ax.set_title(title)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.grid(True, alpha=0.25)
+    ax.legend(loc="best", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(png_path, dpi=180)
+    fig.savefig(pdf_path)
+    plt.close(fig)
+
+
 def _save_scatter_figure(
     data: pd.DataFrame,
     x_column: str,
@@ -1037,7 +1795,7 @@ def _save_scatter_figure(
 
 def _save_example_planning_signal(decisions: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
     """Save an example actual-demand and planning-signal plot."""
-    strategy_subset = ["global_best_model", "family_best_model", "stability_aware_selector"]
+    strategy_subset = ["global_best_model", "family_best_model", "stability_aware_selector", "feasibility_aware_selector"]
     candidate = decisions[decisions["strategy"].isin(strategy_subset)].copy()
     totals = candidate.groupby("series_id")["actual"].sum().sort_values(ascending=False)
     example_series = totals.index[0]
@@ -1050,6 +1808,7 @@ def _save_example_planning_signal(decisions: pd.DataFrame, png_path: Path, pdf_p
         "global_best_model": "#2f6f8f",
         "family_best_model": "#8f5f2f",
         "stability_aware_selector": "#6f8f2f",
+        "feasibility_aware_selector": "#7f4f9f",
     }
     for strategy in strategy_subset:
         strategy_data = plot_data[plot_data["strategy"] == strategy].sort_values("date")
@@ -1087,6 +1846,7 @@ def _short_strategy_label(strategy: str) -> str:
         "global_best_model": "Global Best",
         "family_best_model": "Family Best",
         "stability_aware_selector": "Stability-Aware",
+        "feasibility_aware_selector": "Feasibility-Aware",
     }
     return replacements.get(strategy, strategy.replace("_", " ").title())
 

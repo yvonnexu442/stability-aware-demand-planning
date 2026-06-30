@@ -1,0 +1,38 @@
+\begin{table}
+\centering
+\caption{Favorita execution capacity stress-test summary.}
+\label{tab:execution-capacity-stress-test}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrrrrr}
+\toprule
+ Capacity Scenario &           Strategy &  WAPE &  Inventory Cost &  Volatility Total &  Execution Penalty &  Violation Rate &  Total Loss &  Service Level \\
+\midrule
+     high\_capacity &        Global Best & 0.109 &     3010924.926 &           414.964 &          53263.748 &           0.038 & 4444128.275 &          0.984 \\
+     high\_capacity &           LightGBM & 0.109 &     3010924.926 &           414.964 &          53263.748 &           0.038 & 4444128.275 &          0.984 \\
+     high\_capacity &  Feasibility-Aware & 0.110 &     3063934.407 &           388.096 &          27806.339 &           0.029 & 4484922.665 &          0.981 \\
+     high\_capacity &    Stability-Aware & 0.111 &     3091745.491 &           405.025 &          34729.455 &           0.033 & 4532841.948 &          0.981 \\
+     high\_capacity &            XGBoost & 0.111 &     3084473.829 &           402.688 &          44641.373 &           0.034 & 4535351.507 &          0.980 \\
+     high\_capacity &        Moving Avg. & 0.188 &     5263648.540 &            14.814 &              0.000 &           0.000 & 7650785.842 &          0.956 \\
+   medium\_capacity &        Global Best & 0.109 &     3010924.926 &           414.964 &         546133.345 &           0.284 & 4936997.873 &          0.984 \\
+   medium\_capacity &           LightGBM & 0.109 &     3010924.926 &           414.964 &         546133.345 &           0.284 & 4936997.873 &          0.984 \\
+   medium\_capacity &            XGBoost & 0.111 &     3084473.829 &           402.688 &         503760.533 &           0.269 & 4994470.667 &          0.980 \\
+   medium\_capacity &    Stability-Aware & 0.113 &     3251369.903 &           384.274 &         402775.817 &           0.258 & 5091782.931 &          0.977 \\
+   medium\_capacity &  Feasibility-Aware & 0.116 &     3375551.068 &           364.328 &         365116.914 &           0.232 & 5219396.697 &          0.976 \\
+   medium\_capacity &        Moving Avg. & 0.188 &     5263648.540 &            14.814 &              0.000 &           0.000 & 7650785.842 &          0.956 \\
+      low\_capacity &        Global Best & 0.109 &     3010924.926 &           414.964 &        1191358.757 &           0.564 & 5582223.285 &          0.984 \\
+      low\_capacity &           LightGBM & 0.109 &     3010924.926 &           414.964 &        1191358.757 &           0.564 & 5582223.285 &          0.984 \\
+      low\_capacity &            XGBoost & 0.111 &     3084473.829 &           402.688 &        1130369.589 &           0.553 & 5621079.723 &          0.980 \\
+      low\_capacity &    Stability-Aware & 0.123 &     3623815.813 &           356.213 &         868884.756 &           0.525 & 6058949.059 &          0.972 \\
+      low\_capacity &  Feasibility-Aware & 0.130 &     3902623.921 &           330.131 &         739427.658 &           0.486 & 6290004.556 &          0.967 \\
+      low\_capacity &        Moving Avg. & 0.188 &     5263648.540 &            14.814 &            465.204 &           0.001 & 7651251.046 &          0.956 \\
+ severe\_constraint &        Global Best & 0.109 &     3010924.926 &           414.964 &        1692607.517 &           0.762 & 6083472.045 &          0.984 \\
+ severe\_constraint &           LightGBM & 0.109 &     3010924.926 &           414.964 &        1692607.517 &           0.762 & 6083472.045 &          0.984 \\
+ severe\_constraint &            XGBoost & 0.111 &     3084473.829 &           402.688 &        1617168.132 &           0.746 & 6107878.266 &          0.980 \\
+ severe\_constraint &    Stability-Aware & 0.130 &     3927896.094 &           330.300 &        1177322.979 &           0.715 & 6757230.159 &          0.966 \\
+ severe\_constraint &  Feasibility-Aware & 0.132 &     4023246.524 &           315.178 &        1114114.890 &           0.685 & 6820669.308 &          0.965 \\
+ severe\_constraint &        Moving Avg. & 0.188 &     5263648.540 &            14.814 &           1144.162 &           0.003 & 7651930.004 &          0.956 \\
+\bottomrule
+\end{tabular}
+}
+
+\end{table}

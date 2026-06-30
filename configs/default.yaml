@@ -46,6 +46,30 @@ favorita_pipeline:
   max_ml_training_rows: 250000
   stability_switch_penalty: 0.02
 
+feasibility_analysis:
+  execution_capacity_scenarios:
+    high_capacity: 0.40
+    medium_capacity: 0.20
+    low_capacity: 0.10
+    severe_constraint: 0.05
+  weight_sensitivity:
+    lambda_volatility_values:
+      - 0.5
+      - 25.0
+      - 100.0
+    lambda_switch_values:
+      - 0.5
+      - 10.0
+    lambda_execution_values:
+      - 0.5
+      - 1.0
+      - 2.0
+      - 5.0
+      - 10.0
+  feasibility_selector:
+    switch_penalty: 0.02
+    minimum_utility_gain: 0.0
+
 planning:
   safety_stock_method: constant
   service_level_target: 0.95
