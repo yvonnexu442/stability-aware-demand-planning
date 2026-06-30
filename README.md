@@ -33,6 +33,10 @@ Candidate public datasets for future experiments include Favorita, M5/Walmart-st
 configs/default.yaml             Research configuration template
 docs/mathematical_model.md       Formal notation and objective functions
 docs/system_flow.md              End-to-end system flow diagram
+paper/main.tex                   LaTeX manuscript skeleton
+paper/sections/                  LaTeX manuscript sections
+paper/tables/                    LaTeX-ready table assets
+paper/figures/                   LaTeX-ready figure assets
 data/raw/                        Raw public datasets, ignored by git
 data/processed/                  Processed tables, ignored by git
 src/data_loaders/                Dataset loader interfaces
@@ -41,6 +45,7 @@ src/models/                      Forecast model interfaces and baselines
 src/planning_environment/        Execution capacity and planning simulator logic
 src/decision_layer/              Hard selection, ensemble, and stability-aware selection
 src/evaluation/                  Forecast, inventory, stability, and planning utility metrics
+src/reporting/                   LaTeX export utilities for paper assets
 src/visualization/               Plotting helpers
 src/utils/                       Config, logging, and time split utilities
 scripts/                         Experiment entry points
@@ -66,6 +71,16 @@ The repository separates forecast quality from operational planning utility:
 - Planning utility combines forecast, inventory, stability, switching, and execution adaptation terms.
 
 The paper should report both a weighted scalar planning loss and Pareto-style multi-objective outputs. A single score is useful for optimization, but the tradeoff surface is essential for explaining the planning-infrastructure gap.
+
+## LaTeX Paper Workflow
+
+The final paper is written in LaTeX under `paper/`. Python experiments should write intermediate result tables to `outputs/tables/` and figures to `outputs/figures/`. The export script converts those outputs into manuscript-ready assets:
+
+```bash
+PYTHONPATH=src python3 scripts/export_latex_assets.py
+```
+
+Major result tables should be saved as both `.csv` and `.tex`. Research figures should be saved as PDF for LaTeX compatibility, with optional PNG copies for quick viewing. The LaTeX manuscript can then import generated assets from `paper/tables/` and `paper/figures/`.
 
 ## Current Status
 

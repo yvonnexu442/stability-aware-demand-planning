@@ -1,0 +1,112 @@
+\section{Problem Formulation}
+
+\subsection{Planning Units and Candidate Forecasts}
+
+Let $i$ index a planning unit, such as an item-store or store-family pair, and let $t$ index a planning period. Let $m \in \mathcal{M}$ denote a candidate forecasting model. Actual demand is denoted by $y_{i,t}$, and the forecast produced by model $m$ is denoted by $\hat{y}_{i,t}^{m}$.
+
+The forecasting layer produces a set of candidate forecasts:
+\begin{equation}
+    \left\{\hat{y}_{i,t}^{m}: m \in \mathcal{M}\right\}.
+\end{equation}
+
+The decision layer converts these candidate forecasts into a final forecast signal $\tilde{y}_{i,t}$ and then into an executable planning signal $x_{i,t}$.
+
+\subsection{Hard Model Selection}
+
+Under hard model selection, the decision layer selects one model $z_{i,t} \in \mathcal{M}$ for each planning unit and period:
+\begin{equation}
+    \tilde{y}_{i,t} = \hat{y}_{i,t}^{z_{i,t}}.
+\end{equation}
+
+Hard selection is operationally meaningful because changing $z_{i,t}$ can require model validation, monitoring changes, deployment updates, and planner communication.
+
+\subsection{Soft Model Composition}
+
+Under soft model composition, the decision layer assigns a nonnegative weight $w_{i,t}^{m}$ to each candidate model:
+\begin{equation}
+    \tilde{y}_{i,t} = \sum_{m \in \mathcal{M}} w_{i,t}^{m}\hat{y}_{i,t}^{m}.
+\end{equation}
+
+The weights satisfy:
+\begin{align}
+    w_{i,t}^{m} &\geq 0, \\
+    \sum_{m \in \mathcal{M}} w_{i,t}^{m} &= 1.
+\end{align}
+
+Soft composition can reduce hard model switching, but large weight changes may still create governance and monitoring burden.
+
+\subsection{Planning Signal Conversion}
+
+The operation executes a planning signal rather than a raw forecast. In this initial formulation, the planning signal is an inventory target:
+\begin{equation}
+    x_{i,t} = \tilde{y}_{i,t} + \text{safety\_stock}_{i,t}.
+\end{equation}
+
+The same framework can later represent other executable signals, including replenishment quantities, production targets, staffing levels, or capacity allocations.
+
+\subsection{Inventory Cost}
+
+Inventory cost includes holding cost for over-planning and shortage cost for under-planning:
+\begin{align}
+    \text{holding\_cost}_{i,t} &= h \max(x_{i,t} - y_{i,t}, 0), \\
+    \text{shortage\_cost}_{i,t} &= p \max(y_{i,t} - x_{i,t}, 0), \\
+    \text{inventory\_cost}_{i,t} &= \text{holding\_cost}_{i,t} + \text{shortage\_cost}_{i,t},
+\end{align}
+where $h$ is the holding cost rate and $p$ is the shortage cost rate.
+
+\subsection{Planning Signal Volatility}
+
+Planning signal volatility measures how sharply the executable signal changes across periods:
+\begin{equation}
+    \text{plan\_change\_pct}_{i,t}
+    =
+    \frac{|x_{i,t} - x_{i,t-1}|}{\max(|x_{i,t-1}|, \epsilon)}.
+\end{equation}
+
+This term captures plan churn that may be invisible in forecast error metrics.
+
+\subsection{Model Switching Cost}
+
+For hard selection, model switching cost is:
+\begin{equation}
+    \text{switch\_cost}_{i,t}
+    =
+    \begin{cases}
+    1, & z_{i,t} \neq z_{i,t-1}, \\
+    0, & z_{i,t} = z_{i,t-1}.
+    \end{cases}
+\end{equation}
+
+For soft composition, the analogous instability measure is total weight movement:
+\begin{equation}
+    \text{weight\_change}_{i,t}
+    =
+    \sum_{m \in \mathcal{M}}
+    |w_{i,t}^{m} - w_{i,t-1}^{m}|.
+\end{equation}
+
+\subsection{Execution Adaptation Penalty}
+
+Let $C_{i,t}$ denote execution capacity, defined as the maximum plan change the operation can absorb in period $t$. The execution adaptation penalty is:
+\begin{equation}
+    \text{execution\_penalty}_{i,t}
+    =
+    \max\left(0, |x_{i,t} - x_{i,t-1}| - C_{i,t}\right).
+\end{equation}
+
+This penalty captures the planning-infrastructure gap. It becomes positive when the forecast or planning signal changes faster than execution infrastructure can absorb. In practical terms, the forecasting layer may update rapidly, while procurement, staffing, production, transportation, software systems, or planner workflows may only absorb smaller or slower changes.
+
+\subsection{Multi-objective Planning Loss}
+
+The project evaluates planning utility through a multi-objective loss:
+\begin{align}
+    \text{total\_loss}
+    ={}&
+    \alpha \cdot \text{forecast\_error}
+    + \beta \cdot \text{inventory\_cost} \notag \\
+    &+ \lambda_{\text{volatility}} \cdot \text{planning\_signal\_volatility} \notag \\
+    &+ \lambda_{\text{switch}} \cdot \text{model\_switching\_cost} \notag \\
+    &+ \lambda_{\text{execution}} \cdot \text{execution\_adaptation\_penalty}.
+\end{align}
+
+The weighted scalar loss is useful for optimization and policy comparison. The paper will also report Pareto-style multi-objective outputs so that tradeoffs among accuracy, inventory cost, stability, switching, and execution adaptation remain visible.

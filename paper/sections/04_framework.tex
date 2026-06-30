@@ -1,0 +1,7 @@
+\section{Framework}
+
+The proposed framework separates forecasting from operational planning decisions. Candidate forecasting models generate demand forecasts. A decision layer then selects or combines these forecasts while accounting for stability, model switching cost, and execution capacity. The selected forecast is converted into a planning signal, such as an inventory target, and evaluated in an operational planning simulator.
+
+The framework is designed to answer whether a forecast that is numerically more accurate also improves executable planning quality. Future experiments will instantiate this framework on public demand datasets and compare direct forecast pass-through policies against stability-aware decision strategies.
+
+This section is a placeholder. The final version will describe the implemented pipeline, decision layer variants, execution capacity model, and policy drift scenarios in detail.

@@ -27,3 +27,14 @@ outputs/configs/*
 *.egg-info/
 build/
 dist/
+
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+/paper/main.pdf
