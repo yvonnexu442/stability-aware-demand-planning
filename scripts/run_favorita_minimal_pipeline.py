@@ -30,6 +30,7 @@ from decision_layer.feasibility_dp_selector import (
     OracleDPFeasibilitySelector,
 )
 from decision_layer.no_leakage import attach_actuals_for_evaluation, drop_future_outcomes, require_no_future_outcomes
+from decision_layer.strategy_metadata import ensure_strategy_metadata, summarize_strategy_metadata
 from evaluation.forecast_metrics import (
     mean_absolute_error,
     root_mean_squared_error,
@@ -1090,7 +1091,7 @@ def _oracle_dp_feasibility_selection(
     forecast_metrics: pd.DataFrame,
     config: Mapping[str, object],
 ) -> pd.DataFrame:
-    """Select non-deployable Oracle DP path using test-realized inventory costs."""
+    """Select non-deployable Realized-Inventory Oracle DP path."""
     require_no_future_outcomes(test_forecasts, "_oracle_dp_feasibility_selection")
     expected_losses, global_expected_losses = _favorita_dp_expected_losses(all_forecasts, modeling_table, forecast_metrics, config)
     realized_inventory_costs = _realized_inventory_costs_by_family_model(test_forecasts_with_actual, config)
@@ -1196,34 +1197,49 @@ def _validation_expected_planning_losses(
 def _realized_inventory_costs_by_family_model(
     test_forecasts: pd.DataFrame,
     config: Mapping[str, object],
-) -> Dict[Tuple[str, str], float]:
-    """Return test-realized inventory cost per demand unit for Oracle DP only."""
-    planning_config = config.get("planning", {})
-    realized_costs: Dict[Tuple[str, str], float] = {}
-    global_records = []
-    for (family, model_name), group in test_forecasts.groupby(["family", "model_name"]):
-        actual = group["actual"].to_numpy(dtype=float)
-        forecast = group["forecast"].to_numpy(dtype=float)
-        safety_stock = group["safety_stock"].to_numpy(dtype=float)
-        planning_signal = forecast_to_inventory_target(forecast, safety_stock)
-        inventory_cost = compute_holding_cost(
-            planning_signal,
-            actual,
-            holding_cost_rate=float(planning_config.get("holding_cost_rate", 1.0)),
-        ) + compute_shortage_cost(
-            planning_signal,
-            actual,
-            shortage_cost_rate=float(planning_config.get("shortage_cost_rate", 5.0)),
-        )
-        demand_total = max(float(np.sum(np.abs(actual))), 1e-8)
-        cost = float(np.sum(inventory_cost) / demand_total)
-        realized_costs[(family, model_name)] = cost
-        global_records.append({"model_name": model_name, "realized_inventory_cost": cost})
+) -> Dict[Tuple[object, ...], float]:
+    """Return period-specific test-realized inventory costs for Oracle DP only.
 
-    global_frame = pd.DataFrame(global_records)
-    if not global_frame.empty:
-        for model_name, group in global_frame.groupby("model_name"):
-            realized_costs[("global", model_name)] = float(group["realized_inventory_cost"].mean())
+    The primary key is ``(series_id, model_name, date)``. Family and global
+    period-level fallbacks are provided only for missing candidate rows.
+    """
+    planning_config = config.get("planning", {})
+    frame = test_forecasts.copy()
+    frame["date"] = pd.to_datetime(frame["date"])
+    actual = frame["actual"].to_numpy(dtype=float)
+    signal = forecast_to_inventory_target(
+        frame["forecast"].to_numpy(dtype=float),
+        frame["safety_stock"].to_numpy(dtype=float),
+    )
+    inventory_cost = compute_holding_cost(
+        signal,
+        actual,
+        holding_cost_rate=float(planning_config.get("holding_cost_rate", 1.0)),
+    ) + compute_shortage_cost(
+        signal,
+        actual,
+        shortage_cost_rate=float(planning_config.get("shortage_cost_rate", 5.0)),
+    )
+    frame["realized_inventory_cost"] = inventory_cost / np.maximum(np.abs(actual), 1.0)
+
+    realized_costs: Dict[Tuple[object, ...], float] = {}
+    for row in frame.itertuples(index=False):
+        realized_costs[(str(row.series_id), str(row.model_name), pd.Timestamp(row.date))] = float(row.realized_inventory_cost)
+
+    for (family, model_name, date), group in frame.groupby(["family", "model_name", "date"]):
+        realized_costs[(str(family), str(model_name), pd.Timestamp(date))] = float(group["realized_inventory_cost"].mean())
+
+    for (model_name, date), group in frame.groupby(["model_name", "date"]):
+        realized_costs[("global", str(model_name), pd.Timestamp(date))] = float(group["realized_inventory_cost"].mean())
+
+    for (series_id, model_name), group in frame.groupby(["series_id", "model_name"]):
+        realized_costs[(str(series_id), str(model_name))] = float(group["realized_inventory_cost"].mean())
+
+    for (family, model_name), group in frame.groupby(["family", "model_name"]):
+        realized_costs[(str(family), str(model_name))] = float(group["realized_inventory_cost"].mean())
+
+    for model_name, group in frame.groupby("model_name"):
+        realized_costs[("global", str(model_name))] = float(group["realized_inventory_cost"].mean())
     return realized_costs
 
 
@@ -1303,7 +1319,7 @@ def _family_model_validation_losses(forecasts: pd.DataFrame) -> Dict[Tuple[str, 
 
 def _evaluate_selected_decisions(selected_decisions: pd.DataFrame, config: Mapping[str, object]) -> pd.DataFrame:
     """Add planning signal, cost, stability, and loss columns to decisions."""
-    frame = selected_decisions.copy().sort_values(["strategy", "series_id", "date"]).reset_index(drop=True)
+    frame = ensure_strategy_metadata(selected_decisions).sort_values(["strategy", "series_id", "date"]).reset_index(drop=True)
     planning_config = config.get("planning", {})
     stability_config = config.get("stability", {})
     weights = config.get("planning_loss_weights", {})
@@ -1427,24 +1443,24 @@ def _summarize_planning_utility(decisions: pd.DataFrame, loss_weights: Mapping[s
             execution_adaptation_penalty=group["execution_adaptation_penalty"].to_numpy(dtype=float),
             weights=loss_weights,
         )
-        records.append(
-            {
-                "strategy": strategy,
-                "selected_model_count": group["selected_model"].nunique(),
-                "mean_absolute_error": mean_absolute_error(actual, forecast),
-                "weighted_absolute_percentage_error": weighted_absolute_percentage_error(actual, forecast),
-                "total_inventory_cost": float(group["total_inventory_cost"].sum()),
-                "planning_signal_volatility_total": float(group["plan_change_pct"].sum()),
-                "model_switching_cost_total": float(group["model_switch_flag"].sum()),
-                "model_switch_count": int(group["model_switch_flag"].sum()),
-                "execution_adaptation_penalty_total": float(group["execution_adaptation_penalty"].sum()),
-                "total_planning_loss": total_loss,
-                "service_level": compute_service_level(group["inventory_target"], actual),
-                "large_jump_rate": float(group["large_jump_flag"].mean()),
-                "execution_violation_rate": float(group["execution_violation"].mean()),
-                "max_period_plan_change_pct": float(group["plan_change_pct"].max()),
-            }
-        )
+        record = {
+            "strategy": strategy,
+            "selected_model_count": group["selected_model"].nunique(),
+            "mean_absolute_error": mean_absolute_error(actual, forecast),
+            "weighted_absolute_percentage_error": weighted_absolute_percentage_error(actual, forecast),
+            "total_inventory_cost": float(group["total_inventory_cost"].sum()),
+            "planning_signal_volatility_total": float(group["plan_change_pct"].sum()),
+            "model_switching_cost_total": float(group["model_switch_flag"].sum()),
+            "model_switch_count": int(group["model_switch_flag"].sum()),
+            "execution_adaptation_penalty_total": float(group["execution_adaptation_penalty"].sum()),
+            "total_planning_loss": total_loss,
+            "service_level": compute_service_level(group["inventory_target"], actual),
+            "large_jump_rate": float(group["large_jump_flag"].mean()),
+            "execution_violation_rate": float(group["execution_violation"].mean()),
+            "max_period_plan_change_pct": float(group["plan_change_pct"].max()),
+        }
+        record.update(summarize_strategy_metadata(group))
+        records.append(record)
     return pd.DataFrame(records).sort_values("total_planning_loss")
 
 
@@ -1680,7 +1696,7 @@ def _baseline_normalized_summary(
 
 def _baseline_comparison_table(summary: pd.DataFrame) -> pd.DataFrame:
     """Build the requested baseline comparison table."""
-    table = summary[summary["strategy"].isin(BASELINE_COMPARISON_STRATEGIES)].copy()
+    table = ensure_strategy_metadata(summary[summary["strategy"].isin(BASELINE_COMPARISON_STRATEGIES)]).copy()
     table["method_name"] = table["strategy"].map(_short_strategy_label)
     table["WAPE"] = table["weighted_absolute_percentage_error"]
     table["inventory_cost"] = table["total_inventory_cost"]
@@ -1690,13 +1706,16 @@ def _baseline_comparison_table(summary: pd.DataFrame) -> pd.DataFrame:
     oracle_loss = table.loc[table["strategy"] == "oracle_realized_demand", "normalized_total_loss"]
     oracle_value = float(oracle_loss.iloc[0]) if not oracle_loss.empty else np.nan
     table["gap_to_oracle"] = table["normalized_total_loss"] - oracle_value
-    table["non_deployable_upper_bound"] = table["strategy"].isin(
-        ["oracle_dp_feasibility_selector", "oracle_realized_demand"]
-    )
+    table["non_deployable_upper_bound"] = ~table["deployable"]
     output_columns = [
         "method_name",
         "strategy",
+        "deployable",
+        "oracle_type",
         "non_deployable_upper_bound",
+        "fallback_used",
+        "fallback_type",
+        "fallback_reason",
         "WAPE",
         "inventory_cost",
         "planning_volatility",
@@ -2017,7 +2036,7 @@ def _evaluate_dataco_informed_scenarios(
         summary["lambda_execution"] = float(scenario.lambda_execution)
         summary["late_delivery_rate_anchor"] = scenario.late_delivery_rate_anchor
         summary["source"] = scenario.source
-        summary["fallback_used"] = bool(scenario.fallback_used)
+        summary["scenario_fallback_used"] = bool(scenario.fallback_used)
         summary["method_name"] = summary["strategy"].map(_short_strategy_label)
         summary["WAPE"] = summary["weighted_absolute_percentage_error"]
         summary["inventory_cost"] = summary["total_inventory_cost"]
@@ -2034,7 +2053,12 @@ def _evaluate_dataco_informed_scenarios(
         "lambda_execution",
         "late_delivery_rate_anchor",
         "source",
+        "scenario_fallback_used",
         "fallback_used",
+        "fallback_type",
+        "fallback_reason",
+        "deployable",
+        "oracle_type",
         "method_name",
         "strategy",
         "WAPE",
@@ -2104,7 +2128,7 @@ def _run_improved_feasibility_method_outputs(
         summary["lambda_execution"] = float(scenario.lambda_execution)
         summary["late_delivery_rate_anchor"] = scenario.late_delivery_rate_anchor
         summary["source"] = scenario.source
-        summary["fallback_used"] = bool(scenario.fallback_used)
+        summary["scenario_fallback_used"] = bool(scenario.fallback_used)
         summary["method_name"] = summary["strategy"].map(_short_strategy_label)
         summary["WAPE"] = summary["weighted_absolute_percentage_error"]
         summary["inventory_cost"] = summary["total_inventory_cost"]
@@ -2890,6 +2914,9 @@ def _method_family_from_strategy(strategy: str) -> str:
 
 def _improved_method_output_columns(result: pd.DataFrame) -> pd.DataFrame:
     """Return the requested improved-method output columns in a stable order."""
+    result = ensure_strategy_metadata(result)
+    if "scenario_fallback_used" not in result.columns:
+        result["scenario_fallback_used"] = False
     optional_columns = [
         "method_family",
         "method_variant",
@@ -2905,7 +2932,12 @@ def _improved_method_output_columns(result: pd.DataFrame) -> pd.DataFrame:
         "lambda_execution",
         "late_delivery_rate_anchor",
         "source",
+        "scenario_fallback_used",
         "fallback_used",
+        "fallback_type",
+        "fallback_reason",
+        "deployable",
+        "oracle_type",
         "method_name",
         "method_family",
         "method_variant",
@@ -4383,8 +4415,8 @@ def _short_strategy_label(strategy: str) -> str:
         "feasibility_aware_ensemble_inverse_accuracy": "Accuracy Ensemble",
         "feasibility_aware_ensemble_inverse_operational_loss": "Operational Ensemble",
         "feasibility_aware_ensemble_constrained": "Constrained Ensemble",
-        "oracle_dp_feasibility_selector": "Oracle DP",
-        "oracle_realized_demand": "Oracle",
+        "oracle_dp_feasibility_selector": "Realized-Inventory Oracle DP",
+        "oracle_realized_demand": "Realized Demand Oracle",
     }
     return replacements.get(strategy, strategy.replace("_", " ").title())
 

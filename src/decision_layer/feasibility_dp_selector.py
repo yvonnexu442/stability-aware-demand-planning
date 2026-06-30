@@ -1,7 +1,7 @@
 """Deterministic feasibility-aware selectors for finite-horizon planning."""
 
 from dataclasses import dataclass
-from typing import Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 import warnings
 
 import numpy as np
@@ -207,7 +207,7 @@ class BudgetedDPFeasibilitySelector(DPFeasibilitySelector):
         for _, series_frame in candidate_forecasts.sort_values(["series_id", "date", "model_name"]).groupby("series_id", sort=False):
             rows = self._select_series(series_frame)
             if rows:
-                selected_rows.extend(rows)
+                selected_rows.extend(_annotate_fallback(rows, used=False, fallback_type="none", reason="none"))
             else:
                 selected_rows.extend(self._greedy_fallback_series(series_frame))
         return _selected_frame(selected_rows, self.strategy_name)
@@ -261,7 +261,12 @@ class BudgetedDPFeasibilitySelector(DPFeasibilitySelector):
         return [series_frame.loc[index] for index in final_state.rows]
 
     def _greedy_fallback_series(self, series_frame: pd.DataFrame) -> List[pd.Series]:
-        """Return a one-step greedy fallback path for a single series."""
+        """Return a one-step greedy fallback path for a single series.
+
+        The fallback keeps the pipeline evaluable when no path remains under the
+        configured switch budget. Fallback rows are diagnostic and may violate
+        the hard switch budget, so downstream tables expose explicit metadata.
+        """
         greedy_rows: List[pd.Series] = []
         previous_model = None
         previous_plan = None
@@ -274,28 +279,34 @@ class BudgetedDPFeasibilitySelector(DPFeasibilitySelector):
             greedy_rows.append(selected)
             previous_model = str(selected["model_name"])
             previous_plan = selected_plan
-        return greedy_rows
+        return _annotate_fallback(
+            greedy_rows,
+            used=True,
+            fallback_type="one_step_greedy",
+            reason="no_budget_feasible_path_under_max_switches_{}".format(self.max_switches),
+        )
 
 
 class OracleDPFeasibilitySelector(DPFeasibilitySelector):
-    """Non-deployable Oracle DP selector using realized test-period demand.
+    """Non-deployable Realized-Inventory Oracle DP selector.
 
-    This selector uses realized inventory costs computed from test-period demand,
-    giving the DP access to future information that is unavailable in deployment.
-    It is included as a diagnostic upper bound only and must never be reported as
-    a deployable strategy.
+    This selector uses realized test-period inventory outcomes, giving the DP
+    access to future outcome information that is unavailable in deployment. It
+    is included as a diagnostic upper-bound benchmark for the value of
+    inventory-outcome information and must never be reported as deployable.
 
-    Forecast loss still uses the validation-derived estimate. The Oracle variant
-    isolates the value of knowing future inventory outcomes, rather than mixing
-    in a perfect-forecast objective.
+    It is not a perfect-forecast oracle. Forecast loss still uses the
+    validation-derived estimate, while inventory cost is looked up by period
+    using ``(series_id, model_name, date)`` whenever possible.
     """
 
-    ORACLE_LABEL = "[ORACLE - non-deployable]"
+    ORACLE_LABEL = "[REALIZED-INVENTORY ORACLE - non-deployable]"
+    ORACLE_TYPE = "realized_inventory_oracle"
 
     def __init__(
         self,
         expected_losses: Mapping[LossKey, Mapping[str, float]],
-        realized_inventory_costs: Mapping[LossKey, float],
+        realized_inventory_costs: Mapping[Tuple[Any, ...], float],
         global_expected_losses: Optional[Mapping[str, Mapping[str, float]]] = None,
         weights: Optional[Mapping[str, float]] = None,
         switch_penalty: float = 0.02,
@@ -318,10 +329,7 @@ class OracleDPFeasibilitySelector(DPFeasibilitySelector):
         """Use realized test inventory cost instead of validation inventory cost."""
         model_name = str(row["model_name"])
         calibration_group = str(row.get(self.calibration_group_column, row.get("series_id", "global")))
-        realized_inventory = self.realized_inventory_costs.get(
-            (calibration_group, model_name),
-            self.realized_inventory_costs.get(("global", model_name), 0.0),
-        )
+        realized_inventory = self._period_realized_inventory_cost(row, model_name, calibration_group)
         losses = self.expected_losses.get(
             (calibration_group, model_name),
             self.global_expected_losses.get(model_name, self.expected_losses.get(("global", model_name), {})),
@@ -330,6 +338,30 @@ class OracleDPFeasibilitySelector(DPFeasibilitySelector):
             float(self.weights.get("alpha_forecast", 1.0)) * float(losses.get("wape", 1.0))
             + float(self.weights.get("beta_inventory", 1.0)) * float(realized_inventory)
         )
+
+    def _period_realized_inventory_cost(
+        self,
+        row: pd.Series,
+        model_name: str,
+        calibration_group: str,
+    ) -> float:
+        """Return period-specific realized inventory cost for one candidate."""
+        series_id = str(row.get("series_id", calibration_group))
+        date_value = _normalized_date_key(row.get("date", None))
+        lookup_keys = [
+            (series_id, model_name, date_value),
+            (calibration_group, model_name, date_value),
+            ("global", model_name, date_value),
+            # Backward-compatible aggregate fallbacks are kept only for older
+            # cached artifacts; current pipelines generate period-level keys.
+            (series_id, model_name),
+            (calibration_group, model_name),
+            ("global", model_name),
+        ]
+        for key in lookup_keys:
+            if key in self.realized_inventory_costs:
+                return float(self.realized_inventory_costs[key])
+        return 0.0
 
 
 def _period_candidates(period_frame: pd.DataFrame) -> List[pd.Series]:
@@ -347,7 +379,43 @@ def _selected_frame(rows: Sequence[pd.Series], strategy_name: str) -> pd.DataFra
         return frame
     frame["selected_model"] = frame["model_name"].astype(str)
     frame["strategy"] = strategy_name
+    if "fallback_used" not in frame.columns:
+        frame["fallback_used"] = False
+    else:
+        frame["fallback_used"] = frame["fallback_used"].fillna(False).astype(bool)
+    if "fallback_type" not in frame.columns:
+        frame["fallback_type"] = "none"
+    else:
+        frame["fallback_type"] = frame["fallback_type"].fillna("none").astype(str)
+    if "fallback_reason" not in frame.columns:
+        frame["fallback_reason"] = "none"
+    else:
+        frame["fallback_reason"] = frame["fallback_reason"].fillna("none").astype(str)
     return frame
+
+
+def _annotate_fallback(
+    rows: Sequence[pd.Series],
+    used: bool,
+    fallback_type: str,
+    reason: str,
+) -> List[pd.Series]:
+    """Return row copies with explicit Budgeted-DP fallback metadata."""
+    annotated_rows: List[pd.Series] = []
+    for row in rows:
+        annotated = row.copy()
+        annotated["fallback_used"] = bool(used)
+        annotated["fallback_type"] = fallback_type
+        annotated["fallback_reason"] = reason
+        annotated_rows.append(annotated)
+    return annotated_rows
+
+
+def _normalized_date_key(value: object) -> object:
+    """Return a stable date key for realized inventory lookup."""
+    if value is None or pd.isna(value):
+        return None
+    return pd.Timestamp(value)
 
 
 def _planning_signal(row: pd.Series) -> float:

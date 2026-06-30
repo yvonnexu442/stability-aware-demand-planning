@@ -1,34 +1,34 @@
 \begin{table}[htbp]
 \centering
-\scriptsize
+\tiny
 \setlength{\tabcolsep}{2pt}
-\caption{Decision-layer information access and switching-logic audit. Oracle strategies are non-deployable diagnostics.}
+\caption{Decision-layer information access and switching-logic audit. Oracle rows are non-deployable diagnostics.}
 \label{tab:decision-layer-audit}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{p{0.15\textwidth}p{0.07\textwidth}p{0.16\textwidth}p{0.13\textwidth}p{0.12\textwidth}p{0.10\textwidth}p{0.12\textwidth}p{0.15\textwidth}p{0.15\textwidth}}
+\begin{tabular}{p{0.13\textwidth}p{0.05\textwidth}p{0.14\textwidth}p{0.08\textwidth}p{0.06\textwidth}p{0.08\textwidth}p{0.09\textwidth}p{0.13\textwidth}p{0.13\textwidth}p{0.06\textwidth}p{0.06\textwidth}p{0.09\textwidth}p{0.05\textwidth}p{0.10\textwidth}p{0.18\textwidth}}
 \toprule
-Strategy & Deployable & Information Access & Validation Losses & Test Inventory Outcomes & Hard Switch Budget & Fallback & Switching Cost & Switching Logic \\
+Strategy & Deployable & Selection Timing & Validation Loss & Realized Test Inventory & Future Test Demand & Oracle Type & Switching Cost in Selection & Switching Cost in Evaluation & Hard Budget & Fallback & Fallback Type & Online & Leakage Risk & Notes \\
 \midrule
-Individual fixed models & Yes & Test forecasts only & No & No & No & No & None & Fixed candidate model \\
-Global Best & Yes & Validation WAPE & WAPE only & No & No & No & None within series & Fixed global model \\
-Family Best & Yes & Validation family WAPE & WAPE only & No & No & Global Best fallback & None within series & Fixed family-level model \\
-Simple Ensemble & Yes & Test forecasts only & No & No & No & No & No discrete switching & Equal-weight composition \\
-M5 Operational Ensemble & Yes & Validation planning loss & Yes & No & No & Equal-weight fallback & No discrete switching & Validation-loss-weighted composition \\
-Best Inventory Cost & Yes & Validation inventory cost & Yes & No & No & WAPE fallback & None within series & Fixed inventory-first model \\
-Best Stability & Yes & Validation volatility & Stability only & No & No & Global Best fallback & None within series & Fixed stability-first model \\
-Stability-Aware & Yes & Validation WAPE plus plan movement & WAPE only & No & No & No & Soft lambda\_switch & Stateful one-step selection \\
-Feasibility-Aware & Yes & Validation expected costs plus transition burden & Yes & No & No & No & Soft lambda\_switch; hysteresis in Favorita & Stateful greedy selection \\
-Greedy Feasibility & Yes & Validation expected costs plus current transition & Yes & No & No & No & Soft lambda\_switch & One-step operational-cost minimization \\
-DP Feasibility & Yes & Validation expected costs plus horizon transitions & Yes & No & No & No & Soft lambda\_switch in DP objective & Finite-horizon cumulative minimization \\
-Budgeted DP & Yes & Validation expected costs plus horizon transitions & Yes & No & Yes; max\_switches $K$ & Greedy fallback with warning & Soft lambda\_switch plus hard budget & DP over model and switch-count state \\
-Smoothed fixed alpha & Yes & Validation expected costs plus fixed alpha & Yes & No & No & No & Soft lambda\_switch; smoothing reduces jumps & Greedy selection with gradual adaptation \\
-Scenario alpha smoothing & Yes & Validation expected costs plus scenario alpha & Yes & No & No & No & Soft lambda\_switch; scenario smoothing & Greedy selection with scenario adaptation \\
-Utility alpha smoothing & Yes & Blocked validation CV for alpha & Yes & No & No & Default alpha if CV unavailable & Soft lambda\_switch; CV-selected smoothing & Greedy selection with validation-chosen smoothing \\
-Accuracy Ensemble & Yes & Validation WAPE weights & WAPE only & No & No & Equal-weight fallback & No discrete switching & Accuracy-weighted composition \\
-Operational Ensemble & Yes & Validation operational-loss weights & Yes & No & No & Equal-weight fallback & No discrete switching & Operational-loss-weighted composition \\
-Constrained Ensemble & Yes & Blocked validation CV for nonnegative blend & Yes & No & No & Operational or accuracy weight fallback & No discrete switching & Constrained weighted composition \\
-Oracle DP & No & Validation WAPE plus realized inventory-cost map & Yes & Yes & No & No & Soft lambda\_switch in Oracle DP & Non-deployable DP diagnostic \\
-Realized Demand Oracle & No & Realized test demand & No & Yes & No & No & No switching cost & Non-deployable perfect-demand benchmark \\
+Individual Fixed Model Baselines & True & Fixed before test evaluation & False & False & False & none & None & Included as zero within-strategy switching & False & False & none & False & Low & One candidate model is held fixed for the full test horizon. \\
+Global Best & True & Validation-time global model choice & WAPE only & False & False & none & None & Included as zero within-strategy switching & False & False & none & False & Low & Accuracy-first baseline selected by validation WAPE. \\
+Family Best & True & Validation-time group model choice & WAPE only & False & False & none & None & Included as zero within each series & False & True & global\_best\_model\_fallback & False & Low & Missing family mappings fall back to Global Best. \\
+Simple Ensemble & True & Fixed forecast composition before evaluation & False & False & False & none & No discrete switching & Included as zero because selected model is constant & False & False & none & False & Low & Equal-weight ensemble with no outcome access. \\
+Operational-Loss Ensemble & True & Validation-time weight estimation & True & False & False & none & No discrete switching & Included as zero because selected model is constant & False & True & equal\_weight\_fallback & False & Low & Weights are based on validation normalized planning loss. \\
+Best Inventory Cost & True & Validation-time fixed model choice & True & False & False & none & None & Included as zero within-strategy switching & False & True & validation\_wape\_fallback & False & Low & Selects the model with lowest validation inventory cost when available. \\
+Best Stability & True & Validation-time fixed model choice & Validation stability only & False & False & none & None & Included as zero within-strategy switching & False & True & global\_best\_model\_fallback & False & Low & Over-stable reference for planning-signal volatility. \\
+Stability-Aware Selector & True & Stateful one-step selection by series & WAPE only & False & False & none & Soft $\lambda_{\mathrm{switch}}$ penalty & Included through model\_switch\_flag and $\lambda_{\mathrm{switch}}$ & False & False & none & True & Low & Switches only when one-step stability-aware score improves. \\
+Feasibility-Aware Selector & True & Stateful one-step selection by series & True & False & False & none & Soft $\lambda_{\mathrm{switch}}$ penalty & Included through model\_switch\_flag and $\lambda_{\mathrm{switch}}$ & False & False & none & True & Low & Uses validation-derived expected forecast and inventory costs plus transition burden. \\
+Greedy Feasibility Selector & True & One-step current-period operational-cost minimization & True & False & False & none & Soft $\lambda_{\mathrm{switch}}$ penalty & Included through model\_switch\_flag and $\lambda_{\mathrm{switch}}$ & False & False & none & True & Low & Deployable selector with no realized test outcomes in the selection frame. \\
+DP Feasibility Selector & True & Finite-horizon path selection before execution & True & False & False & none & Soft $\lambda_{\mathrm{switch}}$ penalty in DP objective & Included through model\_switch\_flag and $\lambda_{\mathrm{switch}}$ & False & False & none & False & Low & Deployable DP uses validation-derived expected costs and forecast-implied transitions. \\
+Budgeted DP Feasibility Selector & True & Finite-horizon path selection before execution & True & False & False & none & Soft $\lambda_{\mathrm{switch}}$ penalty plus hard switch-count state & Included through model\_switch\_flag and $\lambda_{\mathrm{switch}}$ & True & True & one\_step\_greedy & False & Low & If no budget-feasible path remains, greedy fallback keeps the pipeline evaluable and may not satisfy $K$. \\
+Smoothed Fixed-Alpha Planning & True & Stateful one-step selection with configured smoothing alpha & True & False & False & none & Soft $\lambda_{\mathrm{switch}}$ penalty before smoothing & Included through model\_switch\_flag and $\lambda_{\mathrm{switch}}$ & False & False & none & True & Low & Smoothing changes the executed planning signal gradually. \\
+Scenario-Alpha Smoothing & True & Stateful one-step selection with scenario-configured smoothing alpha & True & False & False & none & Soft $\lambda_{\mathrm{switch}}$ penalty before smoothing & Included through model\_switch\_flag and $\lambda_{\mathrm{switch}}$ & False & False & none & True & Low & Lower adaptation speed can be configured for higher execution-risk scenarios. \\
+Utility-Alpha Smoothing & True & Validation-CV alpha choice before test evaluation & True & False & False & none & Soft $\lambda_{\mathrm{switch}}$ penalty before smoothing & Included through model\_switch\_flag and $\lambda_{\mathrm{switch}}$ & False & True & default\_alpha\_fallback & True & Low & Blocked validation CV chooses alpha from a small interpretable grid. \\
+Accuracy-Weighted Ensemble & True & Validation-time weight estimation & WAPE only & False & False & none & No discrete switching & Included as zero because selected model is constant & False & True & equal\_weight\_fallback & False & Low & Nonnegative model weights are based on inverse validation forecast error. \\
+Operational-Loss Weighted Ensemble & True & Validation-time weight estimation & True & False & False & none & No discrete switching & Included as zero because selected model is constant & False & True & equal\_weight\_fallback & False & Low & Nonnegative model weights are based on validation normalized planning loss. \\
+Constrained Feasibility Ensemble & True & Validation-CV blend selection before test evaluation & True & False & False & none & No discrete switching & Included as zero because selected model is constant & False & True & operational\_or\_accuracy\_weight\_fallback & False & Low & Transparent nonnegative ensemble with weights constrained to sum to one. \\
+Realized-Inventory Oracle DP & False & Finite-horizon diagnostic after test inventory outcomes are known & True & True & Indirect via realized inventory outcomes & realized\_inventory\_oracle & Soft $\lambda_{\mathrm{switch}}$ penalty in Oracle DP objective & Included through model\_switch\_flag and $\lambda_{\mathrm{switch}}$ & False & False & none & False & Intentional non-deployable oracle & Uses period-specific realized test inventory cost keyed by series, model, and date; not a perfect-forecast oracle. \\
+Realized Demand Oracle & False & Diagnostic after realized test demand is known & False & True & True & perfect\_demand\_oracle & None & Included as zero because selected model is constant & False & False & none & False & Intentional non-deployable oracle & Uses realized demand as the forecast and is a separate perfect-demand diagnostic. \\
 \bottomrule
 \end{tabular}%
 }

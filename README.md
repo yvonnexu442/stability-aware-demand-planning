@@ -175,6 +175,23 @@ operational cost, DP selection minimizes cumulative expected operational loss
 over the available horizon, and Budgeted DP adds a hard switch budget. These
 selectors use validation-derived expected costs and forecast-implied planning
 signals; realized test demand remains reserved for Oracle-labeled diagnostics.
+The Realized-Inventory Oracle DP is non-deployable and uses period-specific
+realized test inventory outcomes as an information-access upper bound, not as a
+perfect-forecast oracle. Budgeted DP keeps a one-step greedy fallback for
+pipeline safety when no budget-feasible path remains; fallback rows are
+diagnostic and are explicitly marked in output metadata.
+
+### Decision-Layer Audit and Oracle Semantics
+
+The decision-layer audit now distinguishes deployable strategies from
+non-deployable Oracle diagnostics. Oracle DP is documented as a
+Realized-Inventory Oracle DP: it uses validation-derived forecast loss plus
+period-specific realized test inventory outcomes keyed by series, candidate
+model, and date. It is not a perfect-forecast oracle. The Budgeted DP fallback
+is also explicit in outputs through fallback metadata, making it clear when a
+pipeline-safe greedy fallback is diagnostic rather than a strict switch-budget
+solution. The audit table is exported to `outputs/tables/decision_layer_audit.csv`
+and `paper/tables/decision_layer_audit_table.tex`.
 
 ## Raw Data Workflow
 

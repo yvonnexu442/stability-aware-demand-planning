@@ -22,6 +22,7 @@ from decision_layer.feasibility_dp_selector import (
     OracleDPFeasibilitySelector,
 )
 from decision_layer.no_leakage import attach_actuals_for_evaluation, drop_future_outcomes, require_no_future_outcomes
+from decision_layer.strategy_metadata import ensure_strategy_metadata, summarize_strategy_metadata
 from evaluation.forecast_metrics import mean_absolute_error, weighted_absolute_percentage_error
 from evaluation.inventory_metrics import compute_holding_cost, compute_service_level, compute_shortage_cost
 from evaluation.planning_utility import add_normalized_planning_loss, compute_total_planning_loss
@@ -62,6 +63,11 @@ REQUIRED_SUMMARY_COLUMNS = [
     "intermittency_bucket",
     "scenario_name",
     "method_name",
+    "deployable",
+    "oracle_type",
+    "fallback_used",
+    "fallback_type",
+    "fallback_reason",
     "WAPE",
     "inventory_cost",
     "planning_volatility",
@@ -542,10 +548,10 @@ def oracle_dp_feasibility_selection(
     test_forecasts: pd.DataFrame,
     expected_losses: Mapping[Tuple[str, str], Mapping[str, float]],
     global_expected_losses: Mapping[str, Mapping[str, float]],
-    realized_inventory_costs: Mapping[Tuple[str, str], float],
+    realized_inventory_costs: Mapping[Tuple[object, ...], float],
     config: Mapping[str, object],
 ) -> pd.DataFrame:
-    """Return non-deployable Oracle DP selections using realized inventory costs."""
+    """Return non-deployable Realized-Inventory Oracle DP selections."""
     require_no_future_outcomes(test_forecasts, "oracle_dp_feasibility_selection")
     selector = OracleDPFeasibilitySelector(
         expected_losses=expected_losses,
@@ -656,33 +662,43 @@ def split_expected_losses(
 def realized_inventory_costs_by_series_model(
     test_forecasts: pd.DataFrame,
     config: Mapping[str, object],
-) -> Dict[Tuple[str, str], float]:
-    """Return test-realized inventory cost per demand unit for Oracle DP only."""
-    planning_config = config.get("planning", {})
-    realized_costs: Dict[Tuple[str, str], float] = {}
-    global_records = []
-    for (series_id, model_name), group in test_forecasts.groupby(["series_id", "model_name"]):
-        actual = group["actual"].to_numpy(dtype=float)
-        forecast = group["forecast"].to_numpy(dtype=float)
-        signal = forecast_to_inventory_target(forecast, group["safety_stock"].to_numpy(dtype=float))
-        inventory = compute_holding_cost(
-            signal,
-            actual,
-            float(planning_config.get("holding_cost_rate", 1.0)),
-        ) + compute_shortage_cost(
-            signal,
-            actual,
-            float(planning_config.get("shortage_cost_rate", 5.0)),
-        )
-        demand_total = max(float(np.sum(np.abs(actual))), 1e-8)
-        cost = float(np.sum(inventory) / demand_total)
-        realized_costs[(series_id, model_name)] = cost
-        global_records.append({"model_name": model_name, "realized_inventory_cost": cost})
+) -> Dict[Tuple[object, ...], float]:
+    """Return period-specific test-realized inventory costs for Oracle DP only.
 
-    global_frame = pd.DataFrame(global_records)
-    if not global_frame.empty:
-        for model_name, group in global_frame.groupby("model_name"):
-            realized_costs[("global", model_name)] = float(group["realized_inventory_cost"].mean())
+    The primary key is ``(series_id, model_name, date)``. Global period-level
+    fallbacks are provided only for missing candidate rows.
+    """
+    planning_config = config.get("planning", {})
+    frame = test_forecasts.copy()
+    frame["date"] = pd.to_datetime(frame["date"])
+    actual = frame["actual"].to_numpy(dtype=float)
+    signal = forecast_to_inventory_target(
+        frame["forecast"].to_numpy(dtype=float),
+        frame["safety_stock"].to_numpy(dtype=float),
+    )
+    inventory = compute_holding_cost(
+        signal,
+        actual,
+        float(planning_config.get("holding_cost_rate", 1.0)),
+    ) + compute_shortage_cost(
+        signal,
+        actual,
+        float(planning_config.get("shortage_cost_rate", 5.0)),
+    )
+    frame["realized_inventory_cost"] = inventory / np.maximum(np.abs(actual), 1.0)
+
+    realized_costs: Dict[Tuple[object, ...], float] = {}
+    for row in frame.itertuples(index=False):
+        realized_costs[(str(row.series_id), str(row.model_name), pd.Timestamp(row.date))] = float(row.realized_inventory_cost)
+
+    for (model_name, date), group in frame.groupby(["model_name", "date"]):
+        realized_costs[("global", str(model_name), pd.Timestamp(date))] = float(group["realized_inventory_cost"].mean())
+
+    for (series_id, model_name), group in frame.groupby(["series_id", "model_name"]):
+        realized_costs[(str(series_id), str(model_name))] = float(group["realized_inventory_cost"].mean())
+
+    for model_name, group in frame.groupby("model_name"):
+        realized_costs[("global", str(model_name))] = float(group["realized_inventory_cost"].mean())
     return realized_costs
 
 
@@ -745,7 +761,7 @@ def best_stability_candidate(
 
 def evaluate_selected_decisions(selected_decisions: pd.DataFrame, config: Mapping[str, object]) -> pd.DataFrame:
     """Evaluate inventory, stability, switching, and execution metrics."""
-    frame = selected_decisions.copy().sort_values(["strategy", "series_id", "date"]).reset_index(drop=True)
+    frame = ensure_strategy_metadata(selected_decisions).sort_values(["strategy", "series_id", "date"]).reset_index(drop=True)
     planning_config = config.get("planning", {})
     stability_config = config.get("stability", {})
     weights = config.get("planning_loss_weights", {})
@@ -797,29 +813,31 @@ def summarize_planning_utility(decisions: pd.DataFrame, loss_weights: Mapping[st
     for strategy, group in decisions.groupby("strategy"):
         actual = group["actual"].to_numpy(dtype=float)
         forecast = group["forecast"].to_numpy(dtype=float)
+        record = {
+            "strategy": strategy,
+            "selected_model_count": group["selected_model"].nunique(),
+            "mean_absolute_error": mean_absolute_error(actual, forecast),
+            "weighted_absolute_percentage_error": weighted_absolute_percentage_error(actual, forecast),
+            "total_inventory_cost": float(group["total_inventory_cost"].sum()),
+            "planning_signal_volatility_total": float(group["plan_change_pct"].sum()),
+            "model_switching_cost_total": float(group["model_switch_flag"].sum()),
+            "model_switch_count": int(group["model_switch_flag"].sum()),
+            "execution_adaptation_penalty_total": float(group["execution_adaptation_penalty"].sum()),
+            "total_planning_loss": compute_total_planning_loss(
+                forecast_error=np.abs(actual - forecast),
+                inventory_cost=group["total_inventory_cost"].to_numpy(dtype=float),
+                planning_signal_volatility=group["plan_change_pct"].to_numpy(dtype=float),
+                model_switching_cost=group["model_switch_flag"].to_numpy(dtype=float),
+                execution_adaptation_penalty=group["execution_adaptation_penalty"].to_numpy(dtype=float),
+                weights=loss_weights,
+            ),
+            "service_level": compute_service_level(group["inventory_target"], actual),
+            "execution_violation_rate": float(group["execution_violation"].mean()),
+            "max_period_plan_change_pct": float(group["plan_change_pct"].max()),
+        }
+        record.update(summarize_strategy_metadata(group))
         records.append(
-            {
-                "strategy": strategy,
-                "selected_model_count": group["selected_model"].nunique(),
-                "mean_absolute_error": mean_absolute_error(actual, forecast),
-                "weighted_absolute_percentage_error": weighted_absolute_percentage_error(actual, forecast),
-                "total_inventory_cost": float(group["total_inventory_cost"].sum()),
-                "planning_signal_volatility_total": float(group["plan_change_pct"].sum()),
-                "model_switching_cost_total": float(group["model_switch_flag"].sum()),
-                "model_switch_count": int(group["model_switch_flag"].sum()),
-                "execution_adaptation_penalty_total": float(group["execution_adaptation_penalty"].sum()),
-                "total_planning_loss": compute_total_planning_loss(
-                    forecast_error=np.abs(actual - forecast),
-                    inventory_cost=group["total_inventory_cost"].to_numpy(dtype=float),
-                    planning_signal_volatility=group["plan_change_pct"].to_numpy(dtype=float),
-                    model_switching_cost=group["model_switch_flag"].to_numpy(dtype=float),
-                    execution_adaptation_penalty=group["execution_adaptation_penalty"].to_numpy(dtype=float),
-                    weights=loss_weights,
-                ),
-                "service_level": compute_service_level(group["inventory_target"], actual),
-                "execution_violation_rate": float(group["execution_violation"].mean()),
-                "max_period_plan_change_pct": float(group["plan_change_pct"].max()),
-            }
+            record
         )
     return pd.DataFrame(records)
 
@@ -857,7 +875,7 @@ def finalize_summary(
     scenario_name: str,
 ) -> pd.DataFrame:
     """Return output columns required by the M5 robustness analysis."""
-    table = summary.copy()
+    table = ensure_strategy_metadata(summary)
     table["dataset_name"] = dataset_name
     table["run_mode"] = run_mode
     table["grain_level"] = grain_level
@@ -1141,8 +1159,8 @@ def short_strategy_label(strategy: str) -> str:
         "dp_feasibility_selector": "DP Feasibility",
         "budgeted_dp_feasibility_selector": "Budgeted DP",
         "best_stability_model": "Best Stability",
-        "oracle_dp_feasibility_selector": "Oracle DP",
-        "oracle_realized_demand": "Oracle",
+        "oracle_dp_feasibility_selector": "Realized-Inventory Oracle DP",
+        "oracle_realized_demand": "Realized Demand Oracle",
     }
     return labels.get(strategy, strategy.replace("_", " ").title())
 

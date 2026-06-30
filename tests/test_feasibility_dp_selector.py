@@ -95,15 +95,21 @@ class FeasibilityDPSelectorTest(unittest.TestCase):
 
         self.assertEqual(len(selected), 2)
         self.assertEqual(selected["selected_model"].tolist(), ["A", "B"])
+        self.assertTrue(selected["fallback_used"].all())
+        self.assertEqual(selected["fallback_type"].unique().tolist(), ["one_step_greedy"])
+        self.assertEqual(
+            selected["fallback_reason"].unique().tolist(),
+            ["no_budget_feasible_path_under_max_switches_0"],
+        )
 
     def test_oracle_dp_uses_realized_inventory_costs(self):
         oracle = OracleDPFeasibilitySelector(
             expected_losses=self.expected_losses,
             realized_inventory_costs={
-                ("item_1", "A"): 10.0,
-                ("item_1", "B"): 0.0,
-                ("global", "A"): 10.0,
-                ("global", "B"): 0.0,
+                ("item_1", "A", pd.Timestamp("2026-01-01")): 10.0,
+                ("item_1", "A", pd.Timestamp("2026-01-02")): 10.0,
+                ("item_1", "B", pd.Timestamp("2026-01-01")): 0.0,
+                ("item_1", "B", pd.Timestamp("2026-01-02")): 0.0,
             },
             weights={
                 "alpha_forecast": 0.0,
@@ -119,6 +125,30 @@ class FeasibilityDPSelectorTest(unittest.TestCase):
         selected = oracle.select(self.candidates)
 
         self.assertEqual(selected["selected_model"].tolist(), ["B", "B"])
+
+    def test_oracle_dp_uses_period_specific_realized_inventory_costs(self):
+        oracle = OracleDPFeasibilitySelector(
+            expected_losses=self.expected_losses,
+            realized_inventory_costs={
+                ("item_1", "A", pd.Timestamp("2026-01-01")): 0.0,
+                ("item_1", "B", pd.Timestamp("2026-01-01")): 10.0,
+                ("item_1", "A", pd.Timestamp("2026-01-02")): 10.0,
+                ("item_1", "B", pd.Timestamp("2026-01-02")): 0.0,
+            },
+            weights={
+                "alpha_forecast": 0.0,
+                "beta_inventory": 1.0,
+                "lambda_volatility": 0.0,
+                "lambda_switch": 0.0,
+                "lambda_execution": 0.0,
+            },
+            switch_penalty=0.0,
+            calibration_group_column="series_id",
+        )
+
+        selected = oracle.select(self.candidates)
+
+        self.assertEqual(selected["selected_model"].tolist(), ["A", "B"])
 
     def test_deployable_selectors_reject_test_actual(self):
         selector = DPFeasibilitySelector(

@@ -143,6 +143,30 @@ execution_penalty = max(0, abs(x_i,t - x_i,t-1) - C_i,t)
 
 The execution penalty captures the planning-infrastructure gap. It becomes positive when the forecast or planning signal changes faster than execution infrastructure can absorb. In practical terms, the forecast layer may be capable of adapting every day, while procurement, staffing, production, transportation, or software infrastructure may only absorb smaller or slower changes.
 
+## Finite-Horizon DP and Oracle Semantics
+
+The deployable DP selector minimizes cumulative expected operational loss over a finite horizon using validation-derived expected forecast and inventory costs:
+
+```text
+min over z_i,1:T sum_t expected_stage_cost(i, t, z_i,t, z_i,t-1)
+```
+
+The Budgeted DP variant adds a hard switch budget:
+
+```text
+sum_t 1{z_i,t != z_i,t-1} <= K
+```
+
+If no path remains feasible because candidate availability conflicts with the switch budget, the implementation uses a one-step greedy fallback for pipeline safety. Fallback rows are explicitly marked and should be treated as diagnostic rather than strict budgeted-DP results.
+
+The Realized-Inventory Oracle DP is non-deployable. It still uses validation-derived forecast loss, but it replaces the expected inventory component with period-specific realized inventory outcome cost keyed by:
+
+```text
+(series_id, model_name, date)
+```
+
+This oracle is not a perfect-forecast oracle. It measures the upper-bound value of knowing future inventory outcomes, not the value of knowing future demand exactly.
+
 ## Reporting Requirements
 
 The project should report both:
