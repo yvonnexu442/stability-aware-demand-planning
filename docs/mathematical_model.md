@@ -157,7 +157,7 @@ The Budgeted DP variant adds a hard switch budget:
 sum_t 1{z_i,t != z_i,t-1} <= K
 ```
 
-If no path remains feasible because candidate availability conflicts with the switch budget, the implementation uses a one-step greedy fallback for pipeline safety. Fallback rows are explicitly marked and should be treated as diagnostic rather than strict budgeted-DP results.
+If no path remains feasible because candidate availability conflicts with the switch budget, the implementation uses an incumbent-stays fallback for pipeline safety. The fallback chooses the first period's lowest-cost model using the same one-step stage cost with no previous model, then holds that incumbent model for the remaining horizon whenever it is available. If the incumbent model is missing in a later period, the fallback emits a RuntimeWarning and marks the path as potentially non-strict. Fallback rows are explicitly marked and should be treated as diagnostic rather than silent budgeted-DP results.
 
 The Realized-Inventory Oracle DP is non-deployable. It still uses validation-derived forecast loss, but it replaces the expected inventory component with period-specific realized inventory outcome cost keyed by:
 

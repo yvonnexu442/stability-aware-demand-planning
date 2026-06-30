@@ -201,7 +201,7 @@ class BudgetedDPFeasibilitySelector(DPFeasibilitySelector):
         self.max_switches = int(max_switches)
 
     def select(self, candidate_forecasts: pd.DataFrame) -> pd.DataFrame:
-        """Return selected forecast rows, falling back to greedy on budget failure."""
+        """Return selected rows, using incumbent-stays fallback on budget failure."""
         require_no_future_outcomes(candidate_forecasts, "{}.select".format(self.__class__.__name__))
         selected_rows: List[pd.Series] = []
         for _, series_frame in candidate_forecasts.sort_values(["series_id", "date", "model_name"]).groupby("series_id", sort=False):
@@ -209,7 +209,7 @@ class BudgetedDPFeasibilitySelector(DPFeasibilitySelector):
             if rows:
                 selected_rows.extend(_annotate_fallback(rows, used=False, fallback_type="none", reason="none"))
             else:
-                selected_rows.extend(self._greedy_fallback_series(series_frame))
+                selected_rows.extend(self._incumbent_stays_fallback_series(series_frame))
         return _selected_frame(selected_rows, self.strategy_name)
 
     def _select_series(self, series_frame: pd.DataFrame) -> List[pd.Series]:
@@ -250,7 +250,7 @@ class BudgetedDPFeasibilitySelector(DPFeasibilitySelector):
             if not dp:
                 warnings.warn(
                     "BudgetedDPFeasibilitySelector: no feasible path under max_switches={}. "
-                    "Falling back to one-step greedy policy.".format(self.max_switches),
+                    "Falling back to incumbent-stays policy.".format(self.max_switches),
                     RuntimeWarning,
                     stacklevel=2,
                 )
@@ -260,30 +260,61 @@ class BudgetedDPFeasibilitySelector(DPFeasibilitySelector):
         final_state = min(dp.values(), key=_state_sort_key)
         return [series_frame.loc[index] for index in final_state.rows]
 
-    def _greedy_fallback_series(self, series_frame: pd.DataFrame) -> List[pd.Series]:
-        """Return a one-step greedy fallback path for a single series.
+    def _incumbent_stays_fallback_series(self, series_frame: pd.DataFrame) -> List[pd.Series]:
+        """Return an incumbent-stays fallback path for a single series.
 
         The fallback keeps the pipeline evaluable when no path remains under the
-        configured switch budget. Fallback rows are diagnostic and may violate
-        the hard switch budget, so downstream tables expose explicit metadata.
+        configured switch budget. It chooses the first period's lowest-cost
+        candidate as the incumbent and holds that model whenever it is available.
         """
-        greedy_rows: List[pd.Series] = []
-        previous_model = None
-        previous_plan = None
-        for _, period_frame in series_frame.groupby("date", sort=False):
-            scored_candidates = []
-            for row in _period_candidates(period_frame):
-                score, plan = self._stage_cost(row, previous_model, previous_plan)
-                scored_candidates.append((score, str(row["model_name"]), plan, row))
-            _, _, selected_plan, selected = min(scored_candidates, key=lambda value: (value[0], value[1]))
-            greedy_rows.append(selected)
-            previous_model = str(selected["model_name"])
-            previous_plan = selected_plan
+        period_frames = list(series_frame.sort_values(["date", "model_name"]).groupby("date", sort=False))
+        if not period_frames:
+            return []
+
+        _, first_period = period_frames[0]
+        first_scores = []
+        for row in _period_candidates(first_period):
+            score, plan = self._stage_cost(row, previous_model=None, previous_plan=None)
+            first_scores.append((score, str(row["model_name"]), plan, row))
+        _, incumbent_model, previous_plan, selected = min(first_scores, key=lambda value: (value[0], value[1]))
+
+        fallback_rows: List[pd.Series] = [selected]
+        incumbent_missing = False
+        for date_value, period_frame in period_frames[1:]:
+            candidates = _period_candidates(period_frame)
+            incumbent_matches = [row for row in candidates if str(row["model_name"]) == incumbent_model]
+            if incumbent_matches:
+                selected = incumbent_matches[0]
+                _, previous_plan = self._stage_cost(
+                    selected,
+                    previous_model=incumbent_model,
+                    previous_plan=previous_plan,
+                )
+            else:
+                incumbent_missing = True
+                warnings.warn(
+                    "BudgetedDPFeasibilitySelector: incumbent model '{}' is missing for date {}. "
+                    "Incumbent-stays fallback is potentially non-strict.".format(incumbent_model, date_value),
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+                scored_candidates = []
+                for row in candidates:
+                    score, plan = self._stage_cost(row, previous_model=incumbent_model, previous_plan=previous_plan)
+                    scored_candidates.append((score, str(row["model_name"]), plan, row))
+                _, _, previous_plan, selected = min(scored_candidates, key=lambda value: (value[0], value[1]))
+            fallback_rows.append(selected)
+
+        reason = "no_budget_feasible_path_under_max_switches_{}; incumbent_model_held_when_available".format(
+            self.max_switches
+        )
+        if incumbent_missing:
+            reason = "{}; incumbent_missing_in_later_period_potentially_non_strict".format(reason)
         return _annotate_fallback(
-            greedy_rows,
+            fallback_rows,
             used=True,
-            fallback_type="one_step_greedy",
-            reason="no_budget_feasible_path_under_max_switches_{}".format(self.max_switches),
+            fallback_type="incumbent_stays",
+            reason=reason,
         )
 
 

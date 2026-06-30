@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import pandas as pd
 
@@ -90,17 +91,38 @@ class FeasibilityDPSelectorTest(unittest.TestCase):
             calibration_group_column="series_id",
         )
 
-        with self.assertWarns(RuntimeWarning):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
             selected = budgeted.select(candidates)
 
         self.assertEqual(len(selected), 2)
         self.assertEqual(selected["selected_model"].tolist(), ["A", "B"])
         self.assertTrue(selected["fallback_used"].all())
-        self.assertEqual(selected["fallback_type"].unique().tolist(), ["one_step_greedy"])
-        self.assertEqual(
-            selected["fallback_reason"].unique().tolist(),
-            ["no_budget_feasible_path_under_max_switches_0"],
+        self.assertEqual(selected["fallback_type"].unique().tolist(), ["incumbent_stays"])
+        fallback_reason = selected["fallback_reason"].unique().tolist()[0]
+        self.assertIn("no_budget_feasible_path_under_max_switches_0", fallback_reason)
+        self.assertIn("incumbent_missing_in_later_period_potentially_non_strict", fallback_reason)
+        warning_messages = [str(item.message) for item in caught]
+        self.assertTrue(any("Falling back to incumbent-stays policy" in message for message in warning_messages))
+        self.assertTrue(any("potentially non-strict" in message for message in warning_messages))
+
+    def test_budgeted_dp_incumbent_stays_fallback_uses_zero_switches_when_available(self):
+        budgeted = BudgetedDPFeasibilitySelector(
+            expected_losses=self.expected_losses,
+            weights=self.weights,
+            switch_penalty=1.0,
+            max_switches=0,
+            calibration_group_column="series_id",
         )
+
+        rows = budgeted._incumbent_stays_fallback_series(self.candidates)
+        selected_models = [str(row["model_name"]) for row in rows]
+
+        self.assertEqual(selected_models, ["B", "B"])
+        self.assertTrue(all(bool(row["fallback_used"]) for row in rows))
+        self.assertEqual({str(row["fallback_type"]) for row in rows}, {"incumbent_stays"})
+        switches = sum(left != right for left, right in zip(selected_models[:-1], selected_models[1:]))
+        self.assertEqual(switches, 0)
 
     def test_oracle_dp_uses_realized_inventory_costs(self):
         oracle = OracleDPFeasibilitySelector(
