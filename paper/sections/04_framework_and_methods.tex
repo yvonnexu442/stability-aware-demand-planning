@@ -1,0 +1,53 @@
+\section{Framework and Methods}
+
+\subsection{Framework Overview}
+
+The framework separates forecast generation from deployable planning strategy selection. Candidate forecasting models first produce forecasts for each planning unit and period. A decision layer then selects, combines, or smooths the candidate signals before converting them into executable planning signals. The resulting plans are evaluated using both forecasting metrics and operational metrics that reflect inventory exposure, plan volatility, model-switching burden, and execution-capacity violations.
+
+This structure is designed to evaluate deployable strategy families rather than only individual forecasting models. A method can be attractive because it is accurate, because it produces stable plans, because it reduces execution burden, or because it offers a favorable balance among these objectives. The empirical design therefore reports raw metrics and normalized planning loss rather than reducing the analysis to a single forecasting leaderboard.
+
+\subsection{Accuracy-First Methods}
+
+Accuracy-first methods select forecasts using validation or test-period forecast accuracy. The Global Best or BestAccuracy strategy applies the numerically strongest candidate model globally. The Family Best strategy allows model choice to vary by product family or comparable planning group. These strategies are important baselines because they represent the common deployment logic of choosing the best forecaster before considering downstream execution consequences.
+
+\subsection{Stability-First Methods}
+
+Stability-first methods prioritize low plan volatility. In the current experiments, moving-average and BestStability variants serve as deliberately conservative references. They are not included to claim that simple smoothing is always better than machine learning. They are included because an over-stable but weak baseline helps identify the operational cost of suppressing plan changes too aggressively.
+
+\subsection{Ensemble-Based Methods}
+
+The Simple Ensemble averages candidate forecasts without using operational-loss information. It provides a transparent reference for forecast combination. The Operational-Loss Ensemble assigns nonnegative weights that sum to one using validation normalized planning loss rather than forecast error alone. This family tests whether soft forecast composition can preserve useful accuracy while reducing abrupt execution burden.
+
+\subsection{Smoothing-Based Methods}
+
+FeasibilityAwareSmoothed strategies modify the executed planning signal after a candidate plan is formed. With fixed-alpha smoothing, the adaptation rate is configured directly. With utility-CV smoothing, the adaptation rate is selected from a small validation grid using blocked validation folds to reduce dependence on a single validation period. The smoothing equation is
+\begin{equation}
+    x_{i,t}^{\mathrm{exec}}
+    =
+    \alpha_{t} x_{i,t}^{\mathrm{cand}}
+    +
+    (1-\alpha_{t})x_{i,t-1}^{\mathrm{exec}}.
+\end{equation}
+Smoothing changes the executed planning signal, not the underlying demand realization and not the raw forecast itself. It is intended to model gradual operational adaptation when execution infrastructure cannot absorb abrupt target changes.
+
+\subsection{Feasibility-Aware Adaptive Selection}
+
+The Feasibility-Aware Selector evaluates candidate model changes using expected planning utility rather than forecast error alone. It considers forecast error, expected inventory cost, planning volatility, model-switching burden, and expected execution violations. A switch is accepted only when the expected planning utility improves after feasibility penalties. This method is intentionally interpretable; it is not a reinforcement-learning or black-box control policy.
+
+\subsection{Finite-Horizon DP Selection}
+
+The GreedyFeasibilitySelector minimizes the current-period expected operational cost using validation-derived model costs and current forecast-implied transition costs. It is a one-step policy and can switch when the immediate score improves.
+
+The DPFeasibilitySelector solves the deterministic finite-horizon model-selection problem for each planning series. Its state is the previously selected model, which determines the previous planning signal and therefore the next transition cost. The DP minimizes cumulative expected operational loss over the available horizon using validation-derived expected costs; it does not use realized test demand.
+
+The BudgetedDPFeasibilitySelector adds a hard maximum switch budget $K$ to the finite-horizon DP. Unlike the soft switching penalty, this budget constrains the feasible path set. This variant is useful for planning environments where governance, monitoring, or approval processes impose a strict limit on model changes over a planning window.
+
+\subsection{Oracle Diagnostic}
+
+The Oracle strategy uses realized demand information and is therefore non-deployable. It is included as a diagnostic reference, not as a strategy that could be implemented in practice. Because realized demand may be more volatile than a feasible planning signal, Oracle can have zero forecast error while still producing large execution penalties. The paper therefore treats Oracle as a forecast-information reference rather than as a universal planning-utility upper bound.
+
+\subsection{Analysis Workflow}
+
+Figure~\ref{fig:feasibility-analysis-flowchart} summarizes the current analysis workflow. The workflow begins with candidate forecasts, converts them to planning signals through alternative strategy families, evaluates raw operational metrics, normalizes planning loss relative to an accuracy-first reference, and then studies sensitivity to execution-risk scenarios.
+
+\input{figures/feasibility_analysis_flowchart}

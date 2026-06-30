@@ -1,56 +1,73 @@
 \section{Problem Formulation}
 
-\subsection{Planning Units and Candidate Forecasts}
+\subsection{Planning Units, Strategies, and Candidate Forecasts}
 
-Let $i$ index a planning unit, such as an item-store or store-family pair, and let $t$ index a planning period. Let $m \in \mathcal{M}$ denote a candidate forecasting model. Actual demand is denoted by $y_{i,t}$, and the forecast produced by model $m$ is denoted by $\hat{y}_{i,t}^{m}$.
+Let $i \in \mathcal{I}$ index a planning unit, such as an item-store, department-store, category-store, or store-family pair, and let $t \in \mathcal{T}$ index a planning period. Let $m \in \mathcal{M}$ denote a candidate forecasting model or forecasting strategy. Actual demand is denoted by $y_{i,t}$, and the forecast produced by model $m$ is denoted by $\hat{y}_{i,t}^{m}$. A deployable decision strategy is denoted by $s \in \mathcal{S}$.
 
 The forecasting layer produces a set of candidate forecasts:
 \begin{equation}
     \left\{\hat{y}_{i,t}^{m}: m \in \mathcal{M}\right\}.
 \end{equation}
 
-The decision layer converts these candidate forecasts into a final forecast signal $\tilde{y}_{i,t}$ and then into an executable planning signal $x_{i,t}$.
+The decision layer converts candidate forecasts into a selected or combined forecast $\tilde{y}_{i,t}^{s}$ and then into an executable planning signal $x_{i,t}^{s}$. The empirical analysis evaluates strategies $s$ rather than treating candidate forecast models as the only deployment objects.
 
 \subsection{Hard Model Selection}
 
-Under hard model selection, the decision layer selects one model $z_{i,t} \in \mathcal{M}$ for each planning unit and period:
+Under hard model selection, the decision layer selects one model $z_{i,t}^{s} \in \mathcal{M}$ for each planning unit and period:
 \begin{equation}
-    \tilde{y}_{i,t} = \hat{y}_{i,t}^{z_{i,t}}.
+    \tilde{y}_{i,t}^{s} = \hat{y}_{i,t}^{z_{i,t}^{s}}.
 \end{equation}
 
-Hard selection is operationally meaningful because changing $z_{i,t}$ can require model validation, monitoring changes, deployment updates, and planner communication.
+Hard selection is operationally meaningful because changing $z_{i,t}^{s}$ can require model validation, monitoring changes, deployment updates, and planner communication.
 
 \subsection{Soft Model Composition}
 
-Under soft model composition, the decision layer assigns a nonnegative weight $w_{i,t}^{m}$ to each candidate model:
+Under soft model composition, the decision layer assigns a nonnegative weight $w_{i,t}^{m,s}$ to each candidate model:
 \begin{equation}
-    \tilde{y}_{i,t} = \sum_{m \in \mathcal{M}} w_{i,t}^{m}\hat{y}_{i,t}^{m}.
+    \tilde{y}_{i,t}^{s} = \sum_{m \in \mathcal{M}} w_{i,t}^{m,s}\hat{y}_{i,t}^{m}.
 \end{equation}
 
 The weights satisfy:
 \begin{align}
-    w_{i,t}^{m} &\geq 0, \\
-    \sum_{m \in \mathcal{M}} w_{i,t}^{m} &= 1.
+    w_{i,t}^{m,s} &\geq 0, \\
+    \sum_{m \in \mathcal{M}} w_{i,t}^{m,s} &= 1.
 \end{align}
 
 Soft composition can reduce hard model switching, but large weight changes may still create governance and monitoring burden.
 
 \subsection{Planning Signal Conversion}
 
-The operation executes a planning signal rather than a raw forecast. In this initial formulation, the planning signal is an inventory target:
+The operation executes a planning signal rather than a raw forecast. Let $\mathrm{policy}_{t}$ denote the planning policy in effect at time $t$, such as a service-level target, safety-stock rule, lead-time assumption, or replenishment rule. The general forecast-to-plan conversion is
 \begin{equation}
-    x_{i,t} = \tilde{y}_{i,t} + \text{safety\_stock}_{i,t}.
+    x_{i,t}^{s} = g\left(\tilde{y}_{i,t}^{s}, \mathrm{policy}_{t}\right).
+\end{equation}
+
+In the current implementation, the running example is an inventory target:
+\begin{equation}
+    x_{i,t}^{s} = \tilde{y}_{i,t}^{s} + \mathrm{safety\_stock}_{i,t}.
 \end{equation}
 
 The same framework can later represent other executable signals, including replenishment quantities, production targets, staffing levels, or capacity allocations.
+
+\subsection{Smoothed Planning Signal}
+
+Feasibility-aware smoothing modifies the executed planning signal, not the realized demand and not the raw candidate forecast. Let $x_{i,t}^{\mathrm{cand}}$ be the plan implied by the selected or combined candidate forecast, and let $x_{i,t-1}^{\mathrm{exec}}$ be the previous executed planning signal. A smoothed strategy sets
+\begin{equation}
+    x_{i,t}^{\mathrm{exec}}
+    =
+    \alpha_{t} x_{i,t}^{\mathrm{cand}}
+    +
+    (1-\alpha_{t})x_{i,t-1}^{\mathrm{exec}},
+\end{equation}
+where $\alpha_t \in [0,1]$ controls adaptation speed. Lower values of $\alpha_t$ represent more gradual operational adaptation when downstream infrastructure cannot absorb abrupt plan changes.
 
 \subsection{Inventory Cost}
 
 Inventory cost includes holding cost for over-planning and shortage cost for under-planning:
 \begin{align}
-    \text{holding\_cost}_{i,t} &= h \max(x_{i,t} - y_{i,t}, 0), \\
-    \text{shortage\_cost}_{i,t} &= p \max(y_{i,t} - x_{i,t}, 0), \\
-    \text{inventory\_cost}_{i,t} &= \text{holding\_cost}_{i,t} + \text{shortage\_cost}_{i,t},
+    \mathrm{holding}_{i,t}^{s} &= h \max(x_{i,t}^{s} - y_{i,t}, 0), \\
+    \mathrm{shortage}_{i,t}^{s} &= p \max(y_{i,t} - x_{i,t}^{s}, 0), \\
+    \mathrm{inventory\_cost}_{i,t}^{s} &= \mathrm{holding}_{i,t}^{s} + \mathrm{shortage}_{i,t}^{s},
 \end{align}
 where $h$ is the holding cost rate and $p$ is the shortage cost rate.
 
@@ -58,9 +75,9 @@ where $h$ is the holding cost rate and $p$ is the shortage cost rate.
 
 Planning signal volatility measures how sharply the executable signal changes across periods:
 \begin{equation}
-    \text{plan\_change\_pct}_{i,t}
+    \mathrm{plan\_change}_{i,t}^{s}
     =
-    \frac{|x_{i,t} - x_{i,t-1}|}{\max(|x_{i,t-1}|, \epsilon)}.
+    \frac{|x_{i,t}^{s} - x_{i,t-1}^{s}|}{\max(|x_{i,t-1}^{s}|, \epsilon)}.
 \end{equation}
 
 This term captures plan churn that may be invisible in forecast error metrics.
@@ -69,29 +86,29 @@ This term captures plan churn that may be invisible in forecast error metrics.
 
 For hard selection, model switching cost is:
 \begin{equation}
-    \text{switch\_cost}_{i,t}
+    \mathrm{switch}_{i,t}^{s}
     =
     \begin{cases}
-    1, & z_{i,t} \neq z_{i,t-1}, \\
-    0, & z_{i,t} = z_{i,t-1}.
+    1, & z_{i,t}^{s} \neq z_{i,t-1}^{s}, \\
+    0, & z_{i,t}^{s} = z_{i,t-1}^{s}.
     \end{cases}
 \end{equation}
 
 For soft composition, the analogous instability measure is total weight movement:
 \begin{equation}
-    \text{weight\_change}_{i,t}
+    \mathrm{weight\_change}_{i,t}^{s}
     =
     \sum_{m \in \mathcal{M}}
-    |w_{i,t}^{m} - w_{i,t-1}^{m}|.
+    |w_{i,t}^{m,s} - w_{i,t-1}^{m,s}|.
 \end{equation}
 
 \subsection{Execution Adaptation Penalty}
 
 Let $C_{i,t}$ denote execution capacity, defined as the maximum plan change the operation can absorb in period $t$. The execution adaptation penalty is:
 \begin{equation}
-    \text{execution\_penalty}_{i,t}
+    \mathrm{execution\_violation}_{i,t}^{s}
     =
-    \max\left(0, |x_{i,t} - x_{i,t-1}| - C_{i,t}\right).
+    \max\left(0, |x_{i,t}^{s} - x_{i,t-1}^{s}| - C_{i,t}\right).
 \end{equation}
 
 This penalty captures the planning-infrastructure gap. It becomes positive when the forecast or planning signal changes faster than execution infrastructure can absorb. In practical terms, the forecasting layer may update rapidly, while procurement, staffing, production, transportation, software systems, or planner workflows may only absorb smaller or slower changes.
@@ -100,30 +117,44 @@ This penalty captures the planning-infrastructure gap. It becomes positive when 
 
 The project evaluates planning utility through a multi-objective loss:
 \begin{align}
-    \text{total\_loss}
+    \mathrm{total\_loss}^{s}
     ={}&
-    \alpha \cdot \text{forecast\_error}
-    + \beta \cdot \text{inventory\_cost} \notag \\
-    &+ \lambda_{\text{volatility}} \cdot \text{planning\_signal\_volatility} \notag \\
-    &+ \lambda_{\text{switch}} \cdot \text{model\_switching\_cost} \notag \\
-    &+ \lambda_{\text{execution}} \cdot \text{execution\_adaptation\_penalty}.
+    \lambda_{\mathrm{forecast}} \cdot \mathrm{forecast\_error}^{s}
+    + \lambda_{\mathrm{inventory}} \cdot \mathrm{inventory\_cost}^{s} \notag \\
+    &+ \lambda_{\mathrm{volatility}} \cdot \mathrm{planning\_volatility}^{s}
+    + \lambda_{\mathrm{switch}} \cdot \mathrm{switching\_burden}^{s} \notag \\
+    &+ \lambda_{\mathrm{execution}} \cdot \mathrm{execution\_penalty}^{s}.
 \end{align}
 
 The weighted scalar loss is useful for optimization and policy comparison. The paper will also report Pareto-style multi-objective outputs so that tradeoffs among accuracy, inventory cost, stability, switching, and execution adaptation remain visible.
+
+\subsection{Finite-Horizon Model Selection}
+
+The decision layer can be viewed as a finite-horizon deterministic dynamic program once candidate forecasts and validation-derived expected costs are available for a planning horizon. For a deployable strategy, the period cost uses validation-calibrated forecast and inventory terms, plus transition costs induced by the candidate planning signals. A generic finite-horizon objective is
+\begin{equation}
+    \min_{z_{i,1:T}}
+    \sum_{t=1}^{T}
+    \ell_{i,t}\left(z_{i,t}, z_{i,t-1}, x_{i,t}^{z_{i,t}}, x_{i,t-1}^{z_{i,t-1}}\right),
+\end{equation}
+where $\ell_{i,t}$ includes expected forecast loss, expected inventory cost, planning volatility, model-switching cost, and execution-capacity violation. A budgeted version adds the hard constraint
+\begin{equation}
+    \sum_{t=2}^{T}\mathbb{I}\{z_{i,t} \neq z_{i,t-1}\} \leq K.
+\end{equation}
+Deployable DP selectors use validation-derived expected costs and forecast-implied planning signals. Realized test demand is not used for deployable DP selection. If realized test demand is used in a future DP variant, the result must be labeled as an Oracle diagnostic.
 
 \subsection{Normalized Planning Loss}
 
 Raw operational metrics remain reported in their natural units. For scalar ranking, the analysis also reports a normalized planning loss:
 \begin{align}
-    \text{normalized\_loss}
+    \mathrm{normalized\_total\_loss}^{s}
     ={}&
-    \beta \frac{\text{inventory\_cost}}{\text{inventory\_cost}_{\mathrm{ref}}}
-    + \lambda_{\text{volatility}}
-    \frac{\text{planning\_signal\_volatility}}{\text{volatility}_{\mathrm{ref}}} \notag \\
-    &+ \lambda_{\text{execution}}
-    \frac{\text{execution\_adaptation\_penalty}}{\text{execution\_penalty}_{\mathrm{ref}}}
-    + \lambda_{\text{switch}}
-    \frac{\text{model\_switching\_cost}}{\text{switch\_count}_{\mathrm{ref}}}.
+    \frac{\mathrm{inventory\_cost}^{s}}{\mathrm{inventory\_cost}_{\mathrm{ref}}}
+    + \lambda_{\mathrm{volatility}}
+    \frac{\mathrm{planning\_volatility}^{s}}{\mathrm{volatility}_{\mathrm{ref}}} \notag \\
+    &+ \lambda_{\mathrm{execution}}
+    \frac{\mathrm{execution\_penalty}^{s}}{\mathrm{execution\_penalty}_{\mathrm{ref}}}
+    + \lambda_{\mathrm{switch}}
+    \frac{\mathrm{switching\_burden}^{s}}{\mathrm{switching\_burden}_{\mathrm{ref}}}.
 \end{align}
 
-The default reference strategy is the accuracy-first BestAccuracy or Global Best baseline within the same dataset, run mode, and comparison split. If a reference value is zero or unavailable, the implementation uses a median nonzero strategy value and records the fallback in an audit table. Normalized loss allows the study to compare operational preferences across objectives without allowing the dollar-scale inventory term to mechanically dominate execution feasibility terms.
+The default reference strategy is the accuracy-first BestAccuracy or Global Best baseline within the same dataset, run mode, and comparison split. If a reference value is zero or unavailable, the implementation uses a median nonzero strategy value and records the fallback in an audit table. Normalized loss is used for ranking under operational preferences, while raw WAPE, inventory cost, planning volatility, switching burden, execution penalty, and violation rate remain visible in the result tables. DataCo-informed $\lambda_{\mathrm{execution}}$ values are sensitivity weights, not exact economic cost calibrations.

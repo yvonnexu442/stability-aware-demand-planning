@@ -1,5 +1,25 @@
 \section{Related Work}
 
-This section will review related work in demand forecasting, inventory control, operational planning, forecast combination, model selection, and decision-aware evaluation.
+\subsection{Demand Forecasting and Inventory Implications}
 
-The final version should distinguish this project from forecasting leaderboard studies. The research contribution is not a new accuracy-only forecasting model. The contribution is a stability-aware decision and evaluation framework for operational planning under execution constraints.
+Demand forecasting research studies how predictive models can estimate future demand across products, stores, regions, and time periods. A closely related stream connects forecast quality to downstream inventory and service outcomes. This paper builds on that operational motivation but focuses on an intermediate layer that is often left implicit: the conversion of candidate forecasts into planning signals that must be executed under finite adjustment capacity.
+
+% TODO: cite demand forecasting and inventory-control literature.
+
+\subsection{Forecast Combination and Model Selection}
+
+Forecast-combination and model-selection methods provide mechanisms for choosing among or aggregating candidate forecasts. Standard selection criteria often prioritize forecast error on validation data. The present paper differs by evaluating deployable planning utility rather than forecast error alone. A forecast combination can be attractive not only because it improves accuracy, but because it reduces abrupt plan changes, spreads model risk, or avoids unnecessary switching.
+
+% TODO: cite forecast combination and model-selection literature.
+
+\subsection{Cost-Sensitive and Multi-Objective Decision Making}
+
+Cost-sensitive and multi-objective decision methods are related because demand planning rarely has a single objective. Inventory cost, service level, volatility, and execution burden can move in different directions. The contribution here is not a generic multi-objective optimizer. It is a structured operational planning evaluation framework in which forecast-driven plans are compared against execution-capacity constraints and normalized relative to an accuracy-first baseline.
+
+% TODO: cite cost-sensitive learning and multi-objective optimization literature.
+
+\subsection{Supply-Chain Execution Risk and Planning Stability}
+
+Supply-chain execution risk, planning nervousness, and plan volatility are central to the gap studied in this paper. Downstream operations may be unable to absorb large changes in inventory targets, replenishment quantities, transportation commitments, or staffing plans. This paper connects forecast-driven model selection to measurable execution feasibility by using supply-chain execution evidence to define scenario weights and by evaluating planning volatility and execution violations directly.
+
+% TODO: cite supply-chain execution risk, planning nervousness, and volatility literature.

@@ -1,3 +1,29 @@
 \section{Discussion}
 
-This section will interpret the empirical findings and explain when stability-aware decision layers improve operational planning utility. It will also discuss limitations, generalizability, and implications for planning system design.
+\subsection{Interpreting the Tradeoff}
+
+The empirical results should not be read as evidence that simple models beat machine-learning models. In Favorita, LightGBM remains the strongest accuracy-first forecaster among the evaluated models, and the Global Best baseline is a meaningful benchmark. The central point is different: once forecasts are converted into plans, deployability depends on additional objectives that forecast-error metrics do not observe.
+
+The results also do not imply that smoothing solves every planning problem. Smoothing reduces abrupt plan changes by construction, but it can increase inventory exposure when the executed plan adapts too slowly to changes in demand. The Favorita smoothing results illustrate this tradeoff: low execution penalty can come with higher inventory cost. The appropriate adaptation rate depends on service objectives, execution capacity, and the cost of delayed response.
+
+\subsection{Operational Feasibility as a First-Class Objective}
+
+Operational feasibility should be treated as a first-class evaluation objective because planning signals create work for the execution system. A deployment decision can affect supplier coordination, replenishment orders, store operations, warehouse labor, transportation commitments, and planning-system governance. These effects are not secondary details after forecasting. They are part of the decision problem.
+
+The normalized planning-loss design offers one way to make the tradeoff explicit. It does not replace raw metrics, and it should not be interpreted as a universal objective function. Instead, it provides a transparent way to compare strategies under stated operational preferences and execution-risk scenarios.
+
+\subsection{Role of DataCo}
+
+DataCo is used as an empirical execution-risk anchor, not as direct economic cost calibration for Favorita or M5. The datasets do not come from the same enterprise system, and the observed late-delivery risk in DataCo does not directly price the cost of a planning violation in retail demand planning. The value of DataCo in this draft is to show that execution risk is measurable and can inform scenario design more credibly than arbitrary weights alone.
+
+\subsection{Practical Implications}
+
+For planners and enterprise planning-system owners, the results suggest that model deployment should be evaluated at the forecast-to-plan layer. A planning organization with high execution flexibility may rationally choose an accuracy-first model. A planning organization with constrained execution capacity may prefer a strategy that sacrifices some forecast accuracy to reduce plan churn and violation risk. The preferred deployable strategy can also change by planning granularity: a policy that works at item-store level may not be the best policy at department-store or category-store level.
+
+\subsection{Limitations}
+
+Several limitations remain. First, public datasets do not observe the full internal cost of execution changes, planner overrides, supplier renegotiation, or enterprise-system reconfiguration. Second, execution capacity is proxied in Favorita and M5 rather than directly measured in those datasets. Third, DataCo and the demand datasets are linked through scenario design, not through a shared enterprise operation. Fourth, the implemented methods are intentionally interpretable and are not optimized for forecasting leaderboard performance. Fifth, Walmart and Rossmann robustness analyses may be added later, but they are not used to support current empirical claims.
+
+\subsection{Future Work}
+
+Future work can improve execution-cost calibration using internal enterprise data, planner override logs, supplier response times, or ERP and advanced planning system traces. Additional work can model human planner review, partial acceptance of forecast recommendations, and cross-functional approval workflows. The framework can also be extended to richer policy drift settings, including service-level changes, lead-time shocks, shortage-cost changes, and additional business-context robustness using Walmart and Rossmann.

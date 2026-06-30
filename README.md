@@ -156,6 +156,26 @@ sensitivity, intermittent-demand stress, and DataCo scenario robustness. M5
 quick mode completed locally and writes LaTeX-ready tables and PDF figures for
 the manuscript workflow.
 
+### LaTeX Paper Drafting Mode
+
+The manuscript has moved from placeholder structure to an integrated LaTeX draft
+using the current DataCo, Favorita, and M5 outputs. The draft frames operational
+demand planning as feasibility-constrained model selection, keeps Related Work
+citation-light with TODO placeholders, uses generated tables and figures where
+available, and preserves Walmart and Rossmann as future robustness extensions.
+A standalone `paper/full_draft_snapshot.tex` file provides a single-file review
+snapshot of the current paper narrative.
+
+### Finite-Horizon Decision Layer
+
+The decision layer now includes explicit deployable finite-horizon selectors:
+GreedyFeasibilitySelector, DPFeasibilitySelector, and
+BudgetedDPFeasibilitySelector. Greedy selection minimizes one-step expected
+operational cost, DP selection minimizes cumulative expected operational loss
+over the available horizon, and Budgeted DP adds a hard switch budget. These
+selectors use validation-derived expected costs and forecast-implied planning
+signals; realized test demand remains reserved for Oracle-labeled diagnostics.
+
 ## Raw Data Workflow
 
 Raw benchmark datasets are stored under `data/raw/` with one directory per source:

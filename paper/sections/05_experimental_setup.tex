@@ -2,42 +2,38 @@
 
 \subsection{Datasets}
 
-This subsection is a placeholder for public demand datasets. Candidate datasets include retail, grocery, store-item, and service demand tables with enough history to evaluate rolling planning decisions.
+The empirical design assigns distinct roles to the available public datasets. The goal is not to build a single forecasting leaderboard, but to test whether the accuracy-feasibility tradeoff appears across complementary operational settings.
 
-M5 is used as a large-scale hierarchical robustness dataset. It is not treated as a separate forecasting leaderboard task. The M5 robustness analysis uses manually provided local files, converts the wide daily sales table into a long item-store panel, and evaluates whether the Favorita accuracy-feasibility tradeoff persists under larger scale, hierarchy, and intermittent demand.
+\paragraph{DataCo.} DataCo is used as an execution-risk anchor. The dataset contains supply-chain order and delivery information that allows late-delivery risk to be measured across operational contexts. It is not treated as a complete inventory-control dataset. Instead, observed late-delivery risk is used to construct execution-risk sensitivity scenarios for downstream planning evaluations.
+
+\paragraph{Favorita.} Favorita is the main forecast-to-plan proof-of-concept dataset. It provides retail demand observations with promotion, holiday, oil-price, transaction, and store-context signals. The current Favorita analysis evaluates whether the method with the strongest forecast accuracy also produces the most deployable planning strategy once inventory exposure, planning volatility, and execution burden are included.
+
+\paragraph{M5.} M5 is used as a large-scale hierarchical robustness dataset. It includes daily retail demand across item, department, category, store, and state hierarchy levels. The robustness pipeline converts the wide daily sales table into a long panel and evaluates whether the Favorita accuracy-feasibility tradeoff persists under hierarchy and intermittent demand.
+
+\paragraph{Walmart and Rossmann.} Walmart and Rossmann are reserved as optional future robustness extensions. They are not used to support empirical claims in the current draft.
 
 \subsection{Forecasting Models}
 
-This subsection will describe candidate forecasting models. Initial models may include transparent baselines such as last-value forecasts, rolling averages, seasonal naive forecasts, and later machine learning models.
+The Favorita proof of concept includes transparent baselines and machine-learning forecasters, including naive, seasonal, moving-average, exponential-smoothing, XGBoost, and LightGBM variants where available. M5 robustness experiments use transparent forecast candidates that are computationally feasible for hierarchical sensitivity checks, including naive, seasonal naive, moving average, and exponential smoothing variants. The intent is to evaluate planning strategy behavior rather than to maximize benchmark forecasting leaderboard performance.
 
 \subsection{Decision Strategies}
 
-This subsection will describe decision strategies, including forecast pass-through, hard model selection, soft ensemble composition, and stability-aware selection with switching or volatility penalties.
-
-The baseline comparison includes BestAccuracy, Family Best, Feasibility-Aware, Stability-Aware, Simple Ensemble, Best Inventory Cost, Best Stability, and an Oracle upper bound. The Oracle strategy may use realized test-period outcomes and is therefore non-deployable; it is included only as a diagnostic upper bound.
-
-The improved method comparison adds feasibility-aware smoothed planning and feasibility-aware ensemble strategies. Fixed-alpha smoothing, scenario-based alpha smoothing, and utility-based alpha smoothing are evaluated as interpretable gradual-adaptation policies. Utility-based alpha is selected with blocked validation folds to reduce overfitting to a single validation period. Feasibility-aware ensembles include inverse-accuracy weighting, inverse-operational-loss weighting, and a constrained validation-grid ensemble with nonnegative weights that sum to one.
+The analysis compares accuracy-first, stability-first, ensemble-based, smoothing-based, feasibility-aware adaptive, and Oracle diagnostic strategies. The baseline comparison includes BestAccuracy or Global Best, Family Best, Feasibility-Aware, Stability-Aware, Simple Ensemble, Best Inventory Cost, Best Stability, and Oracle. The improved method comparison adds feasibility-aware smoothed planning and feasibility-aware ensemble strategies. Fixed-alpha smoothing, scenario-based alpha smoothing, and utility-CV alpha smoothing are evaluated as interpretable gradual-adaptation policies. Feasibility-aware ensembles include inverse-accuracy weighting, inverse-operational-loss weighting, and a constrained validation-grid ensemble with nonnegative weights that sum to one.
 
 \subsection{Evaluation Metrics}
 
-This subsection will define forecast metrics, inventory metrics, stability metrics, execution adaptation metrics, and the weighted planning utility objective used in the experiments.
-
-Normalized planning loss is reported relative to the accuracy-first BestAccuracy baseline within the same run mode and split. Raw WAPE, inventory cost, planning volatility, execution penalty, violation rate, switch count, and raw total planning loss remain visible in the result tables.
-
-The improved method analysis also reports the maximum period plan change, normalized inventory component, normalized volatility component, normalized execution component, normalized switch component, rank by normalized total loss, rank by WAPE, rank by execution penalty, and gap to the non-deployable Oracle diagnostic.
+The evaluation reports WAPE, inventory cost, planning volatility, execution penalty, execution violation rate, model-switching burden, normalized total loss, and gap to the Oracle diagnostic. Normalized planning loss is reported relative to the accuracy-first BestAccuracy or Global Best baseline within the same run mode and split. Raw metrics remain visible in the result tables so that normalized rankings do not hide the underlying tradeoffs.
 
 \subsection{Execution Capacity Scenarios}
 
-This subsection will describe execution capacity stress tests. These scenarios evaluate how planning strategies behave when downstream operations can absorb only limited period-to-period plan changes.
+Execution capacity scenarios evaluate how planning strategies behave when downstream operations can absorb only limited period-to-period plan changes. In the Favorita and M5 analyses, execution penalties increase when the absolute planning signal change exceeds a scenario-specific execution capacity.
 
-DataCo is used to construct data-informed execution-risk scenarios rather than to directly estimate the exact economic cost of execution violations in the demand-planning datasets. When DataCo late-delivery anchors are unavailable, the pipeline records fallback usage and applies configured default scenario values.
-
-The M5 robustness pipeline reuses the same DataCo-informed execution scenarios when the generated scenario table is available. If the generated table is unavailable, configured fallback scenarios are used and the run log records this explicitly.
+DataCo-derived late-delivery-risk percentiles are mapped into execution-risk sensitivity scenarios using a configurable formula. These scenarios should be interpreted as data-informed sensitivity weights, not as exact economic cost calibrations for Favorita or M5. When DataCo anchors are unavailable, the pipeline records fallback usage and applies configured default scenario values.
 
 \subsection{M5 Robustness Design}
 
-This subsection is a placeholder for the M5 robustness design. The planned analysis includes large-scale replication at item-store level, hierarchy sensitivity across item-store, department-store, and category-store grains, intermittent-demand stress tests, and DataCo-informed execution scenario robustness.
+The M5 robustness analysis includes large-scale replication at item-store level, hierarchy sensitivity across item-store, department-store, and category-store grains, intermittent-demand stress tests, and DataCo-informed execution scenario robustness. The same strategy families and normalized planning-loss logic are reused to test whether the main findings depend on the Favorita setting alone.
 
 \subsection{Policy and Context Drift Scenarios}
 
-This subsection will describe policy and context drift scenarios, such as changes in service-level targets, shortage costs, lead times, or execution capacity.
+Policy and context drift scenarios are reserved for subsequent robustness analysis. Candidate extensions include changes in service-level targets, shortage costs, lead times, execution capacity, and business-context covariates.

@@ -1,0 +1,263 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\title{From Accurate Forecasts to Feasible Plans: Feasibility-Constrained Model Selection for Operational Demand Planning}
+\author{Author Name Placeholder}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Forecasting models for operational demand planning are often evaluated by numerical prediction accuracy, yet operational systems do not execute forecasts directly. They execute planning signals such as inventory targets, replenishment recommendations, staffing plans, or capacity allocations. A forecast that improves error metrics can still produce volatile or infeasible plans when downstream execution capacity, model-switching burden, inventory exposure, and planning stability are ignored. This paper formulates forecast-driven demand planning as a feasibility-constrained model selection problem. The proposed evaluation layer converts candidate forecasts into executable planning signals and compares deployable strategies using both raw operational metrics and a normalized planning utility that includes inventory cost, planning volatility, switching burden, and execution violations. Empirically, the draft uses DataCo supply-chain execution data to anchor execution-risk scenarios, Favorita retail demand data as the main forecast-to-plan proof of concept, and M5 retail demand data as a hierarchical robustness setting. The current results suggest that execution-risk-sensitive objectives can reorder deployable strategy rankings, without implying that any single strategy universally dominates. The implication is that operational feasibility should be treated as a first-class planning objective alongside forecast accuracy.
+\end{abstract}
+
+\section{Introduction}
+
+Demand planning increasingly relies on predictive models to anticipate future demand at fine operational granularity. In many empirical studies and model-selection workflows, the primary criterion for choosing among forecasting methods is numerical prediction accuracy. Forecast accuracy is important because inaccurate forecasts can lead to costly overstocking, stockouts, and service failures. However, forecast accuracy alone does not describe whether the resulting plan can be executed.
+
+In real operations, forecasts are not executed directly. A forecast is converted into a planning signal: an inventory target, a replenishment quantity, a labor plan, a production target, a transportation commitment, or an allocation decision. The operational question is therefore not only whether a forecast is numerically close to realized demand, but whether the planning signal implied by that forecast is stable, feasible, and worth deploying.
+
+A more accurate forecast may create unstable planning signals. It may require frequent model switching, large period-to-period target jumps, repeated infrastructure updates, or adjustment requests that exceed what suppliers, stores, warehouses, transportation teams, and enterprise planning systems can absorb. These burdens may be invisible in forecast-error tables.
+
+This creates a planning-execution gap. Forecasting capability can adapt faster than downstream execution infrastructure. Machine learning pipelines may update daily or weekly, while procurement lead times, labor scheduling, supplier coordination, production planning, and information-system workflows may change more slowly.
+
+This paper studies forecast-driven demand planning as a feasibility-constrained model selection problem. Rather than asking which forecasting model has the lowest error in isolation, the paper asks which deployable planning strategy balances forecast accuracy, inventory exposure, planning volatility, model-switching burden, and execution-capacity constraints.
+
+The empirical design uses DataCo supply-chain execution data as an execution-risk anchor, Favorita retail demand data as the main forecast-to-plan proof of concept, and M5 retail demand data as a hierarchical robustness setting. Walmart and Rossmann are reserved as optional future robustness extensions.
+
+The paper contributes a feasibility-constrained formulation of forecast-driven demand planning, a normalized planning utility, a DataCo-informed execution-risk scenario design, and empirical evidence that execution-risk-sensitive objectives can reorder deployable strategy rankings across scenarios, planning grains, and demand intermittency.
+
+\section{Related Work}
+
+\subsection{Demand Forecasting and Inventory Implications}
+
+Demand forecasting research studies how predictive models can estimate future demand across products, stores, regions, and time periods. A closely related stream connects forecast quality to downstream inventory and service outcomes. This paper builds on that operational motivation but focuses on the conversion of candidate forecasts into planning signals that must be executed under finite adjustment capacity.
+
+% TODO: cite demand forecasting and inventory-control literature.
+
+\subsection{Forecast Combination and Model Selection}
+
+Forecast-combination and model-selection methods provide mechanisms for choosing among or aggregating candidate forecasts. This paper differs from standard forecast-combination work because the selection criterion is deployable planning utility rather than forecast error alone.
+
+% TODO: cite forecast combination and model-selection literature.
+
+\subsection{Cost-Sensitive and Multi-Objective Decision Making}
+
+Cost-sensitive and multi-objective decision methods are related because demand planning rarely has a single objective. The contribution here is a structured operational planning evaluation framework in which forecast-driven plans are compared against execution-capacity constraints and normalized relative to an accuracy-first baseline.
+
+% TODO: cite cost-sensitive learning and multi-objective optimization literature.
+
+\subsection{Supply-Chain Execution Risk and Planning Stability}
+
+Supply-chain execution risk, planning nervousness, and plan volatility are central to the gap studied in this paper. This paper connects forecast-driven model selection to measurable execution feasibility by using supply-chain execution evidence to define scenario weights and by evaluating planning volatility and execution violations directly.
+
+% TODO: cite supply-chain execution risk, planning nervousness, and volatility literature.
+
+\section{Problem Formulation}
+
+Let $i \in \mathcal{I}$ index a planning unit and let $t \in \mathcal{T}$ index a planning period. Let $m \in \mathcal{M}$ denote a candidate forecasting model or forecasting strategy. Actual demand is $y_{i,t}$, and the forecast produced by model $m$ is $\hat{y}_{i,t}^{m}$. A deployable decision strategy is denoted by $s \in \mathcal{S}$.
+
+The forecasting layer produces candidate forecasts $\{\hat{y}_{i,t}^{m}: m \in \mathcal{M}\}$. A hard-selection strategy chooses one model $z_{i,t}^{s}$ and sets
+\begin{equation}
+    \tilde{y}_{i,t}^{s} = \hat{y}_{i,t}^{z_{i,t}^{s}}.
+\end{equation}
+A soft-composition strategy assigns nonnegative weights $w_{i,t}^{m,s}$ satisfying $\sum_{m \in \mathcal{M}} w_{i,t}^{m,s}=1$ and sets
+\begin{equation}
+    \tilde{y}_{i,t}^{s} = \sum_{m \in \mathcal{M}} w_{i,t}^{m,s}\hat{y}_{i,t}^{m}.
+\end{equation}
+
+The operation executes a planning signal rather than a raw forecast. Let $\mathrm{policy}_{t}$ denote the planning policy in effect at time $t$. The forecast-to-plan conversion is
+\begin{equation}
+    x_{i,t}^{s} = g\left(\tilde{y}_{i,t}^{s}, \mathrm{policy}_{t}\right).
+\end{equation}
+The running implementation uses an inventory target as the planning signal.
+
+Feasibility-aware smoothing changes the executed planning signal, not the realized demand and not the raw candidate forecast:
+\begin{equation}
+    x_{i,t}^{\mathrm{exec}}
+    =
+    \alpha_{t}x_{i,t}^{\mathrm{cand}}
+    +
+    (1-\alpha_{t})x_{i,t-1}^{\mathrm{exec}}.
+\end{equation}
+
+Inventory cost includes holding and shortage costs:
+\begin{align}
+    \mathrm{holding}_{i,t}^{s} &= h \max(x_{i,t}^{s} - y_{i,t}, 0), \\
+    \mathrm{shortage}_{i,t}^{s} &= p \max(y_{i,t} - x_{i,t}^{s}, 0), \\
+    \mathrm{inventory\_cost}_{i,t}^{s} &= \mathrm{holding}_{i,t}^{s} + \mathrm{shortage}_{i,t}^{s}.
+\end{align}
+Planning volatility is measured by the period-to-period change in the executable signal, and execution violations are measured as
+\begin{equation}
+    \mathrm{execution\_violation}_{i,t}^{s}
+    =
+    \max\left(0, |x_{i,t}^{s} - x_{i,t-1}^{s}| - C_{i,t}\right),
+\end{equation}
+where $C_{i,t}$ is execution capacity.
+
+For scalar ranking, the analysis reports normalized planning loss:
+\begin{align}
+    \mathrm{normalized\_total\_loss}^{s}
+    ={}&
+    \frac{\mathrm{inventory\_cost}^{s}}{\mathrm{inventory\_cost}_{\mathrm{ref}}}
+    + \lambda_{\mathrm{volatility}}
+    \frac{\mathrm{planning\_volatility}^{s}}{\mathrm{volatility}_{\mathrm{ref}}} \notag \\
+    &+ \lambda_{\mathrm{execution}}
+    \frac{\mathrm{execution\_penalty}^{s}}{\mathrm{execution\_penalty}_{\mathrm{ref}}}
+    + \lambda_{\mathrm{switch}}
+    \frac{\mathrm{switching\_burden}^{s}}{\mathrm{switching\_burden}_{\mathrm{ref}}}.
+\end{align}
+The reference strategy is the accuracy-first BestAccuracy or Global Best baseline within the same dataset, run mode, and comparison split. DataCo-informed $\lambda_{\mathrm{execution}}$ values are sensitivity weights, not exact economic cost calibrations.
+
+The deployable finite-horizon selector minimizes cumulative expected operational loss using validation-derived expected costs:
+\begin{equation}
+    \min_{z_{i,1:T}}
+    \sum_{t=1}^{T}
+    \ell_{i,t}\left(z_{i,t}, z_{i,t-1}, x_{i,t}^{z_{i,t}}, x_{i,t-1}^{z_{i,t-1}}\right).
+\end{equation}
+A budgeted version adds $\sum_{t=2}^{T}\mathbb{I}\{z_{i,t} \neq z_{i,t-1}\} \leq K$. Realized test demand is not used for deployable DP selection.
+
+\section{Framework and Methods}
+
+The framework separates forecast generation from deployable planning strategy selection. Candidate forecasting models first produce forecasts. A decision layer then selects, combines, or smooths the candidate signals before converting them into executable planning signals.
+
+Accuracy-first methods include Global Best or BestAccuracy and Family Best. Stability-first methods include moving-average and BestStability variants. Ensemble-based methods include Simple Ensemble and Operational-Loss Ensemble. Smoothing-based methods include FeasibilityAwareSmoothed with fixed alpha and utility-CV alpha. Feasibility-aware adaptive selection evaluates candidate switches using expected planning utility rather than forecast error alone. The finite-horizon decision layer includes GreedyFeasibilitySelector, DPFeasibilitySelector, and BudgetedDPFeasibilitySelector. Oracle uses realized demand information and is non-deployable; it is included as a diagnostic reference.
+
+\input{figures/feasibility_analysis_flowchart}
+
+\section{Experimental Setup}
+
+DataCo is used as an execution-risk anchor. Favorita is the main forecast-to-plan proof-of-concept dataset, with demand, promotion, holiday, oil-price, transaction, and store-context signals. M5 is used as a large-scale hierarchical robustness dataset across item, department, category, store, and state levels. Walmart and Rossmann are reserved as optional future robustness extensions.
+
+The Favorita analysis includes transparent baselines and machine-learning forecasters, including naive, seasonal, moving-average, exponential-smoothing, XGBoost, and LightGBM variants where available. The M5 robustness experiments use transparent forecast candidates that are computationally feasible for hierarchical sensitivity checks.
+
+The evaluation reports WAPE, inventory cost, planning volatility, execution penalty, execution violation rate, model-switching burden, normalized total loss, and gap to the Oracle diagnostic. DataCo-derived late-delivery-risk percentiles are mapped into execution-risk sensitivity scenarios using a configurable formula.
+
+\section{Results}
+
+\subsection{Execution Feasibility Is Empirically Measurable}
+
+The DataCo analysis reports a global late-delivery rate of 0.548, with context-level late-delivery-rate percentiles of 0.535 at the 30th percentile, 0.552 at the median, 0.581 at the 75th percentile, and 0.901 at the 95th percentile. These values anchor execution-risk sensitivity scenarios rather than direct economic cost calibration.
+
+\input{tables/dataco_execution_risk_percentiles_table.tex}
+\input{tables/generated_execution_risk_scenarios_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/dataco_late_delivery_risk_by_context.pdf}
+\caption{DataCo late-delivery risk across operational contexts.}
+\label{fig:snapshot-dataco-late-delivery-risk-context}
+\end{figure}
+
+\subsection{Accuracy-First Methods Remain Strong Forecasters but Can Create Execution Burden}
+
+In Favorita, LightGBM has the lowest test WAPE among evaluated forecasting models, with WAPE 0.109. The accuracy-first Global Best planning strategy has WAPE 0.109, inventory cost 3,010,925, execution penalty 546,133, execution violation rate 0.284, and normalized total loss 1.550 in the baseline method-family table.
+
+\input{tables/favorita_forecast_metrics_table.tex}
+
+\subsection{DataCo-Informed Execution Scenarios Reorder Deployable Strategy Rankings}
+
+In the severe DataCo-informed Favorita scenario, Simple Ensemble has normalized total loss 1.473 and Operational Ensemble has normalized total loss 1.496, while Global Best has normalized total loss 2.000. This indicates that execution-risk-sensitive objectives can reorder deployable strategy rankings, without implying that any ensemble strategy universally dominates.
+
+\input{tables/favorita_method_family_summary_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_method_family_normalized_loss_by_scenario.pdf}
+\caption{Favorita normalized planning loss across DataCo-informed execution-risk scenarios.}
+\label{fig:snapshot-favorita-method-family-normalized-loss-scenario}
+\end{figure}
+
+\subsection{Smoothing and Ensemble Methods Occupy Different Frontier Regions}
+
+Smoothed Alpha 0.25 has WAPE 0.109 in the baseline Favorita scenario and reduces execution penalty to 102, but inventory cost rises to 4,515,961. Operational Ensemble has a more moderate accuracy penalty than Simple Ensemble and substantially lower execution penalty than Global Best. These patterns support a tradeoff interpretation rather than a universal-winner interpretation.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_method_family_accuracy_vs_execution_penalty.pdf}
+\caption{Favorita method-family frontier between forecast accuracy and execution penalty.}
+\label{fig:snapshot-favorita-method-family-accuracy-execution}
+\end{figure}
+
+\subsection{M5 Confirms Robustness in Hierarchical Demand Planning}
+
+In M5 quick-mode item-store replication, Simple Ensemble has the lowest non-oracle WAPE at 0.332, but execution penalty 4,451 and violation rate 0.233. Smoothed Alpha 0.25 has WAPE 0.368, execution penalty 101, violation rate 0.010, and normalized total loss 1.223. Operational Ensemble has WAPE 0.356, execution penalty 302, violation rate 0.024, and normalized total loss 1.531.
+
+\input{tables/m5_large_scale_replication_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_accuracy_vs_execution_penalty.pdf}
+\caption{M5 accuracy versus execution penalty across deployable strategy families.}
+\label{fig:snapshot-m5-accuracy-execution-penalty}
+\end{figure}
+
+\subsection{Planning Granularity and Intermittency Matter}
+
+M5 hierarchy sensitivity shows that Smoothed Alpha 0.25 ranks first at item-store level, while Operational Ensemble ranks first at department-store and category-store levels. M5 intermittent-demand stress shows Smoothed Alpha 0.25 with the lowest normalized total loss across low-, medium-, and high-intermittency buckets in the generated table.
+
+\input{tables/m5_hierarchy_sensitivity_table.tex}
+\input{tables/m5_intermittent_demand_stress_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_hierarchy_sensitivity.pdf}
+\caption{M5 hierarchy sensitivity across planning grains.}
+\label{fig:snapshot-m5-hierarchy-sensitivity}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_intermittent_demand_stress.pdf}
+\caption{M5 intermittent-demand stress test.}
+\label{fig:snapshot-m5-intermittent-demand-stress}
+\end{figure}
+
+\subsection{Additional Business-Context Robustness}
+
+Walmart and Rossmann remain future robustness extensions. The current draft does not claim results from those datasets.
+
+\section{Discussion}
+
+The empirical results should not be read as evidence that simple models beat machine-learning models. The central point is that once forecasts are converted into plans, deployability depends on additional objectives that forecast-error metrics do not observe. The results also do not imply that smoothing solves every planning problem. Smoothing reduces abrupt plan changes by construction, but it can increase inventory exposure when the executed plan adapts too slowly.
+
+Operational feasibility should be treated as a first-class evaluation objective because planning signals create work for the execution system. DataCo is used as an empirical execution-risk anchor, not as direct economic cost calibration for Favorita or M5. The practical implication is that model deployment should be evaluated at the forecast-to-plan layer, with explicit attention to execution capacity and planning granularity.
+
+Limitations include the absence of full internal execution-cost observations in public datasets, proxied execution capacity in Favorita and M5, scenario linkage across datasets rather than a single shared enterprise system, intentionally interpretable methods, and pending Walmart and Rossmann robustness.
+
+\section{Conclusion}
+
+Forecast accuracy remains central to demand planning, but it is not sufficient for deployment. Operational systems execute planning signals, not forecast-error tables. This paper formulates forecast-driven demand planning as feasibility-constrained model selection and evaluates strategies using inventory exposure, planning volatility, switching burden, and execution-capacity violations alongside forecast accuracy.
+
+The current results show that execution-risk-sensitive objectives can reorder deployable strategy rankings. They also show that the preferred deployable method depends on execution scenario, planning granularity, and demand intermittency. The manuscript remains extensible for additional Walmart and Rossmann robustness experiments, richer execution-cost calibration, and enterprise workflow evidence.
+
+\appendix
+
+\section{Appendix Snapshot Notes}
+
+This snapshot is intended for integrated reading of the current draft. Full literature citations are intentionally deferred until a verified citation pass is completed.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

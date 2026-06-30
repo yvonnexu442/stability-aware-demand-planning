@@ -1,115 +1,8 @@
 \section{Results}
 
-This section is a placeholder. No final experimental interpretation is reported at this stage. Results will be inserted after running the pipeline.
+\subsection{Result 1: Execution Feasibility Is Empirically Measurable}
 
-\subsection{Model Heterogeneity Results}
-
-Results will be inserted after running the Favorita minimal pipeline.
-
-\input{tables/favorita_forecast_metrics_table.tex}
-
-\subsection{Accuracy versus Inventory Cost}
-
-Results will be inserted after running the Favorita minimal pipeline.
-
-\input{tables/favorita_inventory_metrics_table.tex}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_accuracy_vs_inventory_cost.pdf}
-\caption{Favorita accuracy versus inventory cost placeholder.}
-\label{fig:favorita-accuracy-inventory}
-\end{figure}
-
-\subsection{Accuracy versus Planning Volatility}
-
-Results will be inserted after running the Favorita minimal pipeline.
-
-\input{tables/favorita_stability_metrics_table.tex}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_accuracy_vs_volatility.pdf}
-\caption{Favorita accuracy versus planning volatility placeholder.}
-\label{fig:favorita-accuracy-volatility}
-\end{figure}
-
-\subsection{Execution Capacity Stress Test}
-
-Results will be inserted after running the Favorita minimal pipeline.
-
-\input{tables/favorita_planning_utility_table.tex}
-
-\input{tables/execution_capacity_stress_test.tex}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/execution_capacity_vs_total_loss.pdf}
-\caption{Execution capacity versus total planning loss placeholder.}
-\label{fig:execution-capacity-total-loss}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/execution_capacity_vs_violation_rate.pdf}
-\caption{Execution capacity versus violation rate placeholder.}
-\label{fig:execution-capacity-violation-rate}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/execution_capacity_vs_inventory_cost.pdf}
-\caption{Execution capacity versus inventory cost placeholder.}
-\label{fig:execution-capacity-inventory-cost}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_example_planning_signal.pdf}
-\caption{Favorita example planning signal placeholder.}
-\label{fig:favorita-example-planning-signal}
-\end{figure}
-
-\subsection{Weight Sensitivity}
-
-Results will be inserted after running the Favorita minimal pipeline.
-
-\input{tables/weight_sensitivity_results.tex}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/plot_weight_sensitivity_total_loss.pdf}
-\caption{Weight sensitivity total planning loss placeholder.}
-\label{fig:weight-sensitivity-total-loss}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/plot_weight_sensitivity_execution_penalty.pdf}
-\caption{Weight sensitivity execution penalty placeholder.}
-\label{fig:weight-sensitivity-execution-penalty}
-\end{figure}
-
-\subsection{Baseline Weights and Normalized Loss}
-
-Results will be inserted after reviewing the baseline-weight comparison and normalized-loss audit.
-
-\input{tables/favorita_baseline_weights_comparison_table.tex}
-
-\input{tables/favorita_loss_component_scale_audit_table.tex}
-
-\input{tables/normalization_reference_values_table.tex}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_baseline_weights_tradeoff.pdf}
-\caption{Favorita baseline-weight tradeoff placeholder.}
-\label{fig:favorita-baseline-weights-tradeoff}
-\end{figure}
-
-\subsection{DataCo Execution-Risk Scenario Generation}
-
-DataCo is used to construct data-informed execution-risk scenarios rather than to directly estimate the exact economic cost of execution violations in the demand-planning datasets. Results will be inserted after reviewing the generated scenario tables.
+The DataCo analysis shows that execution risk is observable in public supply-chain execution data. The generated calibration table reports a global late-delivery rate of 0.548, with context-level late-delivery-rate percentiles of 0.535 at the 30th percentile, 0.552 at the median, 0.581 at the 75th percentile, and 0.901 at the 95th percentile. These values are not interpreted as direct economic costs for the retail demand datasets. They are used to construct data-informed execution-risk sensitivity scenarios.
 
 \input{tables/dataco_execution_risk_percentiles_table.tex}
 
@@ -120,238 +13,143 @@ DataCo is used to construct data-informed execution-risk scenarios rather than t
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/dataco_late_delivery_risk_by_context.pdf}
-\caption{DataCo late-delivery risk by context placeholder.}
+\caption{DataCo late-delivery risk across operational contexts. The figure is used to anchor execution-risk sensitivity scenarios, not to claim exact cost calibration for Favorita or M5.}
 \label{fig:dataco-late-delivery-risk-context}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/dataco_execution_lambda_scenarios.pdf}
-\caption{Generated execution-risk lambda scenarios placeholder.}
+\caption{DataCo-informed execution-risk scenario weights used for sensitivity analysis.}
 \label{fig:dataco-execution-lambda-scenarios}
 \end{figure}
 
-\subsection{DataCo-Informed Favorita Re-evaluation}
+\subsection{Result 2: Accuracy-First Methods Remain Strong Forecasters but Can Create Execution Burden}
 
-Normalized planning loss is reported relative to the accuracy-first BestAccuracy baseline, allowing the analysis to show how model rankings change as execution feasibility becomes more important. Final interpretation will be inserted after reviewing the generated outputs.
+The Favorita proof of concept confirms that accuracy-first forecasting remains important. In the generated forecast metrics, LightGBM has the lowest test WAPE among the evaluated Favorita forecasting models, with WAPE 0.109. XGBoost is close at 0.111, while transparent baselines such as seasonal naive, moving average, exponential smoothing, and naive forecasts have larger test WAPE values. This result supports the use of LightGBM or Global Best as a strong accuracy-first reference rather than as a weak strawman.
 
-\input{tables/favorita_dataco_informed_weight_sensitivity_table.tex}
+However, the method-family planning table shows that the accuracy-first Global Best strategy has substantial execution burden in the baseline Favorita scenario. Global Best has WAPE 0.109, inventory cost 3,010,925, planning volatility 414.964, execution penalty 546,133, execution violation rate 0.284, and normalized total loss 1.550. These values make clear that a strong forecaster can still create material planning adjustment burden.
 
-\input{tables/favorita_strategy_rank_reordering_by_weight_table.tex}
-
-\input{tables/favorita_model_ranking_by_objective_table.tex}
+\input{tables/favorita_forecast_metrics_table.tex}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_strategy_rank_by_execution_weight.pdf}
-\caption{Favorita strategy rank by execution weight placeholder.}
-\label{fig:favorita-strategy-rank-execution-weight}
+\includegraphics[width=0.85\linewidth]{figures/favorita_accuracy_vs_inventory_cost.pdf}
+\caption{Favorita accuracy versus inventory cost.}
+\label{fig:favorita-accuracy-inventory}
 \end{figure}
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_normalized_loss_by_execution_scenario.pdf}
-\caption{Favorita normalized loss by execution-risk scenario placeholder.}
-\label{fig:favorita-normalized-loss-execution-scenario}
-\end{figure}
+\subsection{Result 3: DataCo-Informed Execution Scenarios Reorder Deployable Strategy Rankings}
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_execution_penalty_by_execution_scenario.pdf}
-\caption{Favorita execution penalty by execution-risk scenario placeholder.}
-\label{fig:favorita-execution-penalty-execution-scenario}
-\end{figure}
+Table~\ref{tab:favorita-method-family-summary} reports representative Favorita strategy families across DataCo-informed execution scenarios. Under the baseline scenario, Operational Ensemble has WAPE 0.119, execution penalty 118,441, violation rate 0.133, and normalized total loss 1.422. Simple Ensemble has worse WAPE at 0.129 but lower execution penalty at 47,421 and lower violation rate at 0.066, with normalized total loss 1.434. Both are less accurate than Global Best, yet both reduce execution burden substantially.
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_rank_reordering_by_execution_weight.pdf}
-\caption{Favorita rank reordering by execution weight placeholder.}
-\label{fig:favorita-rank-reordering-execution-weight}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_model_rank_reordering.pdf}
-\caption{Favorita model rank reordering by objective placeholder.}
-\label{fig:favorita-model-rank-reordering}
-\end{figure}
-
-\subsection{Improved Feasibility-Aware Methods}
-
-Results will be inserted after running the improved feasibility-aware method comparison. This subsection will compare gradual adaptation, feasibility-aware ensembles, and existing baselines under DataCo-informed execution-risk scenarios.
-
-\input{tables/favorita_improved_feasibility_methods_table.tex}
-
-\input{tables/favorita_smoothing_alpha_sensitivity_table.tex}
-
-\input{tables/favorita_feasibility_ensemble_comparison_table.tex}
-
-\input{tables/favorita_improved_method_rankings_table.tex}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_improved_methods_accuracy_vs_execution_penalty.pdf}
-\caption{Improved method accuracy versus execution penalty placeholder.}
-\label{fig:favorita-improved-accuracy-execution}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_smoothing_alpha_tradeoff.pdf}
-\caption{Feasibility-aware smoothing alpha tradeoff placeholder.}
-\label{fig:favorita-smoothing-alpha-tradeoff}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_feasibility_ensemble_tradeoff.pdf}
-\caption{Feasibility-aware ensemble tradeoff placeholder.}
-\label{fig:favorita-feasibility-ensemble-tradeoff}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_improved_method_rank_reordering.pdf}
-\caption{Improved method rank reordering placeholder.}
-\label{fig:favorita-improved-rank-reordering}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_gap_to_oracle_by_method.pdf}
-\caption{Gap to Oracle by method placeholder.}
-\label{fig:favorita-gap-to-oracle}
-\end{figure}
-
-\subsection{Consolidated Favorita Method-Family Frontier}
-
-This section will discuss the tradeoff between forecast accuracy and execution burden after the robustness results are reviewed. The consolidated assets compare representative accuracy-first, ensemble-based, smoothing-based, feasibility-aware, stability-first, and Oracle diagnostic methods.
+As execution-risk sensitivity increases, the ranking changes more clearly. In the severe DataCo-informed scenario, Simple Ensemble has normalized total loss 1.473 and Operational Ensemble has normalized total loss 1.496, while Global Best has normalized total loss 2.000. This does not imply that ensembles universally dominate. It indicates that, under execution-sensitive objectives, the deployable strategy ranking can differ from the forecast-accuracy ranking.
 
 \input{tables/favorita_method_family_summary_table.tex}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/favorita_method_family_accuracy_vs_execution_penalty.pdf}
-\caption{Favorita method-family accuracy versus execution penalty placeholder.}
+\caption{Favorita method-family frontier between forecast accuracy and execution penalty.}
 \label{fig:favorita-method-family-accuracy-execution}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_method_family_inventory_vs_execution_penalty.pdf}
-\caption{Favorita method-family inventory cost versus execution penalty placeholder.}
-\label{fig:favorita-method-family-inventory-execution}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
 \includegraphics[width=0.85\linewidth]{figures/favorita_method_family_normalized_loss_by_scenario.pdf}
-\caption{Favorita method-family normalized loss by DataCo-informed execution scenario placeholder.}
+\caption{Favorita normalized planning loss across DataCo-informed execution-risk scenarios.}
 \label{fig:favorita-method-family-normalized-loss-scenario}
 \end{figure}
 
+\subsection{Result 4: Smoothing and Ensemble Methods Occupy Different Parts of the Deployability Frontier}
+
+The improved Favorita comparison suggests that smoothing and ensembles reduce different forms of operational burden. In the baseline Favorita scenario, Smoothed Alpha 0.25 has WAPE 0.109, nearly identical to Global Best, and reduces execution penalty to 102 with violation rate 0.001. The tradeoff is higher inventory cost, 4,515,961, compared with 3,010,925 for Global Best. Utility Alpha further suppresses execution penalty to zero in the baseline table, but with even higher inventory cost. These patterns are consistent with the interpretation that smoothing can make plans more executable by adapting gradually, but it does not eliminate inventory tradeoffs.
+
+Ensembles occupy a different part of the frontier. Operational Ensemble has a more moderate accuracy penalty than Simple Ensemble and substantially lower execution penalty than Global Best. Simple Ensemble has the lowest execution penalty among the ensemble references but worse WAPE. The current evidence therefore supports a tradeoff interpretation rather than a universal winner interpretation.
+
+\input{tables/favorita_smoothing_alpha_sensitivity_table.tex}
+\input{tables/favorita_feasibility_ensemble_comparison_table.tex}
+
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_method_family_switching_vs_execution.pdf}
-\caption{Favorita method-family switching burden versus execution penalty placeholder.}
-\label{fig:favorita-method-family-switching-execution}
+\includegraphics[width=0.85\linewidth]{figures/favorita_smoothing_alpha_tradeoff.pdf}
+\caption{Feasibility-aware smoothing alpha tradeoff.}
+\label{fig:favorita-smoothing-alpha-tradeoff}
 \end{figure}
 
-\subsection{Pareto Analysis}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_feasibility_ensemble_tradeoff.pdf}
+\caption{Feasibility-aware ensemble tradeoff.}
+\label{fig:favorita-feasibility-ensemble-tradeoff}
+\end{figure}
 
-Results will be inserted after running the Favorita minimal pipeline.
+\subsection{Result 5: M5 Confirms Robustness in Hierarchical Demand Planning}
 
+M5 provides a larger hierarchical robustness setting. In quick-mode item-store replication, the Simple Ensemble has the lowest non-oracle WAPE at 0.332, but it also has execution penalty 4,451 and violation rate 0.233. Smoothed Alpha 0.25 has WAPE 0.368, execution penalty 101, violation rate 0.010, and normalized total loss 1.223 in the large-scale replication table. Operational Ensemble has WAPE 0.356, execution penalty 302, violation rate 0.024, and normalized total loss 1.531. Global Best has WAPE 0.368, execution penalty 1,279, violation rate 0.089, and normalized total loss 2.500.
+
+These results reinforce the main thesis. The method with the lowest WAPE is not necessarily the best deployable strategy once execution burden is included. At the same time, the M5 results do not imply that smoothing always dominates; they show that controlled adaptation is favorable in this particular robustness setting and under the current normalized planning-loss design.
+
+\input{tables/m5_large_scale_replication_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_accuracy_vs_execution_penalty.pdf}
+\caption{M5 accuracy versus execution penalty across deployable strategy families.}
+\label{fig:m5-accuracy-execution-penalty}
+\end{figure}
+
+\subsection{Result 6: Planning Granularity Changes the Preferred Deployable Method}
+
+The M5 hierarchy sensitivity results show that planning granularity changes the preferred deployable method. At the item-store grain, Smoothed Alpha 0.25 has the lowest normalized total loss among deployable methods. At the department-store grain, Operational Ensemble has normalized total loss 1.177, ranking ahead of Simple Ensemble and Smoothed Alpha 0.25. At the category-store grain, Operational Ensemble and Simple Ensemble both have normalized total loss around 1.261, while Global Best has normalized total loss 2.500. This pattern suggests that aggregation can change the relative value of smoothing versus ensemble composition.
+
+\input{tables/m5_hierarchy_sensitivity_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_hierarchy_sensitivity.pdf}
+\caption{M5 hierarchy sensitivity across item-store, department-store, and category-store planning grains.}
+\label{fig:m5-hierarchy-sensitivity}
+\end{figure}
+
+\subsection{Result 7: Intermittent-Demand Stress Supports Controlled Adaptation}
+
+The M5 intermittent-demand stress test further supports controlled adaptation. Across low-, medium-, and high-intermittency buckets, Smoothed Alpha 0.25 has the lowest normalized total loss in the generated table. In the high-intermittency bucket, Smoothed Alpha 0.25 has normalized total loss 1.284, while Global Best has 2.500 and Simple Ensemble has 4.470. In the low-intermittency bucket, Smoothed Alpha 0.25 and Operational Ensemble are close, with normalized total losses 1.156 and 1.162, respectively. These results should be interpreted as evidence that demand intermittency changes the feasibility tradeoff, not as proof that one smoothing parameter is universally optimal.
+
+\input{tables/m5_intermittent_demand_stress_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_intermittent_demand_stress.pdf}
+\caption{M5 intermittent-demand stress test.}
+\label{fig:m5-intermittent-demand-stress}
+\end{figure}
+
+\subsection{Result 8: Additional Business-Context Robustness}
+
+The current manuscript treats Walmart and Rossmann as future robustness extensions. They are useful candidates because they contain different retail and business-context structures, but no empirical claims are made from them in this drafting pass. The paper is structured so that additional robustness tables and figures can be inserted without rewriting the core problem formulation or method taxonomy.
+
+\subsection{Supplementary Sensitivity Outputs}
+
+Several supplementary outputs remain useful for robustness review. The execution-capacity stress test, weight-sensitivity analysis, Pareto analysis, sample-size reproducibility outputs, and M5 DataCo-scenario robustness table are retained as paper-ready assets. The final manuscript may move some of these tables to an appendix after the Walmart and Rossmann robustness decision is made.
+
+\input{tables/execution_capacity_stress_test.tex}
+\input{tables/weight_sensitivity_results.tex}
 \input{tables/pareto_summary.tex}
+\input{tables/favorita_sample_size_comparison.tex}
+\input{tables/favorita_reproducibility_summary.tex}
+\input{tables/m5_dataco_scenario_robustness_table.tex}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/pareto_accuracy_vs_execution_penalty.pdf}
-\caption{Pareto accuracy versus execution penalty placeholder.}
+\caption{Pareto-style comparison of forecast accuracy and execution penalty.}
 \label{fig:pareto-accuracy-execution-penalty}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\linewidth]{figures/pareto_accuracy_vs_planning_volatility.pdf}
-\caption{Pareto accuracy versus planning volatility placeholder.}
-\label{fig:pareto-accuracy-planning-volatility}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/pareto_inventory_cost_vs_execution_penalty.pdf}
-\caption{Pareto inventory cost versus execution penalty placeholder.}
-\label{fig:pareto-inventory-execution-penalty}
-\end{figure}
-
-\subsection{Sample-Size Robustness}
-
-Results will be inserted after running the Favorita medium/full reproducibility analysis.
-
-\input{tables/favorita_sample_size_comparison.tex}
-
-\input{tables/favorita_reproducibility_summary.tex}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_sample_size_accuracy_vs_feasibility.pdf}
-\caption{Favorita sample-size accuracy versus feasibility placeholder.}
-\label{fig:favorita-sample-size-accuracy-feasibility}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/favorita_sample_size_execution_penalty.pdf}
-\caption{Favorita sample-size execution penalty placeholder.}
-\label{fig:favorita-sample-size-execution-penalty}
-\end{figure}
-
-\subsection{M5 Robustness Results}
-
-M5 is used as a large-scale hierarchical robustness dataset. Generated results will be inserted after reviewing the M5 robustness tables. This subsection will discuss whether the accuracy-feasibility tradeoff persists in a larger daily demand-planning setting with hierarchy and intermittent demand.
-
-\input{tables/m5_robustness_summary_table.tex}
-
-\input{tables/m5_large_scale_replication_table.tex}
-
-\input{tables/m5_hierarchy_sensitivity_table.tex}
-
-\input{tables/m5_intermittent_demand_stress_table.tex}
-
-\input{tables/m5_dataco_scenario_robustness_table.tex}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/m5_accuracy_vs_execution_penalty.pdf}
-\caption{M5 accuracy versus execution penalty placeholder.}
-\label{fig:m5-accuracy-execution-penalty}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/m5_hierarchy_sensitivity.pdf}
-\caption{M5 hierarchy sensitivity placeholder.}
-\label{fig:m5-hierarchy-sensitivity}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/m5_intermittent_demand_stress.pdf}
-\caption{M5 intermittent-demand stress placeholder.}
-\label{fig:m5-intermittent-demand-stress}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
 \includegraphics[width=0.85\linewidth]{figures/m5_dataco_scenario_robustness.pdf}
-\caption{M5 DataCo-informed execution scenario robustness placeholder.}
+\caption{M5 robustness under DataCo-informed execution-risk scenarios.}
 \label{fig:m5-dataco-scenario-robustness}
 \end{figure}
-
-\subsection{Policy Drift Results}
-
-Placeholder for results under changing service-level targets, shortage costs, lead times, or execution capacity.
-
-\subsection{Ablation Study}
-
-Placeholder for ablation results isolating the contribution of stability penalties, switching penalties, execution penalties, and safety stock assumptions.

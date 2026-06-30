@@ -1,5 +1,19 @@
 # Paper Asset Manifest
 
+## Draft Files
+- `paper/main.tex`
+- `paper/full_draft_snapshot.tex`
+- `paper/sections/00_abstract.tex`
+- `paper/sections/01_introduction.tex`
+- `paper/sections/02_related_work.tex`
+- `paper/sections/03_problem_formulation.tex`
+- `paper/sections/04_framework_and_methods.tex`
+- `paper/sections/05_experimental_setup.tex`
+- `paper/sections/06_results.tex`
+- `paper/sections/07_discussion.tex`
+- `paper/sections/08_conclusion.tex`
+- `paper/sections/appendix.tex`
+
 ## Tables
 - `paper/tables/dataco_execution_risk_calibration_table.tex`
 - `paper/tables/dataco_execution_risk_percentiles_table.tex`

@@ -9,10 +9,17 @@
 \usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric}
-\usepackage{hyperref}
 \usepackage[numbers,sort&compress]{natbib}
+\usepackage{hyperref}
 
-\title{Beyond Forecast Accuracy: Stability-Aware Operational Demand Planning under Execution Constraints}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\title{From Accurate Forecasts to Feasible Plans: Feasibility-Constrained Model Selection for Operational Demand Planning}
 \author{Author Name Placeholder}
 \date{\today}
 
@@ -21,17 +28,18 @@
 \maketitle
 
 \begin{abstract}
-Forecast-driven demand planning should be treated as a feasibility-constrained model selection problem rather than a pure forecast accuracy problem. The most accurate forecast is not always the most deployable forecast. This paper studies a decision layer that evaluates forecast accuracy jointly with inventory impact, planning-signal volatility, model switching cost, and execution adaptation burden. Using real retail demand data and supply-chain execution evidence, the empirical analysis tests whether execution risk is measurable and can reorder model deployment choices. Final cross-dataset results will be inserted after the remaining experiments are completed.
+\input{sections/00_abstract}
 \end{abstract}
 
 \input{sections/01_introduction}
 \input{sections/02_related_work}
 \input{sections/03_problem_formulation}
-\input{sections/04_framework}
+\input{sections/04_framework_and_methods}
 \input{sections/05_experimental_setup}
 \input{sections/06_results}
 \input{sections/07_discussion}
 \input{sections/08_conclusion}
+\input{sections/appendix}
 
 \bibliographystyle{plainnat}
 \bibliography{references}

@@ -82,6 +82,8 @@ feasibility_analysis:
   feasibility_selector:
     switch_penalty: 0.02
     minimum_utility_gain: 0.0
+  dp_selector:
+    max_switches: 2
 
 execution_risk_scenario_mapping:
   base_lambda: 0.05

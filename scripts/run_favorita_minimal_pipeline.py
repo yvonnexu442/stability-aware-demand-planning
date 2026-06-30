@@ -23,6 +23,11 @@ except ImportError:
 
 from data_loaders.favorita_loader import load_favorita_modeling_table
 from data_loaders.dataco_loader import load_dataco_orders
+from decision_layer.feasibility_dp_selector import (
+    BudgetedDPFeasibilitySelector,
+    DPFeasibilitySelector,
+    GreedyFeasibilitySelector,
+)
 from evaluation.forecast_metrics import (
     mean_absolute_error,
     root_mean_squared_error,
@@ -58,6 +63,9 @@ PAPER_STRATEGY_ORDER = [
     "global_best_model",
     "family_best_model",
     "feasibility_aware_selector",
+    "greedy_feasibility_selector",
+    "dp_feasibility_selector",
+    "budgeted_dp_feasibility_selector",
     "feasibility_aware_smoothed_utility_alpha",
     "feasibility_aware_ensemble_constrained",
     "stability_aware_selector",
@@ -74,6 +82,9 @@ BASELINE_COMPARISON_STRATEGIES = [
     "global_best_model",
     "family_best_model",
     "feasibility_aware_selector",
+    "greedy_feasibility_selector",
+    "dp_feasibility_selector",
+    "budgeted_dp_feasibility_selector",
     "stability_aware_selector",
     "simple_ensemble",
     "best_inventory_cost_model",
@@ -87,6 +98,9 @@ IMPROVED_METHOD_COMPARISON_STRATEGIES = [
     "simple_ensemble",
     "stability_aware_selector",
     "feasibility_aware_selector",
+    "greedy_feasibility_selector",
+    "dp_feasibility_selector",
+    "budgeted_dp_feasibility_selector",
     "feasibility_aware_smoothed_alpha_0_25",
     "feasibility_aware_smoothed_alpha_0_50",
     "feasibility_aware_smoothed_alpha_0_75",
@@ -693,6 +707,9 @@ def _build_decision_outputs(
 
     feasibility_selected = _feasibility_aware_selection(test_forecasts, forecasts, modeling_table, forecast_metrics, config)
     selected_frames.append(feasibility_selected)
+    selected_frames.append(_greedy_feasibility_selection(test_forecasts, forecasts, modeling_table, forecast_metrics, config))
+    selected_frames.append(_dp_feasibility_selection(test_forecasts, forecasts, modeling_table, forecast_metrics, config))
+    selected_frames.append(_budgeted_dp_feasibility_selection(test_forecasts, forecasts, modeling_table, forecast_metrics, config))
 
     selected_decisions = pd.concat(selected_frames, ignore_index=True)
     return _evaluate_selected_decisions(selected_decisions, config)
@@ -977,6 +994,99 @@ def _feasibility_aware_selection(
             }
         )
     return pd.DataFrame(selected_records)
+
+
+def _greedy_feasibility_selection(
+    test_forecasts: pd.DataFrame,
+    all_forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+) -> pd.DataFrame:
+    """Select one-step minimum expected operational-cost forecasts."""
+    expected_losses, global_expected_losses = _favorita_dp_expected_losses(all_forecasts, modeling_table, forecast_metrics, config)
+    selector = GreedyFeasibilitySelector(
+        expected_losses=expected_losses,
+        global_expected_losses=global_expected_losses,
+        weights=config.get("planning_loss_weights", {}),
+        switch_penalty=_selector_switch_penalty(config),
+        max_plan_change_rate=_selector_max_plan_change_rate(config),
+        calibration_group_column="family",
+        strategy_name="greedy_feasibility_selector",
+    )
+    return selector.select(test_forecasts)
+
+
+def _dp_feasibility_selection(
+    test_forecasts: pd.DataFrame,
+    all_forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+) -> pd.DataFrame:
+    """Select finite-horizon DP minimum expected cumulative operational loss."""
+    expected_losses, global_expected_losses = _favorita_dp_expected_losses(all_forecasts, modeling_table, forecast_metrics, config)
+    selector = DPFeasibilitySelector(
+        expected_losses=expected_losses,
+        global_expected_losses=global_expected_losses,
+        weights=config.get("planning_loss_weights", {}),
+        switch_penalty=_selector_switch_penalty(config),
+        max_plan_change_rate=_selector_max_plan_change_rate(config),
+        calibration_group_column="family",
+        strategy_name="dp_feasibility_selector",
+    )
+    return selector.select(test_forecasts)
+
+
+def _budgeted_dp_feasibility_selection(
+    test_forecasts: pd.DataFrame,
+    all_forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+) -> pd.DataFrame:
+    """Select finite-horizon DP forecasts under a hard switch-count budget."""
+    expected_losses, global_expected_losses = _favorita_dp_expected_losses(all_forecasts, modeling_table, forecast_metrics, config)
+    selector = BudgetedDPFeasibilitySelector(
+        expected_losses=expected_losses,
+        global_expected_losses=global_expected_losses,
+        weights=config.get("planning_loss_weights", {}),
+        switch_penalty=_selector_switch_penalty(config),
+        max_plan_change_rate=_selector_max_plan_change_rate(config),
+        max_switches=_selector_switch_budget(config),
+        calibration_group_column="family",
+        strategy_name="budgeted_dp_feasibility_selector",
+    )
+    return selector.select(test_forecasts)
+
+
+def _favorita_dp_expected_losses(
+    all_forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+) -> Tuple[Dict[Tuple[str, str], Dict[str, float]], Dict[str, Dict[str, float]]]:
+    """Return validation-derived cost estimates for deployable DP selectors."""
+    expected_losses = _validation_expected_planning_losses(all_forecasts, modeling_table, config)
+    global_expected_losses = _global_validation_expected_planning_losses(expected_losses, forecast_metrics)
+    return expected_losses, global_expected_losses
+
+
+def _selector_switch_penalty(config: Mapping[str, object]) -> float:
+    """Return the configured soft switch penalty for selector scoring."""
+    feasibility_config = config.get("feasibility_analysis", {}).get("feasibility_selector", {})
+    return float(feasibility_config.get("switch_penalty", config.get("favorita_pipeline", {}).get("stability_switch_penalty", 0.02)))
+
+
+def _selector_max_plan_change_rate(config: Mapping[str, object]) -> float:
+    """Return the execution-capacity plan-change rate used by selectors."""
+    return float(config.get("stability", {}).get("max_plan_change_rate", 0.20))
+
+
+def _selector_switch_budget(config: Mapping[str, object]) -> int:
+    """Return the hard switch budget for budgeted DP selectors."""
+    dp_config = config.get("feasibility_analysis", {}).get("dp_selector", {})
+    return int(dp_config.get("max_switches", config.get("stability", {}).get("max_model_switches_per_window", 2)))
 
 
 def _expected_plan_burden(
@@ -4159,6 +4269,9 @@ def _short_strategy_label(strategy: str) -> str:
         "best_stability_model": "Best Stability",
         "stability_aware_selector": "Stability-Aware",
         "feasibility_aware_selector": "Feasibility-Aware",
+        "greedy_feasibility_selector": "Greedy Feasibility",
+        "dp_feasibility_selector": "DP Feasibility",
+        "budgeted_dp_feasibility_selector": "Budgeted DP",
         "feasibility_aware_smoothed_alpha_0_25": "Smoothed Alpha 0.25",
         "feasibility_aware_smoothed_alpha_0_50": "Smoothed Alpha 0.50",
         "feasibility_aware_smoothed_alpha_0_75": "Smoothed Alpha 0.75",

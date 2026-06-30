@@ -23,6 +23,9 @@ REPRESENTATIVE_STRATEGIES = [
     "feasibility_aware_smoothed_alpha_0_25",
     "feasibility_aware_smoothed_utility_alpha",
     "feasibility_aware_selector",
+    "greedy_feasibility_selector",
+    "dp_feasibility_selector",
+    "budgeted_dp_feasibility_selector",
     "best_stability_model",
     "individual_moving_average",
     "oracle_realized_demand",
@@ -158,6 +161,8 @@ def method_family(strategy: str) -> str:
         return "FeasibilityAwareEnsemble"
     if strategy.startswith("feasibility_aware_smoothed"):
         return "FeasibilityAwareSmoothed"
+    if strategy in {"greedy_feasibility_selector", "dp_feasibility_selector", "budgeted_dp_feasibility_selector"}:
+        return "FeasibilityAwareDP"
     if strategy == "feasibility_aware_selector":
         return "FeasibilityAwareSelector"
     if strategy in {"best_stability_model", "individual_moving_average"}:
