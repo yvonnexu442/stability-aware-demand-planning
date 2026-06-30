@@ -176,6 +176,87 @@ Normalized planning loss is reported relative to the accuracy-first BestAccuracy
 \label{fig:favorita-model-rank-reordering}
 \end{figure}
 
+\subsection{Improved Feasibility-Aware Methods}
+
+Results will be inserted after running the improved feasibility-aware method comparison. This subsection will compare gradual adaptation, feasibility-aware ensembles, and existing baselines under DataCo-informed execution-risk scenarios.
+
+\input{tables/favorita_improved_feasibility_methods_table.tex}
+
+\input{tables/favorita_smoothing_alpha_sensitivity_table.tex}
+
+\input{tables/favorita_feasibility_ensemble_comparison_table.tex}
+
+\input{tables/favorita_improved_method_rankings_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_improved_methods_accuracy_vs_execution_penalty.pdf}
+\caption{Improved method accuracy versus execution penalty placeholder.}
+\label{fig:favorita-improved-accuracy-execution}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_smoothing_alpha_tradeoff.pdf}
+\caption{Feasibility-aware smoothing alpha tradeoff placeholder.}
+\label{fig:favorita-smoothing-alpha-tradeoff}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_feasibility_ensemble_tradeoff.pdf}
+\caption{Feasibility-aware ensemble tradeoff placeholder.}
+\label{fig:favorita-feasibility-ensemble-tradeoff}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_improved_method_rank_reordering.pdf}
+\caption{Improved method rank reordering placeholder.}
+\label{fig:favorita-improved-rank-reordering}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_gap_to_oracle_by_method.pdf}
+\caption{Gap to Oracle by method placeholder.}
+\label{fig:favorita-gap-to-oracle}
+\end{figure}
+
+\subsection{Consolidated Favorita Method-Family Frontier}
+
+This section will discuss the tradeoff between forecast accuracy and execution burden after the robustness results are reviewed. The consolidated assets compare representative accuracy-first, ensemble-based, smoothing-based, feasibility-aware, stability-first, and Oracle diagnostic methods.
+
+\input{tables/favorita_method_family_summary_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_method_family_accuracy_vs_execution_penalty.pdf}
+\caption{Favorita method-family accuracy versus execution penalty placeholder.}
+\label{fig:favorita-method-family-accuracy-execution}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_method_family_inventory_vs_execution_penalty.pdf}
+\caption{Favorita method-family inventory cost versus execution penalty placeholder.}
+\label{fig:favorita-method-family-inventory-execution}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_method_family_normalized_loss_by_scenario.pdf}
+\caption{Favorita method-family normalized loss by DataCo-informed execution scenario placeholder.}
+\label{fig:favorita-method-family-normalized-loss-scenario}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/favorita_method_family_switching_vs_execution.pdf}
+\caption{Favorita method-family switching burden versus execution penalty placeholder.}
+\label{fig:favorita-method-family-switching-execution}
+\end{figure}
+
 \subsection{Pareto Analysis}
 
 Results will be inserted after running the Favorita minimal pipeline.
@@ -223,6 +304,48 @@ Results will be inserted after running the Favorita medium/full reproducibility 
 \includegraphics[width=0.85\linewidth]{figures/favorita_sample_size_execution_penalty.pdf}
 \caption{Favorita sample-size execution penalty placeholder.}
 \label{fig:favorita-sample-size-execution-penalty}
+\end{figure}
+
+\subsection{M5 Robustness Results}
+
+M5 is used as a large-scale hierarchical robustness dataset. Generated results will be inserted after reviewing the M5 robustness tables. This subsection will discuss whether the accuracy-feasibility tradeoff persists in a larger daily demand-planning setting with hierarchy and intermittent demand.
+
+\input{tables/m5_robustness_summary_table.tex}
+
+\input{tables/m5_large_scale_replication_table.tex}
+
+\input{tables/m5_hierarchy_sensitivity_table.tex}
+
+\input{tables/m5_intermittent_demand_stress_table.tex}
+
+\input{tables/m5_dataco_scenario_robustness_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_accuracy_vs_execution_penalty.pdf}
+\caption{M5 accuracy versus execution penalty placeholder.}
+\label{fig:m5-accuracy-execution-penalty}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_hierarchy_sensitivity.pdf}
+\caption{M5 hierarchy sensitivity placeholder.}
+\label{fig:m5-hierarchy-sensitivity}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_intermittent_demand_stress.pdf}
+\caption{M5 intermittent-demand stress placeholder.}
+\label{fig:m5-intermittent-demand-stress}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_dataco_scenario_robustness.pdf}
+\caption{M5 DataCo-informed execution scenario robustness placeholder.}
+\label{fig:m5-dataco-scenario-robustness}
 \end{figure}
 
 \subsection{Policy Drift Results}

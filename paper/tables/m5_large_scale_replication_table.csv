@@ -1,0 +1,8 @@
+dataset_name,run_mode,grain_level,intermittency_bucket,scenario_name,method_name,WAPE,inventory_cost,planning_volatility,execution_penalty,execution_violation_rate,model_switch_count,normalized_inventory_component,normalized_volatility_component,normalized_execution_component,normalized_switch_component,normalized_total_loss,gap_to_oracle,rank_by_WAPE,rank_by_execution_penalty,rank_by_normalized_total_loss,strategy
+m5,quick,item_store,all,baseline,Smoothed Alpha 0.25,0.368,112942.274,40225501.493,101.408,0.01,0,1.02,0.124,0.079,0.0,1.223,-22.088,4,1,1,feasibility_aware_smoothed_alpha_0_25
+m5,quick,item_store,all,baseline,Operational Ensemble,0.356,108135.916,103492280.599,301.579,0.024,0,0.977,0.318,0.236,0.0,1.531,-21.78,3,2,2,operational_loss_ensemble
+m5,quick,item_store,all,baseline,Global Best,0.368,110676.328,162696085.273,1279.259,0.089,0,1.0,0.5,1.0,0.0,2.5,-20.811,4,3,3,global_best_model
+m5,quick,item_store,all,baseline,Simple Ensemble,0.332,99640.008,180837097.651,4450.693,0.233,0,0.9,0.556,3.479,0.0,4.935,-18.376,2,5,4,simple_ensemble
+m5,quick,item_store,all,baseline,Feasibility-Aware,0.371,113801.405,698994798.344,1964.178,0.075,661,1.028,2.148,1.535,0.5,5.212,-18.1,6,4,5,feasibility_aware_selector
+m5,quick,item_store,all,baseline,Best Stability,0.408,120773.556,98996562.163,26601.482,0.552,0,1.091,0.304,20.794,0.0,22.19,-1.121,7,7,6,best_stability_model
+m5,quick,item_store,all,baseline,Oracle,0.0,30439.038,1012058598.054,25490.556,0.543,0,0.275,3.11,19.926,0.0,23.311,0.0,1,6,7,oracle_realized_demand

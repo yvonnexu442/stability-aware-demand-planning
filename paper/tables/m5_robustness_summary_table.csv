@@ -1,0 +1,85 @@
+dataset_name,run_mode,grain_level,intermittency_bucket,scenario_name,method_name,WAPE,inventory_cost,planning_volatility,execution_penalty,execution_violation_rate,model_switch_count,normalized_inventory_component,normalized_volatility_component,normalized_execution_component,normalized_switch_component,normalized_total_loss,gap_to_oracle,rank_by_WAPE,rank_by_execution_penalty,rank_by_normalized_total_loss,strategy,module_name
+m5,quick,item_store,all,baseline,Smoothed Alpha 0.25,0.368,112942.274,40225501.493,101.408,0.01,0,1.02,0.124,0.079,0.0,1.223,-22.088,4,1,1,feasibility_aware_smoothed_alpha_0_25,large_scale_replication
+m5,quick,item_store,all,baseline,Operational Ensemble,0.356,108135.916,103492280.599,301.579,0.024,0,0.977,0.318,0.236,0.0,1.531,-21.78,3,2,2,operational_loss_ensemble,large_scale_replication
+m5,quick,item_store,all,baseline,Global Best,0.368,110676.328,162696085.273,1279.259,0.089,0,1.0,0.5,1.0,0.0,2.5,-20.811,4,3,3,global_best_model,large_scale_replication
+m5,quick,item_store,all,baseline,Simple Ensemble,0.332,99640.008,180837097.651,4450.693,0.233,0,0.9,0.556,3.479,0.0,4.935,-18.376,2,5,4,simple_ensemble,large_scale_replication
+m5,quick,item_store,all,baseline,Feasibility-Aware,0.371,113801.405,698994798.344,1964.178,0.075,661,1.028,2.148,1.535,0.5,5.212,-18.1,6,4,5,feasibility_aware_selector,large_scale_replication
+m5,quick,item_store,all,baseline,Best Stability,0.408,120773.556,98996562.163,26601.482,0.552,0,1.091,0.304,20.794,0.0,22.19,-1.121,7,7,6,best_stability_model,large_scale_replication
+m5,quick,item_store,all,baseline,Oracle,0.0,30439.038,1012058598.054,25490.556,0.543,0,0.275,3.11,19.926,0.0,23.311,0.0,1,6,7,oracle_realized_demand,large_scale_replication
+m5,quick,item_store,all,baseline,Smoothed Alpha 0.25,0.368,112942.274,40225501.493,101.408,0.01,0,1.02,0.124,0.079,0.0,1.223,-22.088,4,1,1,feasibility_aware_smoothed_alpha_0_25,hierarchy_sensitivity
+m5,quick,item_store,all,baseline,Operational Ensemble,0.356,108135.916,103492280.599,301.579,0.024,0,0.977,0.318,0.236,0.0,1.531,-21.78,3,2,2,operational_loss_ensemble,hierarchy_sensitivity
+m5,quick,item_store,all,baseline,Global Best,0.368,110676.328,162696085.273,1279.259,0.089,0,1.0,0.5,1.0,0.0,2.5,-20.811,4,3,3,global_best_model,hierarchy_sensitivity
+m5,quick,item_store,all,baseline,Simple Ensemble,0.332,99640.008,180837097.651,4450.693,0.233,0,0.9,0.556,3.479,0.0,4.935,-18.376,2,5,4,simple_ensemble,hierarchy_sensitivity
+m5,quick,item_store,all,baseline,Feasibility-Aware,0.371,113801.405,698994798.344,1964.178,0.075,661,1.028,2.148,1.535,0.5,5.212,-18.1,6,4,5,feasibility_aware_selector,hierarchy_sensitivity
+m5,quick,item_store,all,baseline,Best Stability,0.408,120773.556,98996562.163,26601.482,0.552,0,1.091,0.304,20.794,0.0,22.19,-1.121,7,7,6,best_stability_model,hierarchy_sensitivity
+m5,quick,item_store,all,baseline,Oracle,0.0,30439.038,1012058598.054,25490.556,0.543,0,0.275,3.11,19.926,0.0,23.311,0.0,1,6,7,oracle_realized_demand,hierarchy_sensitivity
+m5,quick,department_store,all,baseline,Operational Ensemble,0.162,45165.025,55.266,281.253,0.1,0,0.984,0.158,0.035,0.0,1.177,-0.509,2,2,1,operational_loss_ensemble,hierarchy_sensitivity
+m5,quick,department_store,all,baseline,Simple Ensemble,0.163,44497.897,68.951,471.283,0.133,0,0.969,0.197,0.059,0.0,1.225,-0.461,3,3,2,simple_ensemble,hierarchy_sensitivity
+m5,quick,department_store,all,baseline,Smoothed Alpha 0.25,0.173,53149.735,40.636,78.075,0.036,0,1.158,0.116,0.01,0.0,1.284,-0.402,4,1,3,feasibility_aware_smoothed_alpha_0_25,hierarchy_sensitivity
+m5,quick,department_store,all,baseline,Oracle,0.0,17269.412,172.288,6550.882,0.452,0,0.376,0.492,0.817,0.0,1.686,0.0,1,5,4,oracle_realized_demand,hierarchy_sensitivity
+m5,quick,department_store,all,baseline,Feasibility-Aware,0.186,53864.534,48.013,1231.951,0.117,128,1.173,0.137,0.154,0.5,1.964,0.278,7,4,5,feasibility_aware_selector,hierarchy_sensitivity
+m5,quick,department_store,all,baseline,Best Stability,0.173,45911.694,174.944,8014.332,0.469,0,1.0,0.5,1.0,0.0,2.5,0.814,4,6,6,best_stability_model,hierarchy_sensitivity
+m5,quick,department_store,all,baseline,Global Best,0.173,45911.694,174.944,8014.332,0.469,0,1.0,0.5,1.0,0.0,2.5,0.814,4,6,6,global_best_model,hierarchy_sensitivity
+m5,quick,category_store,all,baseline,Operational Ensemble,0.159,43958.804,28.661,159.483,0.063,0,1.08,0.157,0.024,0.0,1.261,-0.467,5,3,1,operational_loss_ensemble,hierarchy_sensitivity
+m5,quick,category_store,all,baseline,Simple Ensemble,0.151,40653.249,39.171,319.937,0.096,0,0.999,0.214,0.048,0.0,1.261,-0.467,2,4,2,simple_ensemble,hierarchy_sensitivity
+m5,quick,category_store,all,baseline,Smoothed Alpha 0.25,0.156,49362.554,23.089,54.224,0.027,0,1.213,0.126,0.008,0.0,1.347,-0.38,3,2,3,feasibility_aware_smoothed_alpha_0_25,hierarchy_sensitivity
+m5,quick,category_store,all,baseline,Best Stability,0.189,56004.279,2.828,0.0,0.0,0,1.376,0.015,0.0,0.0,1.392,-0.336,7,1,4,best_stability_model,hierarchy_sensitivity
+m5,quick,category_store,all,baseline,Oracle,0.0,16099.389,95.407,5441.397,0.385,0,0.396,0.521,0.811,0.0,1.728,0.0,1,6,5,oracle_realized_demand,hierarchy_sensitivity
+m5,quick,category_store,all,baseline,Feasibility-Aware,0.174,51554.654,26.944,1182.823,0.11,80,1.267,0.147,0.176,0.5,2.09,0.363,6,5,6,feasibility_aware_selector,hierarchy_sensitivity
+m5,quick,category_store,all,baseline,Global Best,0.156,40690.31,91.521,6711.238,0.415,0,1.0,0.5,1.0,0.0,2.5,0.772,3,7,7,global_best_model,hierarchy_sensitivity
+m5,quick,item_store,high_intermittency,baseline,Smoothed Alpha 0.25,0.616,43407.791,40225409.716,100.006,0.03,0,1.06,0.124,0.101,0.0,1.284,-13.314,3,1,1,feasibility_aware_smoothed_alpha_0_25,intermittent_demand_stress
+m5,quick,item_store,high_intermittency,baseline,Operational Ensemble,0.641,42871.516,103492140.83,290.802,0.066,0,1.047,0.318,0.293,0.0,1.658,-12.94,5,2,2,operational_loss_ensemble,intermittent_demand_stress
+m5,quick,item_store,high_intermittency,baseline,Global Best,0.616,40960.204,162695802.448,990.876,0.173,0,1.0,0.5,1.0,0.0,2.5,-12.098,3,4,3,global_best_model,intermittent_demand_stress
+m5,quick,item_store,high_intermittency,baseline,Simple Ensemble,0.611,40554.927,180836665.402,2896.98,0.349,0,0.99,0.556,2.924,0.0,4.47,-10.128,2,5,4,simple_ensemble,intermittent_demand_stress
+m5,quick,item_store,high_intermittency,baseline,Feasibility-Aware,0.671,45009.977,698994595.027,771.52,0.093,143,1.099,2.148,0.779,0.5,4.526,-10.072,6,3,5,feasibility_aware_selector,intermittent_demand_stress
+m5,quick,item_store,high_intermittency,baseline,Best Stability,0.785,51407.628,98995397.622,11134.134,0.569,0,1.255,0.304,11.237,0.0,12.796,-1.802,7,7,6,best_stability_model,intermittent_demand_stress
+m5,quick,item_store,high_intermittency,baseline,Oracle,0.0,10798.518,1012057466.462,11121.616,0.555,0,0.264,3.11,11.224,0.0,14.598,0.0,1,6,7,oracle_realized_demand,intermittent_demand_stress
+m5,quick,item_store,low_intermittency,baseline,Smoothed Alpha 0.25,0.254,30985.649,39.117,0.0,0.0,0,0.993,0.163,0.0,0.0,1.156,-119.508,5,1,1,feasibility_aware_smoothed_alpha_0_25,intermittent_demand_stress
+m5,quick,item_store,low_intermittency,baseline,Operational Ensemble,0.233,28637.237,58.637,0.0,0.0,0,0.918,0.244,0.0,0.0,1.162,-119.503,3,1,2,operational_loss_ensemble,intermittent_demand_stress
+m5,quick,item_store,low_intermittency,baseline,Global Best,0.254,31190.337,120.204,46.817,0.022,0,1.0,0.5,1.0,0.0,2.5,-118.165,5,3,3,global_best_model,intermittent_demand_stress
+m5,quick,item_store,low_intermittency,baseline,Simple Ensemble,0.216,26362.867,182.98,396.881,0.108,0,0.845,0.761,8.477,0.0,10.084,-110.581,2,4,4,simple_ensemble,intermittent_demand_stress
+m5,quick,item_store,low_intermittency,baseline,Feasibility-Aware,0.246,30470.347,82.418,420.306,0.048,244,0.977,0.343,8.978,0.5,10.797,-109.867,4,5,5,feasibility_aware_selector,intermittent_demand_stress
+m5,quick,item_store,low_intermittency,baseline,Oracle,0.0,9304.527,472.962,5543.125,0.475,0,0.298,1.967,118.399,0.0,120.665,0.0,1,6,6,oracle_realized_demand,intermittent_demand_stress
+m5,quick,item_store,low_intermittency,baseline,Best Stability,0.26,31589.366,487.564,6149.283,0.479,0,1.013,2.028,131.346,0.0,134.387,13.723,7,7,7,best_stability_model,intermittent_demand_stress
+m5,quick,item_store,medium_intermittency,baseline,Smoothed Alpha 0.25,0.367,38548.834,52.659,1.402,0.001,0,1.001,0.162,0.006,0.0,1.168,-37.661,5,1,1,feasibility_aware_smoothed_alpha_0_25,intermittent_demand_stress
+m5,quick,item_store,medium_intermittency,baseline,Operational Ensemble,0.344,36627.163,81.132,10.777,0.006,0,0.951,0.249,0.045,0.0,1.245,-37.584,3,2,2,operational_loss_ensemble,intermittent_demand_stress
+m5,quick,item_store,medium_intermittency,baseline,Global Best,0.367,38525.787,162.621,241.565,0.071,0,1.0,0.5,1.0,0.0,2.5,-36.329,5,3,3,global_best_model,intermittent_demand_stress
+m5,quick,item_store,medium_intermittency,baseline,Feasibility-Aware,0.352,38321.082,120.899,772.351,0.084,274,0.995,0.372,3.197,0.5,5.064,-33.766,4,4,4,feasibility_aware_selector,intermittent_demand_stress
+m5,quick,item_store,medium_intermittency,baseline,Simple Ensemble,0.315,32722.214,249.269,1156.832,0.241,0,0.849,0.766,4.789,0.0,6.405,-32.425,2,5,5,simple_ensemble,intermittent_demand_stress
+m5,quick,item_store,medium_intermittency,baseline,Oracle,0.0,10335.992,658.631,8825.815,0.6,0,0.268,2.025,36.536,0.0,38.829,0.0,1,6,6,oracle_realized_demand,intermittent_demand_stress
+m5,quick,item_store,medium_intermittency,baseline,Best Stability,0.375,37776.562,676.977,9318.065,0.609,0,0.981,2.081,38.574,0.0,41.636,2.806,7,7,7,best_stability_model,intermittent_demand_stress
+m5,quick,item_store,all,baseline,Smoothed Alpha 0.25,0.368,112942.274,40225501.493,101.408,0.01,0,1.02,0.124,0.004,0.0,1.148,-3.234,4,1,1,feasibility_aware_smoothed_alpha_0_25,dataco_scenario_robustness
+m5,quick,item_store,all,baseline,Operational Ensemble,0.356,108135.916,103492280.599,301.579,0.024,0,0.977,0.318,0.012,0.0,1.307,-3.075,3,2,2,operational_loss_ensemble,dataco_scenario_robustness
+m5,quick,item_store,all,baseline,Global Best,0.368,110676.328,162696085.273,1279.259,0.089,0,1.0,0.5,0.05,0.0,1.55,-2.832,4,3,3,global_best_model,dataco_scenario_robustness
+m5,quick,item_store,all,baseline,Simple Ensemble,0.332,99640.008,180837097.651,4450.693,0.233,0,0.9,0.556,0.174,0.0,1.63,-2.752,2,5,4,simple_ensemble,dataco_scenario_robustness
+m5,quick,item_store,all,baseline,Best Stability,0.408,120773.556,98996562.163,26601.482,0.552,0,1.091,0.304,1.04,0.0,2.435,-1.946,7,7,5,best_stability_model,dataco_scenario_robustness
+m5,quick,item_store,all,baseline,Feasibility-Aware,0.371,113801.405,698994798.344,1964.178,0.075,661,1.028,2.148,0.077,0.5,3.753,-0.628,6,4,6,feasibility_aware_selector,dataco_scenario_robustness
+m5,quick,item_store,all,baseline,Oracle,0.0,30439.038,1012058598.054,25490.556,0.543,0,0.275,3.11,0.996,0.0,4.382,0.0,1,6,7,oracle_realized_demand,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_low,Smoothed Alpha 0.25,0.368,112942.274,40225501.493,101.408,0.01,0,1.02,0.124,0.025,0.0,1.169,-8.544,4,1,1,feasibility_aware_smoothed_alpha_0_25,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_low,Operational Ensemble,0.356,108135.916,103492280.599,301.579,0.024,0,0.977,0.318,0.075,0.0,1.37,-8.344,3,2,2,operational_loss_ensemble,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_low,Global Best,0.368,110676.328,162696085.273,1279.259,0.089,0,1.0,0.5,0.318,0.0,1.818,-7.896,4,3,3,global_best_model,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_low,Simple Ensemble,0.332,99640.008,180837097.651,4450.693,0.233,0,0.9,0.556,1.105,0.0,2.561,-7.153,2,5,4,simple_ensemble,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_low,Feasibility-Aware,0.371,113801.405,698994798.344,1964.178,0.075,661,1.028,2.148,0.488,0.5,4.164,-5.549,6,4,5,feasibility_aware_selector,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_low,Best Stability,0.408,120773.556,98996562.163,26601.482,0.552,0,1.091,0.304,6.604,0.0,7.999,-1.714,7,7,6,best_stability_model,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_low,Oracle,0.0,30439.038,1012058598.054,25490.556,0.543,0,0.275,3.11,6.328,0.0,9.713,0.0,1,6,7,oracle_realized_demand,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_median,Smoothed Alpha 0.25,0.368,112942.274,40225501.493,101.408,0.01,0,1.02,0.124,0.026,0.0,1.17,-8.713,4,1,1,feasibility_aware_smoothed_alpha_0_25,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_median,Operational Ensemble,0.356,108135.916,103492280.599,301.579,0.024,0,0.977,0.318,0.077,0.0,1.372,-8.511,3,2,2,operational_loss_ensemble,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_median,Global Best,0.368,110676.328,162696085.273,1279.259,0.089,0,1.0,0.5,0.326,0.0,1.826,-8.057,4,3,3,global_best_model,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_median,Simple Ensemble,0.332,99640.008,180837097.651,4450.693,0.233,0,0.9,0.556,1.135,0.0,2.591,-7.293,2,5,4,simple_ensemble,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_median,Feasibility-Aware,0.371,113801.405,698994798.344,1964.178,0.075,661,1.028,2.148,0.501,0.5,4.177,-5.706,6,4,5,feasibility_aware_selector,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_median,Best Stability,0.408,120773.556,98996562.163,26601.482,0.552,0,1.091,0.304,6.781,0.0,8.177,-1.707,7,7,6,best_stability_model,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_median,Oracle,0.0,30439.038,1012058598.054,25490.556,0.543,0,0.275,3.11,6.498,0.0,9.883,0.0,1,6,7,oracle_realized_demand,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_high,Smoothed Alpha 0.25,0.368,112942.274,40225501.493,101.408,0.01,0,1.02,0.124,0.027,0.0,1.171,-9.0,4,1,1,feasibility_aware_smoothed_alpha_0_25,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_high,Operational Ensemble,0.356,108135.916,103492280.599,301.579,0.024,0,0.977,0.318,0.08,0.0,1.375,-8.796,3,2,2,operational_loss_ensemble,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_high,Global Best,0.368,110676.328,162696085.273,1279.259,0.089,0,1.0,0.5,0.341,0.0,1.841,-8.331,4,3,3,global_best_model,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_high,Simple Ensemble,0.332,99640.008,180837097.651,4450.693,0.233,0,0.9,0.556,1.185,0.0,2.641,-7.53,2,5,4,simple_ensemble,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_high,Feasibility-Aware,0.371,113801.405,698994798.344,1964.178,0.075,661,1.028,2.148,0.523,0.5,4.199,-5.972,6,4,5,feasibility_aware_selector,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_high,Best Stability,0.408,120773.556,98996562.163,26601.482,0.552,0,1.091,0.304,7.082,0.0,8.477,-1.694,7,7,6,best_stability_model,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_high,Oracle,0.0,30439.038,1012058598.054,25490.556,0.543,0,0.275,3.11,6.786,0.0,10.171,0.0,1,6,7,oracle_realized_demand,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_severe,Smoothed Alpha 0.25,0.368,112942.274,40225501.493,101.408,0.01,0,1.02,0.124,0.04,0.0,1.184,-12.171,4,1,1,feasibility_aware_smoothed_alpha_0_25,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_severe,Operational Ensemble,0.356,108135.916,103492280.599,301.579,0.024,0,0.977,0.318,0.118,0.0,1.413,-11.942,3,2,2,operational_loss_ensemble,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_severe,Global Best,0.368,110676.328,162696085.273,1279.259,0.089,0,1.0,0.5,0.5,0.0,2.0,-11.354,4,3,3,global_best_model,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_severe,Simple Ensemble,0.332,99640.008,180837097.651,4450.693,0.233,0,0.9,0.556,1.741,0.0,3.197,-10.158,2,5,4,simple_ensemble,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_severe,Feasibility-Aware,0.371,113801.405,698994798.344,1964.178,0.075,661,1.028,2.148,0.768,0.5,4.445,-8.91,6,4,5,feasibility_aware_selector,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_severe,Best Stability,0.408,120773.556,98996562.163,26601.482,0.552,0,1.091,0.304,10.404,0.0,11.799,-1.555,7,7,6,best_stability_model,dataco_scenario_robustness
+m5,quick,item_store,all,dataco_severe,Oracle,0.0,30439.038,1012058598.054,25490.556,0.543,0,0.275,3.11,9.969,0.0,13.355,0.0,1,6,7,oracle_realized_demand,dataco_scenario_robustness

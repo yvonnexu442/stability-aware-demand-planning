@@ -58,6 +58,8 @@ PAPER_STRATEGY_ORDER = [
     "global_best_model",
     "family_best_model",
     "feasibility_aware_selector",
+    "feasibility_aware_smoothed_utility_alpha",
+    "feasibility_aware_ensemble_constrained",
     "stability_aware_selector",
     "simple_ensemble",
     "best_inventory_cost_model",
@@ -74,6 +76,25 @@ BASELINE_COMPARISON_STRATEGIES = [
     "feasibility_aware_selector",
     "stability_aware_selector",
     "simple_ensemble",
+    "best_inventory_cost_model",
+    "best_stability_model",
+    "oracle_realized_demand",
+]
+
+IMPROVED_METHOD_COMPARISON_STRATEGIES = [
+    "global_best_model",
+    "family_best_model",
+    "simple_ensemble",
+    "stability_aware_selector",
+    "feasibility_aware_selector",
+    "feasibility_aware_smoothed_alpha_0_25",
+    "feasibility_aware_smoothed_alpha_0_50",
+    "feasibility_aware_smoothed_alpha_0_75",
+    "feasibility_aware_smoothed_scenario_alpha",
+    "feasibility_aware_smoothed_utility_alpha",
+    "feasibility_aware_ensemble_inverse_accuracy",
+    "feasibility_aware_ensemble_inverse_operational_loss",
+    "feasibility_aware_ensemble_constrained",
     "best_inventory_cost_model",
     "best_stability_model",
     "oracle_realized_demand",
@@ -107,6 +128,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--paper-figure-dir", default="paper/figures", help="Directory for LaTeX-ready paper figures.")
     parser.add_argument("--asset-manifest-path", default="paper/asset_manifest.md", help="Path for the paper asset manifest.")
     parser.add_argument("--skip-ml", action="store_true", help="Skip the global machine-learning forecast candidate.")
+    parser.add_argument(
+        "--reuse-forecast-table",
+        default=None,
+        help="Reuse an existing standardized forecast CSV instead of rebuilding forecast candidates.",
+    )
     return parser.parse_args()
 
 
@@ -167,7 +193,11 @@ def main() -> None:
     )
     logger.info("Test window: %s to %s.", split_dates["test_start_date"].date(), split_dates["test_end_date"].date())
 
-    forecasts = _build_candidate_forecasts(modeling_table, config, logger, skip_ml=args.skip_ml)
+    if args.reuse_forecast_table:
+        forecasts = pd.read_csv(args.reuse_forecast_table, parse_dates=["date"])
+        logger.info("Reused standardized forecast table from %s.", args.reuse_forecast_table)
+    else:
+        forecasts = _build_candidate_forecasts(modeling_table, config, logger, skip_ml=args.skip_ml)
     forecast_metrics = _summarize_forecast_metrics(forecasts)
     forecast_metrics.to_csv(table_dir / "favorita_forecast_metrics.csv", index=False)
     forecasts.to_csv(table_dir / "favorita_forecasts.csv", index=False)
@@ -189,6 +219,9 @@ def main() -> None:
     figure_assets = _make_figures(planning_utility, stability_metrics, decisions, figure_dir, paper_figure_dir)
     baseline_tables, baseline_figures = _run_baseline_and_execution_risk_outputs(
         decisions=decisions,
+        forecasts=forecasts,
+        modeling_table=modeling_table,
+        forecast_metrics=forecast_metrics,
         config=config,
         run_mode=run_mode,
         output_table_dir=table_dir,
@@ -1084,7 +1117,12 @@ def _evaluate_selected_decisions(selected_decisions: pd.DataFrame, config: Mappi
     stability_config = config.get("stability", {})
     weights = config.get("planning_loss_weights", {})
 
-    frame["planning_signal"] = forecast_to_inventory_target(frame["forecast"], frame["safety_stock"])
+    default_planning_signal = forecast_to_inventory_target(frame["forecast"], frame["safety_stock"])
+    if "planning_signal_override" in frame.columns:
+        override_signal = pd.to_numeric(frame["planning_signal_override"], errors="coerce")
+        frame["planning_signal"] = override_signal.where(override_signal.notna(), default_planning_signal)
+    else:
+        frame["planning_signal"] = default_planning_signal
     frame["inventory_target"] = frame["planning_signal"]
     frame["holding_cost"] = compute_holding_cost(
         frame["inventory_target"],
@@ -1221,6 +1259,9 @@ def _summarize_planning_utility(decisions: pd.DataFrame, loss_weights: Mapping[s
 
 def _run_baseline_and_execution_risk_outputs(
     decisions: pd.DataFrame,
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
     config: Mapping[str, object],
     run_mode: str,
     output_table_dir: Path,
@@ -1410,6 +1451,22 @@ def _run_baseline_and_execution_risk_outputs(
             paper_figure_dir / "favorita_model_rank_reordering.pdf",
         ]
     )
+    improved_tables, improved_figures = _run_improved_feasibility_method_outputs(
+        base_decisions=decisions,
+        forecasts=forecasts,
+        modeling_table=modeling_table,
+        forecast_metrics=forecast_metrics,
+        scenario_table=scenario_table,
+        config=config,
+        run_mode=run_mode,
+        output_table_dir=output_table_dir,
+        output_figure_dir=output_figure_dir,
+        paper_table_dir=paper_table_dir,
+        paper_figure_dir=paper_figure_dir,
+        logger=logger,
+    )
+    table_assets.extend(improved_tables)
+    figure_assets.extend(improved_figures)
     return table_assets, figure_assets
 
 
@@ -1763,6 +1820,7 @@ def _evaluate_dataco_informed_scenarios(
         )
         summary = summary[summary["strategy"].isin(BASELINE_COMPARISON_STRATEGIES)].copy()
         summary["scenario_name"] = scenario.scenario_name
+        summary["run_mode"] = run_mode
         summary["lambda_execution"] = float(scenario.lambda_execution)
         summary["late_delivery_rate_anchor"] = scenario.late_delivery_rate_anchor
         summary["source"] = scenario.source
@@ -1778,6 +1836,7 @@ def _evaluate_dataco_informed_scenarios(
         rows.append(summary)
     result = pd.concat(rows, ignore_index=True)
     output_columns = [
+        "run_mode",
         "scenario_name",
         "lambda_execution",
         "late_delivery_rate_anchor",
@@ -1802,6 +1861,905 @@ def _evaluate_dataco_informed_scenarios(
         "rank_by_execution_penalty",
     ]
     return result[output_columns].sort_values(["scenario_name", "rank_by_normalized_total_loss", "method_name"])
+
+
+def _run_improved_feasibility_method_outputs(
+    base_decisions: pd.DataFrame,
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    scenario_table: pd.DataFrame,
+    config: Mapping[str, object],
+    run_mode: str,
+    output_table_dir: Path,
+    output_figure_dir: Path,
+    paper_table_dir: Path,
+    paper_figure_dir: Path,
+    logger: logging.Logger,
+) -> Tuple[List[Path], List[Path]]:
+    """Run improved feasibility-aware smoothing and ensemble comparisons."""
+    logger.info("Running improved feasibility-aware smoothing and ensemble comparisons.")
+    rows: List[pd.DataFrame] = []
+    metadata_rows: List[pd.DataFrame] = []
+    base_weights = config.get("planning_loss_weights", {})
+
+    for scenario in scenario_table.itertuples(index=False):
+        scenario_weights = dict(base_weights)
+        scenario_weights["lambda_execution"] = float(scenario.lambda_execution)
+        scenario_config = _copy_config_with_updates(config, loss_weights=scenario_weights)
+        improved_selected, method_metadata = _build_improved_feasibility_method_selections(
+            forecasts=forecasts,
+            modeling_table=modeling_table,
+            forecast_metrics=forecast_metrics,
+            config=scenario_config,
+            scenario_name=str(scenario.scenario_name),
+            scenario_weights=scenario_weights,
+        )
+        improved_decisions = _evaluate_selected_decisions(improved_selected, scenario_config)
+        combined_decisions = pd.concat([base_decisions, improved_decisions], ignore_index=True, sort=False)
+        summary = _summarize_planning_utility(combined_decisions, scenario_weights)
+        summary, _, _ = add_normalized_planning_loss(
+            summary,
+            scenario_weights,
+            dataset_name="favorita",
+            run_mode=run_mode,
+            split_name="test",
+        )
+        summary = summary[summary["strategy"].isin(IMPROVED_METHOD_COMPARISON_STRATEGIES)].copy()
+        summary["scenario_name"] = scenario.scenario_name
+        summary["run_mode"] = run_mode
+        summary["lambda_execution"] = float(scenario.lambda_execution)
+        summary["late_delivery_rate_anchor"] = scenario.late_delivery_rate_anchor
+        summary["source"] = scenario.source
+        summary["fallback_used"] = bool(scenario.fallback_used)
+        summary["method_name"] = summary["strategy"].map(_short_strategy_label)
+        summary["WAPE"] = summary["weighted_absolute_percentage_error"]
+        summary["inventory_cost"] = summary["total_inventory_cost"]
+        summary["planning_volatility"] = summary["planning_signal_volatility_total"]
+        summary["execution_penalty"] = summary["execution_adaptation_penalty_total"]
+        summary["rank_by_normalized_total_loss"] = summary["normalized_total_loss"].rank(method="min").astype(int)
+        summary["rank_by_WAPE"] = summary["WAPE"].rank(method="min").astype(int)
+        summary["rank_by_execution_penalty"] = summary["execution_penalty"].rank(method="min").astype(int)
+        oracle_loss = summary.loc[summary["strategy"] == "oracle_realized_demand", "normalized_total_loss"]
+        oracle_value = float(oracle_loss.iloc[0]) if not oracle_loss.empty else np.nan
+        summary["gap_to_oracle"] = summary["normalized_total_loss"] - oracle_value
+        rows.append(summary)
+
+        method_metadata["scenario_name"] = scenario.scenario_name
+        method_metadata["run_mode"] = run_mode
+        metadata_rows.append(method_metadata)
+
+    result = pd.concat(rows, ignore_index=True)
+    metadata = pd.concat(metadata_rows, ignore_index=True) if metadata_rows else pd.DataFrame()
+    if not metadata.empty:
+        result = result.merge(metadata, on=["run_mode", "scenario_name", "strategy"], how="left")
+    result["method_family"] = result["method_family"].fillna(result["strategy"].map(_method_family_from_strategy))
+
+    improved_methods = _improved_method_output_columns(result)
+    smoothing_alpha = improved_methods[improved_methods["method_family"] == "FeasibilityAwareSmoothed"].copy()
+    ensemble_comparison = improved_methods[
+        improved_methods["method_family"].isin(["FeasibilityAwareEnsemble", "ReferenceEnsemble"])
+    ].copy()
+    rankings = _build_improved_method_rankings(improved_methods)
+
+    table_assets = []
+    table_assets.append(
+        _save_output_and_paper_table(
+            improved_methods,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="favorita_improved_feasibility_methods",
+            paper_stem="favorita_improved_feasibility_methods_table",
+            caption="Improved feasibility-aware method comparison under DataCo-informed scenarios.",
+            label="tab:favorita-improved-feasibility-methods",
+            resize_to_textwidth=True,
+        )
+    )
+    table_assets.append(
+        _save_output_and_paper_table(
+            smoothing_alpha,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="favorita_smoothing_alpha_sensitivity",
+            paper_stem="favorita_smoothing_alpha_sensitivity_table",
+            caption="Smoothing alpha sensitivity for feasibility-aware gradual adaptation.",
+            label="tab:favorita-smoothing-alpha-sensitivity",
+            resize_to_textwidth=True,
+        )
+    )
+    table_assets.append(
+        _save_output_and_paper_table(
+            ensemble_comparison,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="favorita_feasibility_ensemble_comparison",
+            paper_stem="favorita_feasibility_ensemble_comparison_table",
+            caption="Feasibility-aware ensemble comparison under DataCo-informed scenarios.",
+            label="tab:favorita-feasibility-ensemble-comparison",
+            resize_to_textwidth=True,
+        )
+    )
+    table_assets.append(
+        _save_output_and_paper_table(
+            rankings,
+            output_table_dir,
+            paper_table_dir,
+            output_stem="favorita_improved_method_rankings",
+            paper_stem="favorita_improved_method_rankings_table",
+            caption="Objective-specific rankings for improved feasibility-aware methods.",
+            label="tab:favorita-improved-method-rankings",
+            resize_to_textwidth=True,
+        )
+    )
+
+    figure_assets = _make_improved_feasibility_figures(
+        improved_methods=improved_methods,
+        smoothing_alpha=smoothing_alpha,
+        ensemble_comparison=ensemble_comparison,
+        output_figure_dir=output_figure_dir,
+        paper_figure_dir=paper_figure_dir,
+    )
+    logger.info("Saved improved feasibility-aware method outputs.")
+    return table_assets, figure_assets
+
+
+def _build_improved_feasibility_method_selections(
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+    scenario_name: str,
+    scenario_weights: Mapping[str, float],
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Build scenario-specific improved strategy decisions and metadata."""
+    test_forecasts = _prepare_forecasts_with_safety_stock(forecasts, modeling_table, config, split_name="test")
+    expected_losses = _validation_expected_planning_losses(forecasts, modeling_table, config)
+    global_expected_losses = _global_validation_expected_planning_losses(expected_losses, forecast_metrics)
+    method_config = config.get("improved_feasibility_methods", {})
+    smoothing_config = method_config.get("smoothing", {})
+    ensemble_config = method_config.get("ensemble", {})
+
+    selected_frames: List[pd.DataFrame] = []
+    metadata_records: List[Dict[str, object]] = []
+
+    alpha_grid = [float(value) for value in smoothing_config.get("utility_based_alpha_grid", [0.10, 0.25, 0.50, 0.75, 1.00])]
+    alpha_cv_scores = _cross_validate_smoothing_alpha(
+        forecasts=forecasts,
+        modeling_table=modeling_table,
+        forecast_metrics=forecast_metrics,
+        config=config,
+        scenario_weights=scenario_weights,
+        alpha_grid=alpha_grid,
+        fold_count=int(smoothing_config.get("utility_validation_folds", 3)),
+    )
+    cv_lookup = alpha_cv_scores.set_index("alpha")["validation_cv_normalized_loss"].to_dict() if not alpha_cv_scores.empty else {}
+
+    for alpha in [float(value) for value in smoothing_config.get("fixed_alpha_values", [0.25, 0.50, 0.75])]:
+        strategy = "feasibility_aware_smoothed_alpha_{}".format(_alpha_strategy_suffix(alpha))
+        selected_frames.append(
+            _feasibility_aware_smoothed_selection(
+                test_forecasts,
+                expected_losses,
+                global_expected_losses,
+                config,
+                alpha=alpha,
+                strategy=strategy,
+            )
+        )
+        metadata_records.append(
+            {
+                "strategy": strategy,
+                "method_family": "FeasibilityAwareSmoothed",
+                "method_variant": "fixed_alpha_smoothing",
+                "smoothing_alpha": alpha,
+                "validation_cv_normalized_loss": cv_lookup.get(alpha, np.nan),
+            }
+        )
+
+    scenario_alpha_map = smoothing_config.get("scenario_based_alpha", {})
+    scenario_alpha = float(scenario_alpha_map.get(scenario_name, scenario_alpha_map.get("default", 0.50)))
+    selected_frames.append(
+        _feasibility_aware_smoothed_selection(
+            test_forecasts,
+            expected_losses,
+            global_expected_losses,
+            config,
+            alpha=scenario_alpha,
+            strategy="feasibility_aware_smoothed_scenario_alpha",
+        )
+    )
+    metadata_records.append(
+        {
+            "strategy": "feasibility_aware_smoothed_scenario_alpha",
+            "method_family": "FeasibilityAwareSmoothed",
+            "method_variant": "scenario_based_alpha",
+            "smoothing_alpha": scenario_alpha,
+            "validation_cv_normalized_loss": cv_lookup.get(scenario_alpha, np.nan),
+        }
+    )
+
+    utility_alpha = _select_alpha_from_cv(alpha_cv_scores)
+    selected_frames.append(
+        _feasibility_aware_smoothed_selection(
+            test_forecasts,
+            expected_losses,
+            global_expected_losses,
+            config,
+            alpha=utility_alpha,
+            strategy="feasibility_aware_smoothed_utility_alpha",
+        )
+    )
+    metadata_records.append(
+        {
+            "strategy": "feasibility_aware_smoothed_utility_alpha",
+            "method_family": "FeasibilityAwareSmoothed",
+            "method_variant": "utility_based_alpha",
+            "smoothing_alpha": utility_alpha,
+            "validation_cv_normalized_loss": cv_lookup.get(utility_alpha, np.nan),
+        }
+    )
+
+    accuracy_weights = _inverse_accuracy_model_weights(forecast_metrics, test_forecasts["model_name"].unique(), ensemble_config)
+    operational_losses = _validation_operational_loss_by_model(
+        forecasts=forecasts,
+        modeling_table=modeling_table,
+        forecast_metrics=forecast_metrics,
+        config=config,
+        scenario_weights=scenario_weights,
+    )
+    operational_weights = _inverse_metric_model_weights(operational_losses, ensemble_config)
+    constrained_weights, constrained_metadata = _select_constrained_ensemble_weights(
+        forecasts=forecasts,
+        modeling_table=modeling_table,
+        forecast_metrics=forecast_metrics,
+        config=config,
+        scenario_weights=scenario_weights,
+        accuracy_weights=accuracy_weights,
+        operational_weights=operational_weights,
+        ensemble_config=ensemble_config,
+    )
+
+    ensemble_specs = [
+        (
+            "feasibility_aware_ensemble_inverse_accuracy",
+            "inverse_accuracy_weighted_ensemble",
+            accuracy_weights,
+            "validation_wape",
+            np.nan,
+        ),
+        (
+            "feasibility_aware_ensemble_inverse_operational_loss",
+            "inverse_operational_loss_weighted_ensemble",
+            operational_weights,
+            "validation_normalized_operational_loss",
+            np.nan,
+        ),
+        (
+            "feasibility_aware_ensemble_constrained",
+            "constrained_weighted_ensemble",
+            constrained_weights,
+            "blocked_cv_normalized_planning_loss",
+            constrained_metadata.get("validation_cv_normalized_loss", np.nan),
+        ),
+    ]
+    for strategy, variant, weights, weight_basis, cv_loss in ensemble_specs:
+        selected_frames.append(_weighted_ensemble_selection(test_forecasts, weights, strategy))
+        metadata_records.append(
+            {
+                "strategy": strategy,
+                "method_family": "FeasibilityAwareEnsemble",
+                "method_variant": variant,
+                "ensemble_weight_basis": weight_basis,
+                "ensemble_weight_entropy": _weight_entropy(weights),
+                "selected_blend": constrained_metadata.get("selected_blend", np.nan) if strategy.endswith("constrained") else np.nan,
+                "validation_cv_normalized_loss": cv_loss,
+            }
+        )
+
+    return pd.concat(selected_frames, ignore_index=True), pd.DataFrame(metadata_records)
+
+
+def _feasibility_aware_smoothed_selection(
+    test_forecasts: pd.DataFrame,
+    expected_losses: Mapping[Tuple[str, str], Mapping[str, float]],
+    global_expected_losses: Mapping[str, Mapping[str, float]],
+    config: Mapping[str, object],
+    alpha: float,
+    strategy: str,
+) -> pd.DataFrame:
+    """Select forecast candidates and gradually adapt the executable plan."""
+    weights = config.get("planning_loss_weights", {})
+    stability_config = config.get("stability", {})
+    feasibility_config = config.get("feasibility_analysis", {}).get("feasibility_selector", {})
+    switch_penalty = float(feasibility_config.get("switch_penalty", config.get("favorita_pipeline", {}).get("stability_switch_penalty", 0.02)))
+    minimum_utility_gain = float(feasibility_config.get("minimum_utility_gain", 0.0))
+    max_plan_change_rate = float(stability_config.get("max_plan_change_rate", 0.20))
+    bounded_alpha = float(np.clip(alpha, 0.0, 1.0))
+
+    candidate_groups = {
+        key: group.copy()
+        for key, group in test_forecasts.groupby(["series_id", "date"], sort=False)
+    }
+    base_rows = (
+        test_forecasts[["date", "series_id", "family", "store_nbr", "actual", "split", "horizon", "safety_stock"]]
+        .drop_duplicates(["date", "series_id"])
+        .sort_values(["series_id", "date"])
+    )
+
+    states: Dict[str, Dict[str, object]] = {}
+    selected_records: List[Mapping[str, object]] = []
+    for row in base_rows.itertuples(index=False):
+        candidates = candidate_groups[(row.series_id, row.date)]
+        previous_state = states.get(row.series_id, {})
+        previous_model = previous_state.get("selected_model")
+        previous_plan = previous_state.get("planning_signal")
+
+        scored_candidates = []
+        for candidate in candidates.itertuples(index=False):
+            candidate_plan = float(forecast_to_inventory_target([candidate.forecast], [row.safety_stock])[0])
+            if previous_plan is None:
+                final_plan = candidate_plan
+            else:
+                final_plan = bounded_alpha * candidate_plan + (1.0 - bounded_alpha) * float(previous_plan)
+            plan_change_abs, plan_change_pct, execution_violation_units = _expected_plan_burden(
+                planning_signal=final_plan,
+                previous_plan=previous_plan,
+                max_plan_change_rate=max_plan_change_rate,
+            )
+            calibrated_loss = expected_losses.get(
+                (row.family, candidate.model_name),
+                global_expected_losses.get(candidate.model_name, {}),
+            )
+            expected_forecast_loss = float(calibrated_loss.get("wape", 1.0))
+            expected_inventory_loss = float(calibrated_loss.get("inventory_cost_per_demand_unit", 0.0))
+            switch_cost = 0.0 if previous_model is None or previous_model == candidate.model_name else switch_penalty
+            normalized_execution_violation = execution_violation_units / max(abs(float(previous_plan or final_plan)), 1e-8)
+            score = (
+                float(weights.get("alpha_forecast", 1.0)) * expected_forecast_loss
+                + float(weights.get("beta_inventory", 1.0)) * expected_inventory_loss
+                + float(weights.get("lambda_volatility", 0.5)) * plan_change_pct
+                + float(weights.get("lambda_switch", 0.5)) * switch_cost
+                + float(weights.get("lambda_execution", 1.0)) * normalized_execution_violation
+            )
+            scored_candidates.append(
+                {
+                    "candidate": candidate,
+                    "candidate_plan": candidate_plan,
+                    "final_plan": final_plan,
+                    "score": score,
+                }
+            )
+
+        best = min(scored_candidates, key=lambda item: item["score"])
+        if previous_model is not None:
+            incumbent_matches = [item for item in scored_candidates if item["candidate"].model_name == previous_model]
+            if incumbent_matches:
+                incumbent = incumbent_matches[0]
+                if best["candidate"].model_name != previous_model and best["score"] > incumbent["score"] - minimum_utility_gain:
+                    best = incumbent
+
+        best_candidate = best["candidate"]
+        states[row.series_id] = {
+            "selected_model": best_candidate.model_name,
+            "planning_signal": best["final_plan"],
+        }
+        selected_records.append(
+            {
+                "date": row.date,
+                "series_id": row.series_id,
+                "family": row.family,
+                "store_nbr": row.store_nbr,
+                "model_name": best_candidate.model_name,
+                "selected_model": best_candidate.model_name,
+                "forecast": float(best_candidate.forecast),
+                "actual": float(row.actual),
+                "split": row.split,
+                "horizon": int(row.horizon),
+                "safety_stock": float(row.safety_stock),
+                "planning_signal_override": float(best["final_plan"]),
+                "strategy": strategy,
+            }
+        )
+    return pd.DataFrame(selected_records)
+
+
+def _prepare_forecasts_with_safety_stock(
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    config: Mapping[str, object],
+    split_name: str,
+) -> pd.DataFrame:
+    """Return forecast rows for one split with executable safety stock attached."""
+    frame = forecasts[forecasts["split"] == split_name].copy()
+    if "safety_stock" in frame.columns:
+        frame = frame.drop(columns=["safety_stock"])
+    safety_lookup = modeling_table[modeling_table["split"] == split_name][
+        ["date", "series_id", "demand_rolling_std_28"]
+    ].copy()
+    safety_multiplier = float(config.get("favorita_pipeline", {}).get("safety_stock_multiplier", 0.5))
+    safety_lookup["safety_stock"] = (
+        pd.to_numeric(safety_lookup["demand_rolling_std_28"], errors="coerce").fillna(0.0) * safety_multiplier
+    ).clip(lower=0.0)
+    frame = frame.merge(safety_lookup[["date", "series_id", "safety_stock"]], on=["date", "series_id"], how="left")
+    frame["safety_stock"] = frame["safety_stock"].fillna(0.0)
+    return frame
+
+
+def _expected_losses_from_prepared_forecasts(
+    prepared_forecasts: pd.DataFrame,
+    config: Mapping[str, object],
+) -> Dict[Tuple[str, str], Dict[str, float]]:
+    """Estimate family-model forecast and inventory losses from prepared rows."""
+    planning_config = config.get("planning", {})
+    losses: Dict[Tuple[str, str], Dict[str, float]] = {}
+    for (family, model_name), group in prepared_forecasts.groupby(["family", "model_name"]):
+        actual = group["actual"].to_numpy(dtype=float)
+        forecast = group["forecast"].to_numpy(dtype=float)
+        safety_stock = group["safety_stock"].to_numpy(dtype=float)
+        planning_signal = forecast_to_inventory_target(forecast, safety_stock)
+        inventory_cost = compute_holding_cost(
+            planning_signal,
+            actual,
+            holding_cost_rate=float(planning_config.get("holding_cost_rate", 1.0)),
+        ) + compute_shortage_cost(
+            planning_signal,
+            actual,
+            shortage_cost_rate=float(planning_config.get("shortage_cost_rate", 5.0)),
+        )
+        demand_total = max(float(np.sum(np.abs(actual))), 1e-8)
+        losses[(family, model_name)] = {
+            "wape": weighted_absolute_percentage_error(actual, forecast),
+            "inventory_cost_per_demand_unit": float(np.sum(inventory_cost) / demand_total),
+        }
+    return losses
+
+
+def _global_losses_from_expected_losses(
+    family_losses: Mapping[Tuple[str, str], Mapping[str, float]],
+) -> Dict[str, Dict[str, float]]:
+    """Return model-level fallback losses from family-level calibration."""
+    global_losses: Dict[str, Dict[str, List[float]]] = {}
+    for (_, model_name), metrics in family_losses.items():
+        global_losses.setdefault(model_name, {"wape": [], "inventory": []})
+        global_losses[model_name]["wape"].append(float(metrics.get("wape", 1.0)))
+        global_losses[model_name]["inventory"].append(float(metrics.get("inventory_cost_per_demand_unit", 0.0)))
+    return {
+        model_name: {
+            "wape": float(np.mean(values["wape"])),
+            "inventory_cost_per_demand_unit": float(np.mean(values["inventory"])),
+        }
+        for model_name, values in global_losses.items()
+    }
+
+
+def _cross_validate_smoothing_alpha(
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+    scenario_weights: Mapping[str, float],
+    alpha_grid: Sequence[float],
+    fold_count: int,
+) -> pd.DataFrame:
+    """Choose smoothing speed with blocked validation folds to limit overfitting."""
+    validation = _prepare_forecasts_with_safety_stock(forecasts, modeling_table, config, split_name="validation")
+    if validation.empty:
+        return pd.DataFrame(columns=["alpha", "validation_cv_normalized_loss", "validation_cv_folds"])
+    folds = _chronological_date_folds(validation["date"], max(int(fold_count), 2))
+    records = []
+    for alpha in alpha_grid:
+        fold_losses = []
+        for fold_dates in folds:
+            if not fold_dates:
+                continue
+            fold_dates_set = set(fold_dates)
+            fold_start = min(fold_dates_set)
+            calibration = validation[validation["date"] < fold_start].copy()
+            if calibration.empty:
+                calibration = validation[~validation["date"].isin(fold_dates_set)].copy()
+            evaluation = validation[validation["date"].isin(fold_dates_set)].copy()
+            if calibration.empty or evaluation.empty:
+                continue
+            expected_losses = _expected_losses_from_prepared_forecasts(calibration, config)
+            global_expected = _global_losses_from_expected_losses(expected_losses)
+            best_reference_model = _best_model_from_global_losses(global_expected, forecast_metrics)
+            reference = _fixed_model_selection(evaluation, best_reference_model, "global_best_model")
+            selected = _feasibility_aware_smoothed_selection(
+                evaluation,
+                expected_losses,
+                global_expected,
+                config,
+                alpha=float(alpha),
+                strategy="feasibility_aware_smoothed_alpha_cv",
+            )
+            decisions = _evaluate_selected_decisions(pd.concat([reference, selected], ignore_index=True), config)
+            summary = _summarize_planning_utility(decisions, scenario_weights)
+            summary, _, _ = add_normalized_planning_loss(
+                summary,
+                scenario_weights,
+                reference_strategy="global_best_model",
+                dataset_name="favorita",
+                run_mode=_normalize_run_mode(config.get("project", {}).get("run_mode", "quick")),
+                split_name="validation_cv",
+            )
+            value = summary.loc[
+                summary["strategy"] == "feasibility_aware_smoothed_alpha_cv",
+                "normalized_total_loss",
+            ]
+            if not value.empty:
+                fold_losses.append(float(value.iloc[0]))
+        records.append(
+            {
+                "alpha": float(alpha),
+                "validation_cv_normalized_loss": float(np.mean(fold_losses)) if fold_losses else np.nan,
+                "validation_cv_folds": len(fold_losses),
+            }
+        )
+    return pd.DataFrame(records)
+
+
+def _chronological_date_folds(dates: Sequence[object], fold_count: int) -> List[List[pd.Timestamp]]:
+    """Split unique dates into chronological blocked folds."""
+    unique_dates = pd.to_datetime(pd.Series(dates).dropna().unique())
+    unique_dates = sorted(pd.Timestamp(value) for value in unique_dates)
+    if not unique_dates:
+        return []
+    arrays = np.array_split(np.array(unique_dates, dtype=object), min(max(fold_count, 1), len(unique_dates)))
+    return [[pd.Timestamp(value) for value in values.tolist()] for values in arrays if len(values) > 0]
+
+
+def _select_alpha_from_cv(alpha_cv_scores: pd.DataFrame) -> float:
+    """Return the validation-CV alpha, preferring less smoothing on ties."""
+    if alpha_cv_scores.empty or alpha_cv_scores["validation_cv_normalized_loss"].isna().all():
+        return 0.50
+    table = alpha_cv_scores.dropna(subset=["validation_cv_normalized_loss"]).copy()
+    table = table.sort_values(["validation_cv_normalized_loss", "alpha"], ascending=[True, False])
+    return float(table.iloc[0]["alpha"])
+
+
+def _fixed_model_selection(prepared_forecasts: pd.DataFrame, model_name: str, strategy: str) -> pd.DataFrame:
+    """Return prepared forecast rows for one fixed model and strategy name."""
+    selected = prepared_forecasts[prepared_forecasts["model_name"] == model_name].copy()
+    if selected.empty:
+        fallback_model = str(prepared_forecasts["model_name"].iloc[0])
+        selected = prepared_forecasts[prepared_forecasts["model_name"] == fallback_model].copy()
+        model_name = fallback_model
+    selected["selected_model"] = model_name
+    selected["strategy"] = strategy
+    return selected
+
+
+def _best_model_from_global_losses(
+    global_expected_losses: Mapping[str, Mapping[str, float]],
+    forecast_metrics: pd.DataFrame,
+) -> str:
+    """Return the lowest validation-WAPE model available in calibration losses."""
+    if global_expected_losses:
+        return min(global_expected_losses.items(), key=lambda item: (float(item[1].get("wape", np.inf)), item[0]))[0]
+    validation_metrics = forecast_metrics[forecast_metrics["split"] == "validation"].copy()
+    return str(validation_metrics.sort_values("weighted_absolute_percentage_error").iloc[0]["model_name"])
+
+
+def _inverse_accuracy_model_weights(
+    forecast_metrics: pd.DataFrame,
+    available_models: Sequence[str],
+    ensemble_config: Mapping[str, object],
+) -> Dict[str, float]:
+    """Return nonnegative inverse-validation-WAPE ensemble weights."""
+    validation = forecast_metrics[forecast_metrics["split"] == "validation"].copy()
+    available = {str(model) for model in available_models}
+    losses = {
+        str(row.model_name): float(row.weighted_absolute_percentage_error)
+        for row in validation.itertuples(index=False)
+        if str(row.model_name) in available
+    }
+    return _inverse_metric_model_weights(losses, ensemble_config)
+
+
+def _validation_operational_loss_by_model(
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+    scenario_weights: Mapping[str, float],
+) -> Dict[str, float]:
+    """Return validation normalized planning loss by model for ensemble weighting."""
+    validation = _prepare_forecasts_with_safety_stock(forecasts, modeling_table, config, split_name="validation")
+    if validation.empty:
+        return {}
+    validation_metrics = forecast_metrics[forecast_metrics["split"] == "validation"].copy()
+    reference_model = str(validation_metrics.sort_values("weighted_absolute_percentage_error").iloc[0]["model_name"])
+    planning_config = config.get("planning", {})
+    stability_config = config.get("stability", {})
+    max_plan_change_rate = float(stability_config.get("max_plan_change_rate", 0.20))
+
+    records = []
+    for model_name, group in validation.groupby("model_name"):
+        model_group = group.sort_values(["series_id", "date"]).copy()
+        actual = model_group["actual"].to_numpy(dtype=float)
+        forecast = model_group["forecast"].to_numpy(dtype=float)
+        signal = forecast_to_inventory_target(forecast, model_group["safety_stock"].to_numpy(dtype=float))
+        inventory_cost = compute_holding_cost(
+            signal,
+            actual,
+            holding_cost_rate=float(planning_config.get("holding_cost_rate", 1.0)),
+        ) + compute_shortage_cost(
+            signal,
+            actual,
+            shortage_cost_rate=float(planning_config.get("shortage_cost_rate", 5.0)),
+        )
+        volatility_total = 0.0
+        execution_total = 0.0
+        for _, series_group in model_group.assign(planning_signal=signal).groupby("series_id"):
+            series_signal = series_group["planning_signal"].to_numpy(dtype=float)
+            volatility_total += float(np.sum(compute_percentage_plan_change(series_signal)))
+            capacity = compute_execution_capacity(series_signal, max_plan_change_rate=max_plan_change_rate)
+            execution_total += float(np.sum(compute_execution_violation(series_signal, capacity)))
+        records.append(
+            {
+                "model_name": str(model_name),
+                "wape": weighted_absolute_percentage_error(actual, forecast),
+                "inventory_cost": float(np.sum(inventory_cost)),
+                "planning_volatility": volatility_total,
+                "execution_penalty": execution_total,
+            }
+        )
+    metrics = pd.DataFrame(records).set_index("model_name")
+    if reference_model not in metrics.index:
+        reference_model = str(metrics["wape"].idxmin())
+    references = metrics.loc[reference_model].replace(0.0, np.nan)
+    references = references.fillna(metrics.replace(0.0, np.nan).median()).fillna(1.0)
+    loss = (
+        float(scenario_weights.get("alpha_forecast", 1.0)) * metrics["wape"] / max(float(references["wape"]), 1e-8)
+        + float(scenario_weights.get("beta_inventory", 1.0))
+        * metrics["inventory_cost"]
+        / max(float(references["inventory_cost"]), 1e-8)
+        + float(scenario_weights.get("lambda_volatility", 0.5))
+        * metrics["planning_volatility"]
+        / max(float(references["planning_volatility"]), 1e-8)
+        + float(scenario_weights.get("lambda_execution", 1.0))
+        * metrics["execution_penalty"]
+        / max(float(references["execution_penalty"]), 1e-8)
+    )
+    return {str(model_name): float(value) for model_name, value in loss.to_dict().items()}
+
+
+def _inverse_metric_model_weights(
+    losses: Mapping[str, float],
+    ensemble_config: Mapping[str, object],
+) -> Dict[str, float]:
+    """Convert model losses to normalized nonnegative inverse-loss weights."""
+    epsilon = float(ensemble_config.get("inverse_loss_epsilon", 1e-6))
+    available = {str(model): max(float(value), epsilon) for model, value in losses.items() if np.isfinite(float(value))}
+    if not available:
+        return {}
+    raw = {model: 1.0 / value for model, value in available.items()}
+    return _normalize_model_weights(raw)
+
+
+def _normalize_model_weights(weights: Mapping[str, float]) -> Dict[str, float]:
+    """Normalize nonnegative model weights to sum to one."""
+    cleaned = {str(model): max(float(value), 0.0) for model, value in weights.items() if np.isfinite(float(value))}
+    total = float(sum(cleaned.values()))
+    if total <= 0.0 and cleaned:
+        equal = 1.0 / float(len(cleaned))
+        return {model: equal for model in cleaned}
+    if total <= 0.0:
+        return {}
+    return {model: value / total for model, value in cleaned.items()}
+
+
+def _select_constrained_ensemble_weights(
+    forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+    scenario_weights: Mapping[str, float],
+    accuracy_weights: Mapping[str, float],
+    operational_weights: Mapping[str, float],
+    ensemble_config: Mapping[str, object],
+) -> Tuple[Dict[str, float], Dict[str, float]]:
+    """Select nonnegative ensemble weights using a transparent validation grid."""
+    blends = [float(value) for value in ensemble_config.get("constrained_candidate_blends", [0.0, 0.25, 0.50, 0.75, 1.0])]
+    validation = _prepare_forecasts_with_safety_stock(forecasts, modeling_table, config, split_name="validation")
+    folds = _chronological_date_folds(validation["date"], int(config.get("improved_feasibility_methods", {}).get("smoothing", {}).get("utility_validation_folds", 3)))
+    candidate_records = []
+    best_weights = _normalize_model_weights(operational_weights or accuracy_weights)
+    best_score = np.inf
+    best_blend = np.nan
+    for blend in blends:
+        weights = _blend_model_weights(accuracy_weights, operational_weights, blend)
+        fold_losses = []
+        for fold_dates in folds:
+            if not fold_dates:
+                continue
+            evaluation = validation[validation["date"].isin(set(fold_dates))].copy()
+            if evaluation.empty:
+                continue
+            reference_model = _best_model_from_global_losses(_global_losses_from_expected_losses(_expected_losses_from_prepared_forecasts(validation, config)), forecast_metrics)
+            reference = _fixed_model_selection(evaluation, reference_model, "global_best_model")
+            selected = _weighted_ensemble_selection(evaluation, weights, "feasibility_aware_ensemble_cv")
+            decisions = _evaluate_selected_decisions(pd.concat([reference, selected], ignore_index=True), config)
+            summary = _summarize_planning_utility(decisions, scenario_weights)
+            summary, _, _ = add_normalized_planning_loss(
+                summary,
+                scenario_weights,
+                reference_strategy="global_best_model",
+                dataset_name="favorita",
+                run_mode=_normalize_run_mode(config.get("project", {}).get("run_mode", "quick")),
+                split_name="validation_cv",
+            )
+            value = summary.loc[summary["strategy"] == "feasibility_aware_ensemble_cv", "normalized_total_loss"]
+            if not value.empty:
+                fold_losses.append(float(value.iloc[0]))
+        score = float(np.mean(fold_losses)) if fold_losses else np.inf
+        candidate_records.append({"blend": blend, "validation_cv_normalized_loss": score, "fold_count": len(fold_losses)})
+        if score < best_score or (np.isclose(score, best_score) and blend < best_blend):
+            best_score = score
+            best_weights = weights
+            best_blend = blend
+    return best_weights, {
+        "selected_blend": float(best_blend) if np.isfinite(best_blend) else np.nan,
+        "validation_cv_normalized_loss": float(best_score) if np.isfinite(best_score) else np.nan,
+    }
+
+
+def _blend_model_weights(
+    accuracy_weights: Mapping[str, float],
+    operational_weights: Mapping[str, float],
+    accuracy_blend: float,
+) -> Dict[str, float]:
+    """Blend accuracy and operational weights while preserving simplex constraints."""
+    models = sorted(set(accuracy_weights).union(set(operational_weights)))
+    blended = {
+        model: float(accuracy_blend) * float(accuracy_weights.get(model, 0.0))
+        + (1.0 - float(accuracy_blend)) * float(operational_weights.get(model, 0.0))
+        for model in models
+    }
+    return _normalize_model_weights(blended)
+
+
+def _weighted_ensemble_selection(
+    prepared_forecasts: pd.DataFrame,
+    weights: Mapping[str, float],
+    strategy: str,
+) -> pd.DataFrame:
+    """Return a nonnegative weighted ensemble forecast selection."""
+    frame = prepared_forecasts.copy()
+    normalized_weights = _normalize_model_weights(weights)
+    available_models = sorted(frame["model_name"].unique())
+    if not normalized_weights:
+        normalized_weights = {str(model): 1.0 / float(len(available_models)) for model in available_models}
+    frame["ensemble_weight"] = frame["model_name"].astype(str).map(normalized_weights).fillna(0.0)
+    base_columns = ["date", "series_id", "family", "store_nbr", "actual", "split", "horizon", "safety_stock"]
+    weighted = frame.copy()
+    weighted["weighted_forecast"] = weighted["forecast"] * weighted["ensemble_weight"]
+    ensemble = (
+        weighted.groupby(base_columns, dropna=False)
+        .agg(forecast=("weighted_forecast", "sum"), weight_sum=("ensemble_weight", "sum"))
+        .reset_index()
+    )
+    ensemble["forecast"] = ensemble["forecast"] / ensemble["weight_sum"].replace(0.0, np.nan)
+    ensemble["forecast"] = ensemble["forecast"].fillna(0.0)
+    ensemble = ensemble.drop(columns=["weight_sum"])
+    ensemble["model_name"] = strategy
+    ensemble["selected_model"] = strategy
+    ensemble["strategy"] = strategy
+    return ensemble
+
+
+def _weight_entropy(weights: Mapping[str, float]) -> float:
+    """Return normalized entropy for a model-weight vector."""
+    values = np.asarray(list(_normalize_model_weights(weights).values()), dtype=float)
+    values = values[values > 0.0]
+    if values.size <= 1:
+        return 0.0
+    entropy = -float(np.sum(values * np.log(values)))
+    return entropy / float(np.log(values.size))
+
+
+def _alpha_strategy_suffix(alpha: float) -> str:
+    """Return a stable strategy suffix for an alpha value."""
+    return "{:0.2f}".format(float(alpha)).replace(".", "_")
+
+
+def _method_family_from_strategy(strategy: str) -> str:
+    """Return a compact method family for improved-method outputs."""
+    if strategy.startswith("feasibility_aware_smoothed"):
+        return "FeasibilityAwareSmoothed"
+    if strategy.startswith("feasibility_aware_ensemble"):
+        return "FeasibilityAwareEnsemble"
+    if strategy == "simple_ensemble":
+        return "ReferenceEnsemble"
+    if strategy == "oracle_realized_demand":
+        return "Oracle"
+    return "Baseline"
+
+
+def _improved_method_output_columns(result: pd.DataFrame) -> pd.DataFrame:
+    """Return the requested improved-method output columns in a stable order."""
+    optional_columns = [
+        "method_family",
+        "method_variant",
+        "smoothing_alpha",
+        "ensemble_weight_basis",
+        "ensemble_weight_entropy",
+        "selected_blend",
+        "validation_cv_normalized_loss",
+    ]
+    output_columns = [
+        "run_mode",
+        "scenario_name",
+        "lambda_execution",
+        "late_delivery_rate_anchor",
+        "source",
+        "fallback_used",
+        "method_name",
+        "method_family",
+        "method_variant",
+        "strategy",
+        "WAPE",
+        "inventory_cost",
+        "planning_volatility",
+        "execution_penalty",
+        "execution_violation_rate",
+        "model_switch_count",
+        "max_period_plan_change_pct",
+        "normalized_inventory_component",
+        "normalized_volatility_component",
+        "normalized_execution_component",
+        "normalized_switch_component",
+        "normalized_total_loss",
+        "rank_by_normalized_total_loss",
+        "rank_by_WAPE",
+        "rank_by_execution_penalty",
+        "gap_to_oracle",
+    ]
+    for column in optional_columns:
+        if column not in result.columns:
+            result[column] = np.nan
+    extra_columns = [
+        "smoothing_alpha",
+        "ensemble_weight_basis",
+        "ensemble_weight_entropy",
+        "selected_blend",
+        "validation_cv_normalized_loss",
+    ]
+    table = result[output_columns + extra_columns].copy()
+    return table.sort_values(["scenario_name", "rank_by_normalized_total_loss", "method_name"]).reset_index(drop=True)
+
+
+def _build_improved_method_rankings(improved_methods: pd.DataFrame) -> pd.DataFrame:
+    """Return objective-level rankings for the improved method comparison."""
+    records = []
+    objectives = [
+        ("WAPE", "WAPE", True),
+        ("inventory_cost", "inventory_cost", True),
+        ("planning_volatility", "planning_volatility", True),
+        ("execution_penalty", "execution_penalty", True),
+        ("execution_violation_rate", "execution_violation_rate", True),
+        ("model_switch_count", "model_switch_count", True),
+        ("max_period_plan_change_pct", "max_period_plan_change_pct", True),
+        ("normalized_total_loss", "normalized_total_loss", True),
+        ("gap_to_oracle", "gap_to_oracle", True),
+    ]
+    for scenario_name, group in improved_methods.groupby("scenario_name", sort=False):
+        for objective_name, metric_column, ascending in objectives:
+            ranks = group[metric_column].rank(method="min", ascending=ascending).astype(int)
+            for (_, row), rank in zip(group.iterrows(), ranks):
+                records.append(
+                    {
+                        "scenario_name": scenario_name,
+                        "lambda_execution": float(row["lambda_execution"]),
+                        "objective_name": objective_name,
+                        "method_name": row["method_name"],
+                        "method_family": row["method_family"],
+                        "strategy": row["strategy"],
+                        "metric_value": float(row[metric_column]),
+                        "objective_rank": int(rank),
+                    }
+                )
+    return pd.DataFrame(records).sort_values(["scenario_name", "objective_name", "objective_rank", "method_name"])
 
 
 def _build_strategy_rank_reordering_by_weight(scenario_results: pd.DataFrame) -> pd.DataFrame:
@@ -2537,6 +3495,227 @@ def _make_feasibility_figures(
     return figure_paths
 
 
+def _make_improved_feasibility_figures(
+    improved_methods: pd.DataFrame,
+    smoothing_alpha: pd.DataFrame,
+    ensemble_comparison: pd.DataFrame,
+    output_figure_dir: Path,
+    paper_figure_dir: Path,
+) -> List[Path]:
+    """Create figures for improved feasibility-aware strategies."""
+    apply_paper_style()
+    output_figure_dir.mkdir(parents=True, exist_ok=True)
+    paper_figure_dir.mkdir(parents=True, exist_ok=True)
+    figure_paths = []
+
+    _save_improved_accuracy_execution_plot(
+        improved_methods,
+        output_figure_dir / "favorita_improved_methods_accuracy_vs_execution_penalty.png",
+        paper_figure_dir / "favorita_improved_methods_accuracy_vs_execution_penalty.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "favorita_improved_methods_accuracy_vs_execution_penalty.pdf")
+
+    _save_smoothing_alpha_tradeoff_plot(
+        smoothing_alpha,
+        output_figure_dir / "favorita_smoothing_alpha_tradeoff.png",
+        paper_figure_dir / "favorita_smoothing_alpha_tradeoff.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "favorita_smoothing_alpha_tradeoff.pdf")
+
+    _save_ensemble_tradeoff_plot(
+        ensemble_comparison,
+        output_figure_dir / "favorita_feasibility_ensemble_tradeoff.png",
+        paper_figure_dir / "favorita_feasibility_ensemble_tradeoff.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "favorita_feasibility_ensemble_tradeoff.pdf")
+
+    _save_improved_rank_reordering_plot(
+        improved_methods,
+        output_figure_dir / "favorita_improved_method_rank_reordering.png",
+        paper_figure_dir / "favorita_improved_method_rank_reordering.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "favorita_improved_method_rank_reordering.pdf")
+
+    _save_gap_to_oracle_plot(
+        improved_methods,
+        output_figure_dir / "favorita_gap_to_oracle_by_method.png",
+        paper_figure_dir / "favorita_gap_to_oracle_by_method.pdf",
+    )
+    figure_paths.append(paper_figure_dir / "favorita_gap_to_oracle_by_method.pdf")
+    return figure_paths
+
+
+def _improved_plot_strategies() -> List[str]:
+    """Return a compact strategy subset for readable improved-method figures."""
+    return [
+        "global_best_model",
+        "simple_ensemble",
+        "feasibility_aware_selector",
+        "feasibility_aware_smoothed_utility_alpha",
+        "feasibility_aware_ensemble_constrained",
+        "best_stability_model",
+        "oracle_realized_demand",
+    ]
+
+
+def _save_improved_accuracy_execution_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save improved-method accuracy versus execution-penalty tradeoff."""
+    plot_data = data[data["strategy"].isin(_improved_plot_strategies())].copy()
+    fig, ax = plt.subplots(figsize=(7.4, 4.45))
+    for index, strategy in enumerate(_improved_plot_strategies()):
+        strategy_data = plot_data[plot_data["strategy"] == strategy].sort_values("lambda_execution")
+        if strategy_data.empty:
+            continue
+        ax.plot(
+            strategy_data["WAPE"],
+            strategy_data["execution_penalty"],
+            marker=strategy_marker(strategy),
+            markersize=5.2,
+            markeredgecolor="white",
+            markeredgewidth=0.55,
+            color=strategy_color(strategy, index),
+            linestyle=strategy_linestyle(strategy),
+            linewidth=1.6,
+            label=_short_strategy_label(strategy),
+        )
+    format_axis(
+        ax,
+        x_label="Weighted Absolute Percentage Error",
+        y_label="Execution Penalty",
+        grid_axis="both",
+    )
+    place_legend(ax, columns=3)
+    save_paper_figure(fig, png_path, pdf_path)
+
+
+def _save_smoothing_alpha_tradeoff_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save alpha sensitivity for smoothed feasibility-aware planning."""
+    plot_data = data.dropna(subset=["smoothing_alpha", "normalized_total_loss"]).copy()
+    fixed = plot_data[plot_data["method_variant"].isin(["fixed_alpha_smoothing", "utility_based_alpha", "scenario_based_alpha"])].copy()
+    fig, ax = plt.subplots(figsize=(7.4, 4.45))
+    if fixed.empty:
+        ax.text(0.5, 0.5, "Smoothing alpha results are unavailable.", ha="center", va="center", transform=ax.transAxes)
+        ax.set_axis_off()
+        save_paper_figure(fig, png_path, pdf_path)
+        return
+    scenario_order = list(dict.fromkeys(fixed["scenario_name"].tolist()))
+    for index, scenario_name in enumerate(scenario_order):
+        scenario_data = fixed[fixed["scenario_name"] == scenario_name].sort_values("smoothing_alpha")
+        ax.plot(
+            scenario_data["smoothing_alpha"],
+            scenario_data["normalized_total_loss"],
+            marker="o",
+            markersize=5.0,
+            markeredgecolor="white",
+            markeredgewidth=0.55,
+            linewidth=1.7,
+            color=strategy_color(str(scenario_name), index),
+            label=str(scenario_name).replace("_", " ").title(),
+        )
+    format_axis(ax, x_label="Smoothing Alpha", y_label="Normalized Total Loss", grid_axis="both")
+    place_legend(ax, columns=3)
+    save_paper_figure(fig, png_path, pdf_path)
+
+
+def _save_ensemble_tradeoff_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save feasibility-aware ensemble tradeoff plot."""
+    plot_data = data.copy()
+    fig, ax = plt.subplots(figsize=(7.4, 4.45))
+    if plot_data.empty:
+        ax.text(0.5, 0.5, "Ensemble comparison results are unavailable.", ha="center", va="center", transform=ax.transAxes)
+        ax.set_axis_off()
+        save_paper_figure(fig, png_path, pdf_path)
+        return
+    strategy_order = [
+        "simple_ensemble",
+        "feasibility_aware_ensemble_inverse_accuracy",
+        "feasibility_aware_ensemble_inverse_operational_loss",
+        "feasibility_aware_ensemble_constrained",
+    ]
+    for index, strategy in enumerate(strategy_order):
+        strategy_data = plot_data[plot_data["strategy"] == strategy].sort_values("lambda_execution")
+        if strategy_data.empty:
+            continue
+        ax.plot(
+            strategy_data["WAPE"],
+            strategy_data["execution_penalty"],
+            marker=strategy_marker(strategy),
+            markersize=5.2,
+            markeredgecolor="white",
+            markeredgewidth=0.55,
+            color=strategy_color(strategy, index),
+            linestyle=strategy_linestyle(strategy),
+            linewidth=1.7,
+            label=_short_strategy_label(strategy),
+        )
+    format_axis(
+        ax,
+        x_label="Weighted Absolute Percentage Error",
+        y_label="Execution Penalty",
+        grid_axis="both",
+    )
+    place_legend(ax, columns=2)
+    save_paper_figure(fig, png_path, pdf_path)
+
+
+def _save_improved_rank_reordering_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save improved-method rank changes across DataCo-informed scenarios."""
+    plot_data = data[data["strategy"].isin(_improved_plot_strategies())].copy()
+    fig, ax = plt.subplots(figsize=(7.4, 4.45))
+    for index, strategy in enumerate(_improved_plot_strategies()):
+        strategy_data = plot_data[plot_data["strategy"] == strategy].sort_values("lambda_execution")
+        if strategy_data.empty:
+            continue
+        ax.plot(
+            strategy_data["lambda_execution"],
+            strategy_data["rank_by_normalized_total_loss"],
+            marker=strategy_marker(strategy),
+            markersize=5.2,
+            markeredgecolor="white",
+            markeredgewidth=0.55,
+            color=strategy_color(strategy, index),
+            linestyle=strategy_linestyle(strategy),
+            linewidth=1.7,
+            label=_short_strategy_label(strategy),
+        )
+    ax.invert_yaxis()
+    format_axis(ax, x_label="Lambda Execution", y_label="Rank by Normalized Total Loss")
+    place_legend(ax, columns=3)
+    save_paper_figure(fig, png_path, pdf_path)
+
+
+def _save_gap_to_oracle_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
+    """Save gap to non-deployable oracle by method and scenario."""
+    plot_data = data[data["strategy"].isin(_improved_plot_strategies())].copy()
+    scenario_order = list(dict.fromkeys(plot_data["scenario_name"].tolist()))
+    positions = {scenario: index for index, scenario in enumerate(scenario_order)}
+    fig, ax = plt.subplots(figsize=(7.4, 4.45))
+    for index, strategy in enumerate(_improved_plot_strategies()):
+        strategy_data = plot_data[plot_data["strategy"] == strategy].copy()
+        if strategy_data.empty:
+            continue
+        strategy_data["scenario_position"] = strategy_data["scenario_name"].map(positions)
+        strategy_data = strategy_data.sort_values("scenario_position")
+        ax.plot(
+            strategy_data["scenario_position"],
+            strategy_data["gap_to_oracle"],
+            marker=strategy_marker(strategy),
+            markersize=5.2,
+            markeredgecolor="white",
+            markeredgewidth=0.55,
+            color=strategy_color(strategy, index),
+            linestyle=strategy_linestyle(strategy),
+            linewidth=1.7,
+            label=_short_strategy_label(strategy),
+        )
+    ax.axhline(0.0, color="#333333", linewidth=0.8)
+    ax.set_xticks(list(positions.values()))
+    ax.set_xticklabels([scenario.replace("_", "\n").title() for scenario in scenario_order])
+    format_axis(ax, x_label="Execution-Risk Scenario", y_label="Gap to Oracle")
+    place_legend(ax, columns=3)
+    save_paper_figure(fig, png_path, pdf_path)
+
+
 def _save_baseline_weights_tradeoff_plot(data: pd.DataFrame, png_path: Path, pdf_path: Path) -> None:
     """Save baseline WAPE versus normalized planning loss tradeoff."""
     apply_paper_style()
@@ -2980,6 +4159,14 @@ def _short_strategy_label(strategy: str) -> str:
         "best_stability_model": "Best Stability",
         "stability_aware_selector": "Stability-Aware",
         "feasibility_aware_selector": "Feasibility-Aware",
+        "feasibility_aware_smoothed_alpha_0_25": "Smoothed Alpha 0.25",
+        "feasibility_aware_smoothed_alpha_0_50": "Smoothed Alpha 0.50",
+        "feasibility_aware_smoothed_alpha_0_75": "Smoothed Alpha 0.75",
+        "feasibility_aware_smoothed_scenario_alpha": "Scenario Alpha",
+        "feasibility_aware_smoothed_utility_alpha": "Utility Alpha",
+        "feasibility_aware_ensemble_inverse_accuracy": "Accuracy Ensemble",
+        "feasibility_aware_ensemble_inverse_operational_loss": "Operational Ensemble",
+        "feasibility_aware_ensemble_constrained": "Constrained Ensemble",
         "oracle_realized_demand": "Oracle",
     }
     return replacements.get(strategy, strategy.replace("_", " ").title())

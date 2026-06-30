@@ -4,6 +4,8 @@
 
 This subsection is a placeholder for public demand datasets. Candidate datasets include retail, grocery, store-item, and service demand tables with enough history to evaluate rolling planning decisions.
 
+M5 is used as a large-scale hierarchical robustness dataset. It is not treated as a separate forecasting leaderboard task. The M5 robustness analysis uses manually provided local files, converts the wide daily sales table into a long item-store panel, and evaluates whether the Favorita accuracy-feasibility tradeoff persists under larger scale, hierarchy, and intermittent demand.
+
 \subsection{Forecasting Models}
 
 This subsection will describe candidate forecasting models. Initial models may include transparent baselines such as last-value forecasts, rolling averages, seasonal naive forecasts, and later machine learning models.
@@ -14,17 +16,27 @@ This subsection will describe decision strategies, including forecast pass-throu
 
 The baseline comparison includes BestAccuracy, Family Best, Feasibility-Aware, Stability-Aware, Simple Ensemble, Best Inventory Cost, Best Stability, and an Oracle upper bound. The Oracle strategy may use realized test-period outcomes and is therefore non-deployable; it is included only as a diagnostic upper bound.
 
+The improved method comparison adds feasibility-aware smoothed planning and feasibility-aware ensemble strategies. Fixed-alpha smoothing, scenario-based alpha smoothing, and utility-based alpha smoothing are evaluated as interpretable gradual-adaptation policies. Utility-based alpha is selected with blocked validation folds to reduce overfitting to a single validation period. Feasibility-aware ensembles include inverse-accuracy weighting, inverse-operational-loss weighting, and a constrained validation-grid ensemble with nonnegative weights that sum to one.
+
 \subsection{Evaluation Metrics}
 
 This subsection will define forecast metrics, inventory metrics, stability metrics, execution adaptation metrics, and the weighted planning utility objective used in the experiments.
 
 Normalized planning loss is reported relative to the accuracy-first BestAccuracy baseline within the same run mode and split. Raw WAPE, inventory cost, planning volatility, execution penalty, violation rate, switch count, and raw total planning loss remain visible in the result tables.
 
+The improved method analysis also reports the maximum period plan change, normalized inventory component, normalized volatility component, normalized execution component, normalized switch component, rank by normalized total loss, rank by WAPE, rank by execution penalty, and gap to the non-deployable Oracle diagnostic.
+
 \subsection{Execution Capacity Scenarios}
 
 This subsection will describe execution capacity stress tests. These scenarios evaluate how planning strategies behave when downstream operations can absorb only limited period-to-period plan changes.
 
 DataCo is used to construct data-informed execution-risk scenarios rather than to directly estimate the exact economic cost of execution violations in the demand-planning datasets. When DataCo late-delivery anchors are unavailable, the pipeline records fallback usage and applies configured default scenario values.
+
+The M5 robustness pipeline reuses the same DataCo-informed execution scenarios when the generated scenario table is available. If the generated table is unavailable, configured fallback scenarios are used and the run log records this explicitly.
+
+\subsection{M5 Robustness Design}
+
+This subsection is a placeholder for the M5 robustness design. The planned analysis includes large-scale replication at item-store level, hierarchy sensitivity across item-store, department-store, and category-store grains, intermittent-demand stress tests, and DataCo-informed execution scenario robustness.
 
 \subsection{Policy and Context Drift Scenarios}
 

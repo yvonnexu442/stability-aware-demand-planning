@@ -129,6 +129,33 @@ for execution-risk sensitivity scenarios when local DataCo files are available;
 otherwise, the pipeline records a clear fallback to configured default scenario
 values. The scenario design is documented in `docs/dataco_execution_scenarios.md`.
 
+### Improved Feasibility-Aware Methods
+
+The method-improvement layer adds feasibility-aware smoothed planning and
+feasibility-aware ensembles to the DataCo-informed Favorita re-evaluation. The
+smoothed strategies use fixed, scenario-based, and validation-CV-selected
+adaptation rates. The ensemble strategies use inverse validation accuracy,
+inverse validation operational loss, and a transparent constrained validation
+grid with nonnegative weights that sum to one. The current quick-mode results
+show that smoothing can sharply reduce execution burden while increasing
+inventory cost, and that operational-loss-weighted ensembles can improve the
+baseline-scenario deployability tradeoff without changing the DataCo scenario
+mapping.
+
+### Favorita Method-Family Summary and M5 Robustness
+
+The paper-ready consolidation layer now exports a compact Favorita method-family
+summary that compares accuracy-first, reference ensemble, feasibility-aware
+selector, feasibility-aware smoothing, feasibility-aware ensemble,
+stability-first, and oracle reference strategies. It also exports frontier plots
+for accuracy versus execution burden, inventory cost versus execution burden,
+normalized loss across DataCo-informed scenarios, and switching versus execution
+penalty. The M5 robustness layer adds a real loader and transparent baseline
+pipeline for large-scale hierarchical retail demand checks, including hierarchy
+sensitivity, intermittent-demand stress, and DataCo scenario robustness. M5
+quick mode completed locally and writes LaTeX-ready tables and PDF figures for
+the manuscript workflow.
+
 ## Raw Data Workflow
 
 Raw benchmark datasets are stored under `data/raw/` with one directory per source:
@@ -186,6 +213,16 @@ Run full mode or override the series count with:
 ```bash
 PYTHONPATH=src python3 scripts/run_favorita_minimal_pipeline.py --run-mode full
 PYTHONPATH=src python3 scripts/run_favorita_minimal_pipeline.py --max-series 250
+```
+
+If the local native ML stack fails while rebuilding LightGBM or XGBoost
+forecasts, reuse an existing standardized forecast table and rerun the decision
+layer and paper exports:
+
+```bash
+PYTHONPATH=src python3 scripts/run_favorita_minimal_pipeline.py \
+  --run-mode quick \
+  --reuse-forecast-table outputs/tables/favorita_forecasts.csv
 ```
 
 The pipeline writes analysis tables to `outputs/tables/`, figures to

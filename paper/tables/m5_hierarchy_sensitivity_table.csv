@@ -1,0 +1,22 @@
+dataset_name,run_mode,grain_level,intermittency_bucket,scenario_name,method_name,WAPE,inventory_cost,planning_volatility,execution_penalty,execution_violation_rate,model_switch_count,normalized_inventory_component,normalized_volatility_component,normalized_execution_component,normalized_switch_component,normalized_total_loss,gap_to_oracle,rank_by_WAPE,rank_by_execution_penalty,rank_by_normalized_total_loss,strategy
+m5,quick,item_store,all,baseline,Smoothed Alpha 0.25,0.368,112942.274,40225501.493,101.408,0.01,0,1.02,0.124,0.079,0.0,1.223,-22.088,4,1,1,feasibility_aware_smoothed_alpha_0_25
+m5,quick,item_store,all,baseline,Operational Ensemble,0.356,108135.916,103492280.599,301.579,0.024,0,0.977,0.318,0.236,0.0,1.531,-21.78,3,2,2,operational_loss_ensemble
+m5,quick,item_store,all,baseline,Global Best,0.368,110676.328,162696085.273,1279.259,0.089,0,1.0,0.5,1.0,0.0,2.5,-20.811,4,3,3,global_best_model
+m5,quick,item_store,all,baseline,Simple Ensemble,0.332,99640.008,180837097.651,4450.693,0.233,0,0.9,0.556,3.479,0.0,4.935,-18.376,2,5,4,simple_ensemble
+m5,quick,item_store,all,baseline,Feasibility-Aware,0.371,113801.405,698994798.344,1964.178,0.075,661,1.028,2.148,1.535,0.5,5.212,-18.1,6,4,5,feasibility_aware_selector
+m5,quick,item_store,all,baseline,Best Stability,0.408,120773.556,98996562.163,26601.482,0.552,0,1.091,0.304,20.794,0.0,22.19,-1.121,7,7,6,best_stability_model
+m5,quick,item_store,all,baseline,Oracle,0.0,30439.038,1012058598.054,25490.556,0.543,0,0.275,3.11,19.926,0.0,23.311,0.0,1,6,7,oracle_realized_demand
+m5,quick,department_store,all,baseline,Operational Ensemble,0.162,45165.025,55.266,281.253,0.1,0,0.984,0.158,0.035,0.0,1.177,-0.509,2,2,1,operational_loss_ensemble
+m5,quick,department_store,all,baseline,Simple Ensemble,0.163,44497.897,68.951,471.283,0.133,0,0.969,0.197,0.059,0.0,1.225,-0.461,3,3,2,simple_ensemble
+m5,quick,department_store,all,baseline,Smoothed Alpha 0.25,0.173,53149.735,40.636,78.075,0.036,0,1.158,0.116,0.01,0.0,1.284,-0.402,4,1,3,feasibility_aware_smoothed_alpha_0_25
+m5,quick,department_store,all,baseline,Oracle,0.0,17269.412,172.288,6550.882,0.452,0,0.376,0.492,0.817,0.0,1.686,0.0,1,5,4,oracle_realized_demand
+m5,quick,department_store,all,baseline,Feasibility-Aware,0.186,53864.534,48.013,1231.951,0.117,128,1.173,0.137,0.154,0.5,1.964,0.278,7,4,5,feasibility_aware_selector
+m5,quick,department_store,all,baseline,Best Stability,0.173,45911.694,174.944,8014.332,0.469,0,1.0,0.5,1.0,0.0,2.5,0.814,4,6,6,best_stability_model
+m5,quick,department_store,all,baseline,Global Best,0.173,45911.694,174.944,8014.332,0.469,0,1.0,0.5,1.0,0.0,2.5,0.814,4,6,6,global_best_model
+m5,quick,category_store,all,baseline,Operational Ensemble,0.159,43958.804,28.661,159.483,0.063,0,1.08,0.157,0.024,0.0,1.261,-0.467,5,3,1,operational_loss_ensemble
+m5,quick,category_store,all,baseline,Simple Ensemble,0.151,40653.249,39.171,319.937,0.096,0,0.999,0.214,0.048,0.0,1.261,-0.467,2,4,2,simple_ensemble
+m5,quick,category_store,all,baseline,Smoothed Alpha 0.25,0.156,49362.554,23.089,54.224,0.027,0,1.213,0.126,0.008,0.0,1.347,-0.38,3,2,3,feasibility_aware_smoothed_alpha_0_25
+m5,quick,category_store,all,baseline,Best Stability,0.189,56004.279,2.828,0.0,0.0,0,1.376,0.015,0.0,0.0,1.392,-0.336,7,1,4,best_stability_model
+m5,quick,category_store,all,baseline,Oracle,0.0,16099.389,95.407,5441.397,0.385,0,0.396,0.521,0.811,0.0,1.728,0.0,1,6,5,oracle_realized_demand
+m5,quick,category_store,all,baseline,Feasibility-Aware,0.174,51554.654,26.944,1182.823,0.11,80,1.267,0.147,0.176,0.5,2.09,0.363,6,5,6,feasibility_aware_selector
+m5,quick,category_store,all,baseline,Global Best,0.156,40690.31,91.521,6711.238,0.415,0,1.0,0.5,1.0,0.0,2.5,0.772,3,7,7,global_best_model

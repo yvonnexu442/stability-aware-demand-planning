@@ -46,6 +46,22 @@ x_i,t = ytilde_i,t + safety_stock_i,t
 
 The planning signal is the object that downstream operations execute. This distinction matters because an operation does not execute forecast accuracy; it executes inventory targets, replenishment quantities, staffing levels, or production signals.
 
+## Smoothed Planning Signal
+
+When execution infrastructure cannot absorb abrupt plan changes, the decision layer can adapt the executable plan gradually:
+
+```text
+candidate_plan_i,t = ytilde_i,t + safety_stock_i,t
+
+final_plan_i,t =
+  alpha_i,t * candidate_plan_i,t
+  + (1 - alpha_i,t) * final_plan_i,t-1
+```
+
+The smoothing parameter `alpha_i,t` controls the adaptation speed. A value of `1.00` means the candidate plan is executed immediately with no smoothing. Lower values represent slower operational adaptation. The parameter can be fixed, scenario-based, or selected from a small validation grid using normalized planning loss.
+
+Smoothing is used to model gradual operational adaptation when execution infrastructure cannot absorb abrupt plan changes. It does not change the candidate forecast itself; it changes how quickly the forecast-driven plan becomes the executable planning signal.
+
 ## Multi-objective Planning Loss
 
 The project evaluates planning utility as a weighted multi-objective loss:

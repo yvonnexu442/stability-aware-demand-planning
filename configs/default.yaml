@@ -47,6 +47,18 @@ favorita_pipeline:
   max_ml_training_rows: 250000
   stability_switch_penalty: 0.02
 
+m5_pipeline:
+  raw_data_dir: data/raw/m5
+  quick_mode_max_series: 200
+  medium_mode_max_series: 1500
+  full_mode_max_series: null
+  enable_full_mode: false
+  validation_horizon: 28
+  test_horizon: 28
+  min_history_length: 365
+  min_nonzero_observations: 10
+  safety_stock_multiplier: 0.5
+
 feasibility_analysis:
   execution_capacity_scenarios:
     high_capacity: 0.40
@@ -93,6 +105,35 @@ execution_risk_scenarios_fallback:
     lambda_execution: 0.35
   dataco_severe:
     lambda_execution: 0.45
+
+improved_feasibility_methods:
+  smoothing:
+    fixed_alpha_values:
+      - 0.25
+      - 0.50
+      - 0.75
+    scenario_based_alpha:
+      baseline: 0.75
+      dataco_low: 0.50
+      dataco_median: 0.50
+      dataco_high: 0.25
+      dataco_severe: 0.10
+    utility_based_alpha_grid:
+      - 0.10
+      - 0.25
+      - 0.50
+      - 0.75
+      - 1.00
+    utility_validation_folds: 3
+  ensemble:
+    minimum_weight: 0.0
+    inverse_loss_epsilon: 0.000001
+    constrained_candidate_blends:
+      - 0.00
+      - 0.25
+      - 0.50
+      - 0.75
+      - 1.00
 
 planning:
   safety_stock_method: constant
