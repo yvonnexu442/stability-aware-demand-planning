@@ -33,7 +33,6 @@ from evaluation.stability_metrics import compute_absolute_plan_change, compute_p
 from planning_environment.execution_capacity import compute_execution_capacity, compute_execution_violation
 from planning_environment.planning_actions import forecast_to_inventory_target
 from reporting.latex_export import export_summary_table, write_asset_manifest
-from utils.config import load_config, save_config_snapshot
 from utils.logging_utils import setup_logger
 from visualization.plots import (
     apply_paper_style,
@@ -78,6 +77,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     """Run Favorita loading, forecasting, planning evaluation, and paper export."""
+    from utils.config import load_config, save_config_snapshot
+
     args = parse_args()
     config = load_config(args.config)
 
