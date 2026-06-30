@@ -28,6 +28,7 @@ REPRESENTATIVE_STRATEGIES = [
     "budgeted_dp_feasibility_selector",
     "best_stability_model",
     "individual_moving_average",
+    "oracle_dp_feasibility_selector",
     "oracle_realized_demand",
 ]
 
@@ -151,7 +152,7 @@ def build_method_family_summary(data: pd.DataFrame) -> pd.DataFrame:
 
 def method_family(strategy: str) -> str:
     """Map a strategy identifier to a method family."""
-    if strategy == "oracle_realized_demand":
+    if strategy in {"oracle_dp_feasibility_selector", "oracle_realized_demand"}:
         return "Oracle"
     if strategy in {"global_best_model", "family_best_model"}:
         return "AccuracyFirst"

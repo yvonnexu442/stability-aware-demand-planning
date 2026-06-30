@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Dict, List, Mapping, Optional, Sequence, Tuple
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -199,6 +200,18 @@ class BudgetedDPFeasibilitySelector(DPFeasibilitySelector):
         )
         self.max_switches = int(max_switches)
 
+    def select(self, candidate_forecasts: pd.DataFrame) -> pd.DataFrame:
+        """Return selected forecast rows, falling back to greedy on budget failure."""
+        require_no_future_outcomes(candidate_forecasts, "{}.select".format(self.__class__.__name__))
+        selected_rows: List[pd.Series] = []
+        for _, series_frame in candidate_forecasts.sort_values(["series_id", "date", "model_name"]).groupby("series_id", sort=False):
+            rows = self._select_series(series_frame)
+            if rows:
+                selected_rows.extend(rows)
+            else:
+                selected_rows.extend(self._greedy_fallback_series(series_frame))
+        return _selected_frame(selected_rows, self.strategy_name)
+
     def _select_series(self, series_frame: pd.DataFrame) -> List[pd.Series]:
         dp: Dict[Tuple[str, int], SelectorState] = {}
         for _, period_frame in series_frame.groupby("date", sort=False):
@@ -235,11 +248,88 @@ class BudgetedDPFeasibilitySelector(DPFeasibilitySelector):
                         next_dp[key] = _min_state(next_dp.get(key), candidate_state)
             dp = next_dp
             if not dp:
-                raise ValueError("No feasible DP path remains under the configured switch budget.")
+                warnings.warn(
+                    "BudgetedDPFeasibilitySelector: no feasible path under max_switches={}. "
+                    "Falling back to one-step greedy policy.".format(self.max_switches),
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+                return []
         if not dp:
             return []
         final_state = min(dp.values(), key=_state_sort_key)
         return [series_frame.loc[index] for index in final_state.rows]
+
+    def _greedy_fallback_series(self, series_frame: pd.DataFrame) -> List[pd.Series]:
+        """Return a one-step greedy fallback path for a single series."""
+        greedy_rows: List[pd.Series] = []
+        previous_model = None
+        previous_plan = None
+        for _, period_frame in series_frame.groupby("date", sort=False):
+            scored_candidates = []
+            for row in _period_candidates(period_frame):
+                score, plan = self._stage_cost(row, previous_model, previous_plan)
+                scored_candidates.append((score, str(row["model_name"]), plan, row))
+            _, _, selected_plan, selected = min(scored_candidates, key=lambda value: (value[0], value[1]))
+            greedy_rows.append(selected)
+            previous_model = str(selected["model_name"])
+            previous_plan = selected_plan
+        return greedy_rows
+
+
+class OracleDPFeasibilitySelector(DPFeasibilitySelector):
+    """Non-deployable Oracle DP selector using realized test-period demand.
+
+    This selector uses realized inventory costs computed from test-period demand,
+    giving the DP access to future information that is unavailable in deployment.
+    It is included as a diagnostic upper bound only and must never be reported as
+    a deployable strategy.
+
+    Forecast loss still uses the validation-derived estimate. The Oracle variant
+    isolates the value of knowing future inventory outcomes, rather than mixing
+    in a perfect-forecast objective.
+    """
+
+    ORACLE_LABEL = "[ORACLE - non-deployable]"
+
+    def __init__(
+        self,
+        expected_losses: Mapping[LossKey, Mapping[str, float]],
+        realized_inventory_costs: Mapping[LossKey, float],
+        global_expected_losses: Optional[Mapping[str, Mapping[str, float]]] = None,
+        weights: Optional[Mapping[str, float]] = None,
+        switch_penalty: float = 0.02,
+        max_plan_change_rate: float = 0.20,
+        calibration_group_column: str = "series_id",
+        strategy_name: str = "oracle_dp_feasibility_selector",
+    ) -> None:
+        super().__init__(
+            expected_losses=expected_losses,
+            global_expected_losses=global_expected_losses,
+            weights=weights,
+            switch_penalty=switch_penalty,
+            max_plan_change_rate=max_plan_change_rate,
+            calibration_group_column=calibration_group_column,
+            strategy_name=strategy_name,
+        )
+        self.realized_inventory_costs = dict(realized_inventory_costs)
+
+    def _base_expected_cost(self, row: pd.Series) -> float:
+        """Use realized test inventory cost instead of validation inventory cost."""
+        model_name = str(row["model_name"])
+        calibration_group = str(row.get(self.calibration_group_column, row.get("series_id", "global")))
+        realized_inventory = self.realized_inventory_costs.get(
+            (calibration_group, model_name),
+            self.realized_inventory_costs.get(("global", model_name), 0.0),
+        )
+        losses = self.expected_losses.get(
+            (calibration_group, model_name),
+            self.global_expected_losses.get(model_name, self.expected_losses.get(("global", model_name), {})),
+        )
+        return (
+            float(self.weights.get("alpha_forecast", 1.0)) * float(losses.get("wape", 1.0))
+            + float(self.weights.get("beta_inventory", 1.0)) * float(realized_inventory)
+        )
 
 
 def _period_candidates(period_frame: pd.DataFrame) -> List[pd.Series]:

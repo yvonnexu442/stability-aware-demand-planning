@@ -1,0 +1,35 @@
+\begin{table}[htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\caption{Decision-layer information access and switching-logic audit. Oracle strategies are non-deployable diagnostics.}
+\label{tab:decision-layer-audit}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{0.15\textwidth}p{0.07\textwidth}p{0.16\textwidth}p{0.13\textwidth}p{0.12\textwidth}p{0.10\textwidth}p{0.12\textwidth}p{0.15\textwidth}p{0.15\textwidth}}
+\toprule
+Strategy & Deployable & Information Access & Validation Losses & Test Inventory Outcomes & Hard Switch Budget & Fallback & Switching Cost & Switching Logic \\
+\midrule
+Individual fixed models & Yes & Test forecasts only & No & No & No & No & None & Fixed candidate model \\
+Global Best & Yes & Validation WAPE & WAPE only & No & No & No & None within series & Fixed global model \\
+Family Best & Yes & Validation family WAPE & WAPE only & No & No & Global Best fallback & None within series & Fixed family-level model \\
+Simple Ensemble & Yes & Test forecasts only & No & No & No & No & No discrete switching & Equal-weight composition \\
+M5 Operational Ensemble & Yes & Validation planning loss & Yes & No & No & Equal-weight fallback & No discrete switching & Validation-loss-weighted composition \\
+Best Inventory Cost & Yes & Validation inventory cost & Yes & No & No & WAPE fallback & None within series & Fixed inventory-first model \\
+Best Stability & Yes & Validation volatility & Stability only & No & No & Global Best fallback & None within series & Fixed stability-first model \\
+Stability-Aware & Yes & Validation WAPE plus plan movement & WAPE only & No & No & No & Soft lambda\_switch & Stateful one-step selection \\
+Feasibility-Aware & Yes & Validation expected costs plus transition burden & Yes & No & No & No & Soft lambda\_switch; hysteresis in Favorita & Stateful greedy selection \\
+Greedy Feasibility & Yes & Validation expected costs plus current transition & Yes & No & No & No & Soft lambda\_switch & One-step operational-cost minimization \\
+DP Feasibility & Yes & Validation expected costs plus horizon transitions & Yes & No & No & No & Soft lambda\_switch in DP objective & Finite-horizon cumulative minimization \\
+Budgeted DP & Yes & Validation expected costs plus horizon transitions & Yes & No & Yes; max\_switches $K$ & Greedy fallback with warning & Soft lambda\_switch plus hard budget & DP over model and switch-count state \\
+Smoothed fixed alpha & Yes & Validation expected costs plus fixed alpha & Yes & No & No & No & Soft lambda\_switch; smoothing reduces jumps & Greedy selection with gradual adaptation \\
+Scenario alpha smoothing & Yes & Validation expected costs plus scenario alpha & Yes & No & No & No & Soft lambda\_switch; scenario smoothing & Greedy selection with scenario adaptation \\
+Utility alpha smoothing & Yes & Blocked validation CV for alpha & Yes & No & No & Default alpha if CV unavailable & Soft lambda\_switch; CV-selected smoothing & Greedy selection with validation-chosen smoothing \\
+Accuracy Ensemble & Yes & Validation WAPE weights & WAPE only & No & No & Equal-weight fallback & No discrete switching & Accuracy-weighted composition \\
+Operational Ensemble & Yes & Validation operational-loss weights & Yes & No & No & Equal-weight fallback & No discrete switching & Operational-loss-weighted composition \\
+Constrained Ensemble & Yes & Blocked validation CV for nonnegative blend & Yes & No & No & Operational or accuracy weight fallback & No discrete switching & Constrained weighted composition \\
+Oracle DP & No & Validation WAPE plus realized inventory-cost map & Yes & Yes & No & No & Soft lambda\_switch in Oracle DP & Non-deployable DP diagnostic \\
+Realized Demand Oracle & No & Realized test demand & No & Yes & No & No & No switching cost & Non-deployable perfect-demand benchmark \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

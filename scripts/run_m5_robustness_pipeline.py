@@ -19,6 +19,7 @@ from decision_layer.feasibility_dp_selector import (
     BudgetedDPFeasibilitySelector,
     DPFeasibilitySelector,
     GreedyFeasibilitySelector,
+    OracleDPFeasibilitySelector,
 )
 from decision_layer.no_leakage import attach_actuals_for_evaluation, drop_future_outcomes, require_no_future_outcomes
 from evaluation.forecast_metrics import mean_absolute_error, weighted_absolute_percentage_error
@@ -50,6 +51,7 @@ M5_STRATEGY_ORDER = [
     "dp_feasibility_selector",
     "budgeted_dp_feasibility_selector",
     "best_stability_model",
+    "oracle_dp_feasibility_selector",
     "oracle_realized_demand",
 ]
 
@@ -331,25 +333,38 @@ def build_decision_outputs(
     global_best_model = str(validation_metrics.sort_values("WAPE").iloc[0]["model_name"])
     best_stability_model = best_stability_candidate(forecasts, modeling_table, config, fallback_model=global_best_model)
     operational_weights = operational_loss_model_weights(forecasts, modeling_table, forecast_metrics, config)
-    expected_losses = validation_expected_losses(forecasts, modeling_table, config)
+    expected_losses_raw = validation_expected_losses(forecasts, modeling_table, config)
+    series_expected_losses, global_expected_losses = split_expected_losses(expected_losses_raw)
+    realized_inventory_costs = realized_inventory_costs_by_series_model(test_forecasts, config)
 
     selected_frames = []
     selected_frames.append(fixed_model_selection(deployable_test_forecasts, global_best_model, "global_best_model"))
     selected_frames.append(simple_ensemble_selection(deployable_test_forecasts))
     selected_frames.append(weighted_ensemble_selection(deployable_test_forecasts, operational_weights, "operational_loss_ensemble"))
     selected_frames.append(smoothed_global_best_selection(deployable_test_forecasts, global_best_model, config, alpha=0.25))
-    selected_frames.append(feasibility_aware_selection(deployable_test_forecasts, expected_losses, config))
-    selected_frames.append(greedy_feasibility_selection(deployable_test_forecasts, expected_losses, config))
-    selected_frames.append(dp_feasibility_selection(deployable_test_forecasts, expected_losses, config))
-    selected_frames.append(budgeted_dp_feasibility_selection(deployable_test_forecasts, expected_losses, config))
+    selected_frames.append(feasibility_aware_selection(deployable_test_forecasts, expected_losses_raw, config))
+    selected_frames.append(greedy_feasibility_selection(deployable_test_forecasts, series_expected_losses, global_expected_losses, config))
+    selected_frames.append(dp_feasibility_selection(deployable_test_forecasts, series_expected_losses, global_expected_losses, config))
+    selected_frames.append(budgeted_dp_feasibility_selection(deployable_test_forecasts, series_expected_losses, global_expected_losses, config))
     selected_frames.append(fixed_model_selection(deployable_test_forecasts, best_stability_model, "best_stability_model"))
     deployable_decisions = attach_actuals_for_evaluation(
         pd.concat(selected_frames, ignore_index=True),
         test_forecasts,
         key_columns=("date", "series_id"),
     )
+    oracle_dp_decisions = attach_actuals_for_evaluation(
+        oracle_dp_feasibility_selection(
+            deployable_test_forecasts,
+            series_expected_losses,
+            global_expected_losses,
+            realized_inventory_costs,
+            config,
+        ),
+        test_forecasts,
+        key_columns=("date", "series_id"),
+    )
     oracle_decisions = oracle_selection(test_forecasts)
-    return evaluate_selected_decisions(pd.concat([deployable_decisions, oracle_decisions], ignore_index=True), config)
+    return evaluate_selected_decisions(pd.concat([deployable_decisions, oracle_dp_decisions, oracle_decisions], ignore_index=True), config)
 
 
 def fixed_model_selection(test_forecasts: pd.DataFrame, model_name: str, strategy: str) -> pd.DataFrame:
@@ -465,12 +480,14 @@ def feasibility_aware_selection(
 def greedy_feasibility_selection(
     test_forecasts: pd.DataFrame,
     expected_losses: Mapping[Tuple[str, str], Mapping[str, float]],
+    global_expected_losses: Mapping[str, Mapping[str, float]],
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Return one-step minimum expected operational-cost selections."""
     require_no_future_outcomes(test_forecasts, "greedy_feasibility_selection")
     selector = GreedyFeasibilitySelector(
         expected_losses=expected_losses,
+        global_expected_losses=global_expected_losses,
         weights=config.get("planning_loss_weights", {}),
         switch_penalty=selector_switch_penalty(config),
         max_plan_change_rate=selector_max_plan_change_rate(config),
@@ -483,12 +500,14 @@ def greedy_feasibility_selection(
 def dp_feasibility_selection(
     test_forecasts: pd.DataFrame,
     expected_losses: Mapping[Tuple[str, str], Mapping[str, float]],
+    global_expected_losses: Mapping[str, Mapping[str, float]],
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Return finite-horizon DP selections using validation-derived costs."""
     require_no_future_outcomes(test_forecasts, "dp_feasibility_selection")
     selector = DPFeasibilitySelector(
         expected_losses=expected_losses,
+        global_expected_losses=global_expected_losses,
         weights=config.get("planning_loss_weights", {}),
         switch_penalty=selector_switch_penalty(config),
         max_plan_change_rate=selector_max_plan_change_rate(config),
@@ -501,18 +520,42 @@ def dp_feasibility_selection(
 def budgeted_dp_feasibility_selection(
     test_forecasts: pd.DataFrame,
     expected_losses: Mapping[Tuple[str, str], Mapping[str, float]],
+    global_expected_losses: Mapping[str, Mapping[str, float]],
     config: Mapping[str, object],
 ) -> pd.DataFrame:
     """Return finite-horizon DP selections under a hard switch budget."""
     require_no_future_outcomes(test_forecasts, "budgeted_dp_feasibility_selection")
     selector = BudgetedDPFeasibilitySelector(
         expected_losses=expected_losses,
+        global_expected_losses=global_expected_losses,
         weights=config.get("planning_loss_weights", {}),
         switch_penalty=selector_switch_penalty(config),
         max_plan_change_rate=selector_max_plan_change_rate(config),
         max_switches=selector_switch_budget(config),
         calibration_group_column="series_id",
         strategy_name="budgeted_dp_feasibility_selector",
+    )
+    return selector.select(test_forecasts)
+
+
+def oracle_dp_feasibility_selection(
+    test_forecasts: pd.DataFrame,
+    expected_losses: Mapping[Tuple[str, str], Mapping[str, float]],
+    global_expected_losses: Mapping[str, Mapping[str, float]],
+    realized_inventory_costs: Mapping[Tuple[str, str], float],
+    config: Mapping[str, object],
+) -> pd.DataFrame:
+    """Return non-deployable Oracle DP selections using realized inventory costs."""
+    require_no_future_outcomes(test_forecasts, "oracle_dp_feasibility_selection")
+    selector = OracleDPFeasibilitySelector(
+        expected_losses=expected_losses,
+        realized_inventory_costs=realized_inventory_costs,
+        global_expected_losses=global_expected_losses,
+        weights=config.get("planning_loss_weights", {}),
+        switch_penalty=selector_switch_penalty(config),
+        max_plan_change_rate=selector_max_plan_change_rate(config),
+        calibration_group_column="series_id",
+        strategy_name="oracle_dp_feasibility_selector",
     )
     return selector.select(test_forecasts)
 
@@ -599,6 +642,48 @@ def validation_expected_losses(
             "inventory_cost_per_demand_unit": float(group["inventory_cost_per_demand_unit"].mean()),
         }
     return losses
+
+
+def split_expected_losses(
+    expected_losses: Dict[Tuple[str, str], Dict[str, float]],
+) -> Tuple[Dict[Tuple[str, str], Dict[str, float]], Dict[str, Dict[str, float]]]:
+    """Split expected losses into series-level and global-level dictionaries."""
+    series_losses = {key: value for key, value in expected_losses.items() if key[0] != "global"}
+    global_losses = {key[1]: value for key, value in expected_losses.items() if key[0] == "global"}
+    return series_losses, global_losses
+
+
+def realized_inventory_costs_by_series_model(
+    test_forecasts: pd.DataFrame,
+    config: Mapping[str, object],
+) -> Dict[Tuple[str, str], float]:
+    """Return test-realized inventory cost per demand unit for Oracle DP only."""
+    planning_config = config.get("planning", {})
+    realized_costs: Dict[Tuple[str, str], float] = {}
+    global_records = []
+    for (series_id, model_name), group in test_forecasts.groupby(["series_id", "model_name"]):
+        actual = group["actual"].to_numpy(dtype=float)
+        forecast = group["forecast"].to_numpy(dtype=float)
+        signal = forecast_to_inventory_target(forecast, group["safety_stock"].to_numpy(dtype=float))
+        inventory = compute_holding_cost(
+            signal,
+            actual,
+            float(planning_config.get("holding_cost_rate", 1.0)),
+        ) + compute_shortage_cost(
+            signal,
+            actual,
+            float(planning_config.get("shortage_cost_rate", 5.0)),
+        )
+        demand_total = max(float(np.sum(np.abs(actual))), 1e-8)
+        cost = float(np.sum(inventory) / demand_total)
+        realized_costs[(series_id, model_name)] = cost
+        global_records.append({"model_name": model_name, "realized_inventory_cost": cost})
+
+    global_frame = pd.DataFrame(global_records)
+    if not global_frame.empty:
+        for model_name, group in global_frame.groupby("model_name"):
+            realized_costs[("global", model_name)] = float(group["realized_inventory_cost"].mean())
+    return realized_costs
 
 
 def operational_loss_model_weights(
@@ -1056,6 +1141,7 @@ def short_strategy_label(strategy: str) -> str:
         "dp_feasibility_selector": "DP Feasibility",
         "budgeted_dp_feasibility_selector": "Budgeted DP",
         "best_stability_model": "Best Stability",
+        "oracle_dp_feasibility_selector": "Oracle DP",
         "oracle_realized_demand": "Oracle",
     }
     return labels.get(strategy, strategy.replace("_", " ").title())
