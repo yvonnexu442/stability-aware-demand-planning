@@ -4,6 +4,12 @@ Working title: **Beyond Forecast Accuracy: Stability-Aware Operational Demand Pl
 
 This repository is a research-grade Python skeleton for studying stability-aware operational demand planning. It is designed for paper development, mathematical clarity, and reproducible evaluation logic. It is not intended to become a Kaggle-style forecasting leaderboard.
 
+## Current Thesis
+
+Forecast-driven demand planning should be treated as a feasibility-constrained model selection problem rather than a pure forecast accuracy problem. The most accurate forecast is not always the most deployable forecast. This project tests whether execution risk, planning volatility, switching cost, and inventory impact can reorder model deployment choices.
+
+The concise thesis note is maintained in `docs/research_thesis.md`.
+
 ## Core Problem Statement
 
 Forecast accuracy alone is not enough for real operational planning. Real supply chain and demand planning systems execute planning signals, not raw forecasts. A numerically better forecast can still create unstable planning signals, frequent model switching, large inventory target jumps, and execution burden that infrastructure, planners, or downstream operational systems cannot absorb.
@@ -106,6 +112,13 @@ larger full-mode attempts loaded data but failed during native ML fitting. The
 completed runs show that the accuracy-first winner can change with sample size,
 but the execution-feasibility tradeoff remains visible. The detailed findings
 are documented in `docs/favorita_reproducibility_findings.md`.
+
+### Thesis Wording Update
+
+The repository now includes a concise thesis statement that frames
+forecast-driven demand planning as feasibility-constrained model selection. The
+wording is stored in `docs/research_thesis.md` and reflected in the manuscript
+abstract and introduction placeholders.
 
 ## Raw Data Workflow
 
