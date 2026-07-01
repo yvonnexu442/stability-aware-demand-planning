@@ -4,17 +4,66 @@
 
 The empirical design assigns distinct roles to the available public datasets. The goal is not to build a single forecasting leaderboard, but to test whether the accuracy-feasibility tradeoff appears across complementary operational settings.
 
-\paragraph{DataCo.} DataCo is used as an execution-risk anchor. The dataset contains supply-chain order and delivery information that allows late-delivery risk to be measured across operational contexts. It is not treated as a complete inventory-control dataset. Instead, observed late-delivery risk is used to construct execution-risk sensitivity scenarios for downstream planning evaluations.
+\paragraph{DataCo (Execution Risk Calibration).} DataCo contains supply-chain order fulfillment records from a multi-product supplier. The dataset is used as an execution-risk anchor, not as a demand-forecasting benchmark. Specifically, the analysis extracts late-delivery rates (fraction of orders delayed beyond promised date) across operational contexts (product type, shipping method, geographical region). Summary statistics:
+\begin{itemize}
+    \item Global late-delivery rate: 54.8\%
+    \item Context-level percentiles: 30th=53.5\%, 50th=55.2\%, 75th=58.1\%, 95th=90.1\%
+\end{itemize}
+These empirical rates inform execution-risk sensitivity scenarios applied to downstream planning evaluations.
 
-\paragraph{Favorita.} Favorita is the main forecast-to-plan proof-of-concept dataset. It provides retail demand observations with promotion, holiday, oil-price, transaction, and store-context signals. The current Favorita analysis evaluates whether the method with the strongest forecast accuracy also produces the most deployable planning strategy once inventory exposure, planning volatility, and execution burden are included.
+\paragraph{Favorita (Main Proof-of-Concept).} Favorita is a public grocery sales dataset from Corporación Favorita (Ecuador) covering January 2013--August 2017. It provides weekly sales with product promotion, holiday, oil price, and store-context signals. The analysis dataset structure:
+\begin{itemize}
+    \item \textbf{Planning units}: 54 stores $\times$ 33 product families = 1,782 item-store series
+    \item \textbf{Temporal coverage}: 2013-01-01 to 2017-08-15 (4 years, 8 months)
+    \item \textbf{Train / Validation / Test split}:
+        \begin{itemize}
+            \item Train: 2013-01-01 to 2017-06-20 (4 years 5.5 months)
+            \item Validation: 2017-06-21 to 2017-07-18 (28 days)
+            \item Test: 2017-07-19 to 2017-08-15 (28 days)
+        \end{itemize}
+    \item \textbf{Evaluation scales}: Quick mode (100 series sampled), Medium mode (500 series), Full mode (1000 series)
+\end{itemize}
 
-\paragraph{M5.} M5 is used as a large-scale hierarchical robustness dataset. It includes daily retail demand across item, department, category, store, and state hierarchy levels. The robustness pipeline converts the wide daily sales table into a long panel and evaluates whether the Favorita accuracy-feasibility tradeoff persists under hierarchy and intermittent demand.
+\paragraph{M5 (Hierarchical Robustness).} M5 is a public retail demand dataset from Walmart covering 2011-2016 at daily granularity. It includes a four-level hierarchy: item $\to$ department $\to$ category $\to$ store. Dataset structure:
+\begin{itemize}
+    \item \textbf{Planning units}: 3,049 item-store combinations
+    \item \textbf{Temporal coverage}: 2011-01-29 to 2016-06-30 (5 years, 5 months)
+    \item \textbf{Evaluation scale}: Quick mode (200 series), Medium mode (pending), Full mode (pending)
+    \item \textbf{Intermittency}: 40-50\% of item-store series are zero-demand for extended periods (sparse demand)
+\end{itemize}
 
-\paragraph{Walmart and Rossmann.} Walmart and Rossmann are reserved as optional future robustness extensions. They are not used to support empirical claims in the current draft.
+\paragraph{Walmart and Rossmann (Future Extensions).} Walmart store-level sales forecasting and Rossmann drug-store sales are available but reserved for future analysis. They are not used to support claims in the current draft.
 
 \subsection{Forecasting Models}
 
-The Favorita proof of concept includes transparent baselines and machine-learning forecasters, including naive, seasonal, moving-average, exponential-smoothing, XGBoost, and LightGBM variants where available. M5 robustness experiments use transparent forecast candidates that are computationally feasible for hierarchical sensitivity checks, including naive, seasonal naive, moving average, and exponential smoothing variants. The intent is to evaluate planning strategy behavior rather than to maximize benchmark forecasting leaderboard performance.
+The analysis includes transparent baselines and machine-learning candidates to test strategy behavior across forecast accuracy levels.
+
+\subsubsection{Favorita Candidate Forecasts}
+
+\begin{itemize}
+    \item \textbf{Naive Last-Value}: $\hat{y}_{i,t} = y_{i,t-1}$ (lag-1 demand)
+    \item \textbf{Seasonal Naive}: $\hat{y}_{i,t} = y_{i,t-52}$ (lag-52 weeks, annual seasonality)
+    \item \textbf{Moving Average}: $\hat{y}_{i,t} = \text{mean}(y_{i,t-28:t-1})$ (28-week rolling average)
+    \item \textbf{Exponential Smoothing}: Holt-Winters method with $\alpha=0.3$ (adaptive smoothing with trend/seasonality)
+    \item \textbf{LightGBM}: Gradient boosting with lag features (lags 1, 7, 28) + rolling statistics (mean, std)
+    \item \textbf{XGBoost}: Gradient boosting with same feature set as LightGBM
+\end{itemize}
+
+Transparent baselines are always computed. Machine-learning models (LightGBM, XGBoost) are included when dependency libraries are available; in constrained environments, baseline-only evaluation remains valid.
+
+\subsubsection{M5 Candidate Forecasts}
+
+M5 evaluation uses transparent baselines (naive, seasonal naive, moving average, exponential smoothing) to ensure computational feasibility across all hierarchy levels and intermittency stress tests. The baseline-only design reflects a practical constraint: ML models on sparse hierarchical data require careful feature engineering that is deferred to future work.
+
+\subsubsection{Feature Engineering}
+
+For ML candidates:
+\begin{itemize}
+    \item \textbf{Lag features}: Demand at lags 1, 7, 28 (capturing recent, weekly, and monthly patterns)
+    \item \textbf{Rolling statistics}: Mean and standard deviation of lagged demands
+    \item \textbf{Exogenous signals} (Favorita only): Promotion flag, holiday indicator, oil price, transaction count
+    \item \textbf{Train-time only}: Features computed on historical data; test-time features computed on validation-only outcomes to prevent look-ahead bias
+\end{itemize}
 
 \subsection{Decision Strategies}
 
@@ -24,16 +73,113 @@ The analysis compares accuracy-first, stability-first, ensemble-based, smoothing
 
 The evaluation reports WAPE, inventory cost, planning volatility, execution penalty, execution violation rate, model-switching burden, normalized total loss, gap to the Realized-Inventory Oracle DP, and gap to the Realized Demand Oracle. WAPE is reported as a diagnostic forecast metric and is not part of the default operational planning objective. Normalized planning loss is reported relative to the accuracy-first BestAccuracy or Global Best baseline within the same run mode and split. Raw metrics remain visible in the result tables so that normalized rankings do not hide the underlying tradeoffs.
 
+\subsection{Planning Parameters}
+
+All analyses use consistent planning parameter values across datasets and run modes. Table~\ref{tab:planning-parameters} summarizes the configuration.
+
+\begin{table}[htbp]
+\centering
+\caption{Planning and Execution Parameters}
+\label{tab:planning-parameters}
+\begin{tabular}{ll|ll}
+\toprule
+\textbf{Parameter} & \textbf{Value} & \textbf{Parameter} & \textbf{Value} \\
+\midrule
+\multicolumn{4}{c}{\textbf{Inventory Parameters}} \\
+\midrule
+Safety stock method & Rolling 28-day std & Holding cost per unit & \$1.00 \\
+Safety stock multiplier & 1.0× & Shortage cost per unit & \$2.50 \\
+\multicolumn{4}{c}{\textbf{Planning Objective Weights}} \\
+\midrule
+$\alpha_{\text{forecast}}$ (WAPE weight) & 0.0 & $\lambda_{\text{inventory}}$ & 1.0 \\
+$\lambda_{\text{volatility}}$ (plan change) & 0.10 & $\lambda_{\text{execution}}$ & 0.10 \\
+$\lambda_{\text{switch}}$ (model change) & 0.05 & & \\
+\multicolumn{4}{c}{\textbf{Execution Capacity}} \\
+\midrule
+Max plan-change rate $c_{\max}$ & 20\% & Execution capacity formula & $C_{i,t} = c_{\max} \cdot |x_{i,t-1}|$ \\
+\multicolumn{4}{c}{\textbf{DP Selector Configuration}} \\
+\midrule
+Budgeted DP max switches & $K=2$ & Fallback policy & Incumbent-stays \\
+DP planning horizon & Full test period & Switch penalty (greedy) & 0.02 per switch \\
+\multicolumn{4}{c}{\textbf{Normalization Reference}} \\
+\midrule
+Reference strategy & Global Best / BestAccuracy & Reference group & Per dataset, run-mode, split \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Execution Capacity Scenarios}
 
 Execution capacity scenarios evaluate how planning strategies behave when downstream operations can absorb only limited period-to-period plan changes. In the Favorita and M5 analyses, execution penalties increase when the absolute planning signal change exceeds a scenario-specific execution capacity.
 
-DataCo-derived late-delivery-risk percentiles are mapped into execution-risk sensitivity scenarios using a configurable formula. These scenarios should be interpreted as data-informed sensitivity weights, not as exact economic cost calibrations for Favorita or M5. When DataCo anchors are unavailable, the pipeline records fallback usage and applies configured default scenario values.
+\subsubsection{DataCo-to-Scenario Mapping}
+
+DataCo-derived late-delivery-risk percentiles are mapped into execution-risk sensitivity scenarios using the formula:
+\begin{equation}
+\lambda_{\text{execution}}^{\text{scenario}} = \lambda_{\text{execution}}^{\text{baseline}} \times \frac{\text{late-delivery-rate}_{\text{scenario}}}{\text{late-delivery-rate}_{\text{median}}}.
+\end{equation}
+
+This mapping preserves the relative magnitude of execution risk across scenarios while anchoring the baseline weight to historical data. The resulting $\lambda_{\text{execution}}^{\text{scenario}}$ values are:
+\begin{itemize}
+    \item \textbf{Low-risk scenario} (30th percentile): $\lambda_{\text{execution}} = 0.098 \times (0.535/0.552) \approx 0.095$
+    \item \textbf{Baseline scenario} (50th percentile): $\lambda_{\text{execution}} = 0.10$ (unchanged)
+    \item \textbf{High-risk scenario} (75th percentile): $\lambda_{\text{execution}} = 0.10 \times (0.581/0.552) \approx 0.105$
+    \item \textbf{Severe scenario} (95th percentile): $\lambda_{\text{execution}} = 0.10 \times (0.901/0.552) \approx 0.163$
+\end{itemize}
+
+These scenarios should be interpreted as data-informed sensitivity weights, not as exact economic cost calibrations for Favorita or M5. When DataCo anchors are unavailable, the pipeline records fallback usage and applies configured default scenario values.
+
+\subsection{Data Leakage Prevention}
+
+All selectors explicitly prevent test-period outcomes from influencing model selection decisions:
+
+\begin{itemize}
+    \item \textbf{Deployable selectors} (Greedy, DP, Budgeted-DP): Use validation-calibrated expected losses and forecast-implied planning signals. Test-period actual outcomes are never accessed.
+
+    \item \textbf{Oracle selectors} (Realized-Inventory Oracle, Realized-Demand Oracle): Explicitly marked non-deployable. Used only as diagnostic upper bounds. Test outcomes are accessed only after selection to measure gap to unrealistic oracles.
+
+    \item \textbf{Time-split validation}: Training features and rolling statistics computed on train-only and validation-only data; test-period statistics computed only on test actuals after deployment.
+\end{itemize}
+
+The \texttt{require\_no\_future\_outcomes()} validation function is applied at selector entry points to detect and reject any test-outcome contamination.
 
 \subsection{M5 Robustness Design}
 
-The M5 robustness analysis includes large-scale replication at item-store level, hierarchy sensitivity across item-store, department-store, and category-store grains, intermittent-demand stress tests, and DataCo-informed execution scenario robustness. The same strategy families and normalized planning-loss logic are reused to test whether the main findings depend on the Favorita setting alone.
+The M5 robustness analysis tests whether the Favorita accuracy-feasibility tradeoff persists under different operational characteristics:
+
+\begin{itemize}
+    \item \textbf{Scale}: Large-scale replication at item-store level (3,049 series vs. Favorita's 1,782)
+    \item \textbf{Hierarchy sensitivity}: Evaluation at item-store, department-store, and category-store grains to test whether aggregation affects strategy ranking
+    \item \textbf{Intermittent demand}: Stress test on sparse-demand series (40-50\% zero-demand periods), where conventional forecasting accuracy metrics may be unstable
+    \item \textbf{Temporal granularity}: Daily data (M5) vs. weekly data (Favorita) to check temporal-pattern independence
+    \item \textbf{Execution scenario robustness}: DataCo-informed scenarios applied identically to validate cross-dataset generalization
+\end{itemize}
+
+The same strategy families, selector algorithms, and normalized planning-loss formulation are reused without modification to ensure comparability.
+
+\subsection{Validation and Cross-Validation Design}
+
+\subsubsection{Blocked Validation}
+
+For smoothing-based and ensemble-reweighting strategies, hyperparameters (e.g., smoothing $\alpha$ or ensemble weights) are selected via blocked validation:
+\begin{itemize}
+    \item Validation period is divided into K non-overlapping folds
+    \item Each fold is used as a pseudo-test period; hyperparameter loss is averaged across folds
+    \item Selected hyperparameter applied to actual test period
+\end{itemize}
+
+This avoids single-point validation bias while respecting temporal ordering.
+
+\subsubsection{Normalization Scope}
+
+Normalized planning loss is computed within groups defined by:
+- Dataset (Favorita, M5)
+- Run mode (Quick, Medium, Full)
+- Split (Validation, Test)
+- Scenario (Baseline, Low-risk, High-risk, Severe)
+
+This ensures that normalizations do not mix different operational contexts, and that val-set normalization does not contaminate test-set comparison.
 
 \subsection{Policy and Context Drift Scenarios}
 
-Policy and context drift scenarios are reserved for subsequent robustness analysis. Candidate extensions include changes in service-level targets, shortage costs, lead times, execution capacity, and business-context covariates.
+Policy and context drift scenarios are reserved for subsequent robustness analysis. Candidate extensions include changes in service-level targets, shortage costs, lead times, execution capacity, and business-context covariates (seasonality changes, new product introductions, etc.).
