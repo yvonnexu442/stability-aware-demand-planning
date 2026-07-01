@@ -6,26 +6,34 @@ This repository is a research-grade Python skeleton for studying stability-aware
 
 ## Current Thesis
 
-Forecast-driven demand planning should be treated as a feasibility-constrained model selection problem rather than a pure forecast accuracy problem. The most accurate forecast is not always the most deployable forecast. This project tests whether execution risk, planning volatility, switching cost, and inventory impact can reorder model deployment choices.
+Forecast-driven demand planning should be treated as a feasibility-constrained model selection problem rather than a pure forecast-accuracy ranking problem. The forecast with the best WAPE is not necessarily the best deployable planning strategy once inventory exposure, planning-signal volatility, model-switching burden, and execution-capacity violations are considered.
+
+The paper's purpose is to quantify this gap. It asks how often the accuracy-first strategy differs from the operational-loss-optimal deployable strategy, how frequently planning signals exceed execution capacity, how much finite-horizon DP improves over one-step greedy selection, and how DataCo execution evidence can anchor relative execution-risk scenarios without claiming exact cost calibration.
 
 The concise thesis note is maintained in `docs/research_thesis.md`.
 
 ## Core Problem Statement
 
-Forecast accuracy alone is not enough for real operational planning. Real supply chain and demand planning systems execute planning signals, not raw forecasts. A numerically better forecast can still create unstable planning signals, frequent model switching, large inventory target jumps, and execution burden that infrastructure, planners, or downstream operational systems cannot absorb.
+Most forecasting workflows answer the question: which model predicts demand most accurately? Operational planning asks a different question: which forecast-driven strategy should be deployed when the operation has finite execution capacity, inventory exposure, governance constraints, and limited tolerance for abrupt plan changes?
 
-This creates a planning-infrastructure gap: the forecasting layer can adapt faster than the execution system. The central research question is:
+Real supply-chain and demand-planning systems execute planning signals, not raw forecasts. A forecast is converted into an inventory target, replenishment recommendation, staffing plan, production target, or capacity allocation. A numerically stronger forecast can still create unstable or infeasible plans if it requires large period-to-period target jumps, frequent model switching, infrastructure updates, or planner interventions that the execution system cannot absorb.
 
-> When forecast signals change faster than execution infrastructure can absorb, how should an operational planning system balance forecast accuracy, planning stability, model switching cost, and execution adaptability?
+This creates a planning-execution gap: the forecasting layer can adapt faster than downstream operations, enterprise systems, and governance processes. This repository operationalizes the gap as execution violations and planning-execution gap rate, then evaluates whether decision-layer strategies can reduce that gap without hiding inventory or service tradeoffs.
 
-This repository evaluates planning utility as a multi-objective concept. Forecast error is only one part of the evaluation. The project also tracks inventory cost, planning signal volatility, model switching cost, and execution adaptation penalties.
+The core research problem is therefore:
+
+> Given a set of candidate forecasts, choose a deployable planning strategy that balances inventory exposure, planning stability, model-switching burden, and execution feasibility, while reporting forecast accuracy separately as a diagnostic metric.
+
+The repository studies this problem with interpretable decision-layer strategies: accuracy-first baselines, ensembles, smoothing, feasibility-aware selectors, one-step Greedy selection, finite-horizon DP, Budgeted DP, and explicitly non-deployable Oracle diagnostics.
 
 ## First Research Questions
 
-1. When do forecast improvements fail to improve operational decision quality?
-2. When does a more accurate forecast create planning instability that the operation cannot absorb?
-3. How should a decision layer trade off forecast error, inventory cost, planning stability, and execution capacity?
-4. Which outputs should be reported as weighted scalar losses, and which should remain visible as Pareto-style tradeoffs?
+1. How often does the best-WAPE deployable strategy differ from the lowest-operational-loss deployable strategy?
+2. What planning-execution gap rate does each strategy create, and how much can feasibility-aware selection reduce it?
+3. What does finite-horizon DP buy over one-step greedy selection under switching and execution costs?
+4. How does a hard switch budget `K` change the accuracy-feasibility tradeoff for Budgeted DP?
+5. How should DataCo execution-risk evidence be used as a scenario anchor without treating it as exact cost calibration for Favorita, M5, or Walmart?
+6. Which tradeoffs should be summarized by normalized planning loss, and which should remain visible through raw metrics and Pareto-style figures?
 
 ## Repository Scope
 
