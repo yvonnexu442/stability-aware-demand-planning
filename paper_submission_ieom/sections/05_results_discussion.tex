@@ -1,0 +1,57 @@
+\section{Results and Discussion}
+
+\subsection{Numerical Results}
+
+\textbf{Quantifying the planning-execution gap.} The strongest evidence for the planning-execution gap is the mismatch between the WAPE-best deployable strategy and the operational-loss-best deployable strategy. Across 123 paper-facing evaluation groups, the accuracy-first deployable method differs from the operational-loss-optimal deployable method in 91.1\% of cases. The accuracy-first planning-execution gap rate is 15.4\%, compared with 2.7\% for the best deployable operational-loss strategy. Table~\ref{tab:core-results} summarizes the core numerical evidence.
+
+\input{tables/core_numerical_summary_table}
+
+\textbf{Ranking shifts under DataCo-informed execution risk.} Favorita results show that Global Best remains a strong accuracy-first reference. In the baseline scenario, Global Best has WAPE 0.109 and normalized total loss 1.550, while Operational Ensemble has WAPE 0.119 and normalized total loss 1.422. Under the severe DataCo-informed execution-risk scenario, Global Best remains accurate but has normalized total loss 2.000. Simple Ensemble and Operational Ensemble have lower normalized losses of 1.473 and 1.496, respectively. This does not imply a universal winner. It shows that deployable ranking depends on execution-risk regime.
+
+\textbf{Robustness under hierarchy and intermittency.} M5 does not simply replicate Favorita. Table~\ref{tab:m5-robustness} shows that Operational Ensemble is strongest at department-store and category-store grains, while Smoothed Alpha 0.25 is strongest at the item-store grain and across low-, medium-, and high-intermittency buckets. This strengthens the paper because the framework is not designed to make one method always win. Instead, it shows that the preferred deployable mechanism changes with operational context.
+
+\input{tables/m5_robustness_table}
+
+\textbf{Myopic selection and oracle gaps.} The generated thesis summary reports a mean greedy-to-DP gap of 0.044, indicating that finite-horizon planning improves over one-step greedy selection where both are available. The mean gap to the realized-inventory DP oracle is 0.198, which measures selection suboptimality relative to non-deployable inventory-outcome information. The mean gap to the perfect-demand oracle is negative in the current combined outputs because a realized-demand signal can create high volatility and execution penalties; this confirms that the perfect-demand oracle is a diagnostic reference, not a deployable lower bound.
+
+\subsection{Graphical Results}
+
+Figure~\ref{fig:favorita-frontier} plots the Favorita accuracy versus execution-penalty frontier. The figure shows that WAPE and execution penalty do not move together. Global Best is near the best WAPE region, but other deployable strategies produce much lower execution penalties. The operational implication is that the deployable frontier is not the WAPE-best point.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\linewidth]{figures/favorita_accuracy_execution_frontier.png}
+\caption{Favorita accuracy and execution penalty frontier.}
+\label{fig:favorita-frontier}
+\end{figure}
+
+Figure~\ref{fig:scenario-loss} shows normalized planning loss across DataCo-informed execution scenarios. As execution-risk weight changes, strategy ranking changes. This supports scenario testing as a deployment practice: the model selected for a flexible execution environment may not be the model selected for a constrained execution environment.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\linewidth]{figures/favorita_normalized_loss_by_execution_scenario.png}
+\caption{Favorita normalized planning loss by DataCo-informed execution scenario.}
+\label{fig:scenario-loss}
+\end{figure}
+
+\subsection{Proposed Improvements}
+
+\textbf{Monitor planning-execution gap rate.} The accuracy-first planning-execution gap rate is 15.4\%, compared with 2.7\% for the best deployable operational-loss strategy. This supports adding PEG rate to routine model-deployment monitoring.
+
+\textbf{Avoid WAPE-only model selection.} The accuracy-first deployable method differs from the operational-loss-optimal deployable method in 91.1\% of paper-facing evaluation groups. Planners should treat WAPE as diagnostic, not as the only deployment criterion.
+
+\textbf{Use execution-risk scenario testing.} Favorita rankings change between baseline and severe DataCo-informed scenarios. Before rollout, planning teams should test candidate strategies under plausible execution-capacity regimes.
+
+\textbf{Use smoothing and ensembles selectively.} Smoothing can reduce execution burden, but it can also increase inventory exposure when adaptation is too slow. Ensembles can reduce abrupt model-specific movements, but they may sacrifice WAPE. These methods should be selected by stated operational tradeoffs rather than by a universal rule.
+
+\textbf{Use DP or budgeted DP when switching governance matters.} The greedy-to-DP gap shows that one-step selection can be myopic. Budgeted DP is useful when planners impose hard limits on model switching, approvals, or monitoring changes.
+
+\subsection{Validation}
+
+\textbf{Baseline validation.} Accuracy-first methods remain necessary baselines. The paper does not claim that feasibility-aware strategies always dominate. Instead, it shows when the accuracy-first strategy is not the operational-loss-optimal deployable strategy.
+
+\textbf{Oracle validation.} The Realized-Inventory Oracle DP and Perfect-Demand Oracle are non-deployable diagnostics. The realized-inventory DP oracle measures model-selection suboptimality over the same forecast candidates. The perfect-demand oracle includes forecast uncertainty and can still create execution burden.
+
+\textbf{Scenario validation.} DataCo-informed scenarios validate whether execution-risk weights alter deployable ranking. The baseline-to-severe Favorita shift shows that execution risk can reorder strategy preference.
+
+\textbf{Robustness validation.} M5 validates the framework under hierarchy and intermittent demand. The best deployable mechanism changes across planning grain and intermittency bucket, which supports the paper's core tradeoff thesis rather than a single-method dominance claim.

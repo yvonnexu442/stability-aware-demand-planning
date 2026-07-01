@@ -1,0 +1,25 @@
+\section{Literature Review}
+
+\subsection{AI-enabled Demand Planning and Forecasting Benchmarks}
+
+Recent supply-chain research shows increasing interest in AI-enabled demand planning. Walter et al. (2025) review artificial intelligence in demand planning and identify AI tools, supply-chain applications, and digital supply-chain impacts as major knowledge clusters. Culot et al. (2024) review empirical AI studies in supply-chain management and emphasize the need to connect AI adoption to operational research directions. Vlachos and Reddy (2025) similarly review machine learning in supply-chain management and identify planning, execution, and control as areas where machine learning can support decision making.
+
+Forecasting benchmarks and time-series foundation models show the same trend from a forecasting perspective. The M5 competition demonstrates the scale and hierarchy of modern retail forecasting benchmarks (Makridakis et al. 2022). Recent time-series foundation models, including decoder-only forecasting models and pretrained probabilistic time-series models, show that forecasting pipelines are moving toward broader zero-shot and cross-domain capability (Das et al. 2024; Ansari et al. 2024). These studies motivate the forecasting layer of the present paper, but they do not remove the need to evaluate whether forecast-driven planning signals are operationally executable.
+
+\subsection{Forecast-to-decision and Predict-then-optimize Research}
+
+Forecast-to-decision research is directly relevant because it explains why prediction accuracy and downstream decision quality can differ. Elmachtoub and Grigas (2022) show that the standard predict-then-optimize workflow can be improved by training predictions toward decision loss rather than prediction loss alone. Mandi et al. (2024) survey decision-focused learning and describe how machine learning and constrained optimization can be integrated to improve decision quality under uncertainty. Jia et al. (2025) propose a scenario predict-then-optimize method for data-driven online inventory routing, showing that downstream routing and replenishment decisions require more than point forecast accuracy.
+
+The present paper is related to this stream, but its purpose is different. It does not introduce a new end-to-end learning algorithm. It proposes an interpretable forecast-to-plan decision layer for operational demand planning, where existing candidate forecasts are evaluated by inventory exposure, planning volatility, switching burden, and execution-capacity violations.
+
+\subsection{Inventory Implications and Planning Stability}
+
+Inventory theory provides the operational foundation for holding and shortage costs. Silver et al. (1998) and Axsater (2015) describe inventory planning as a cost and service-level problem rather than a pure prediction problem. Forecast accuracy metrics remain important, but Hyndman and Koehler (2006) show that forecast-error measures have known limitations and must be interpreted carefully across series and contexts. Forecast combination is also relevant because weighted or averaged forecasts can reduce dependence on a single model (Bates and Granger 1969).
+
+Modern forecasting candidate sets often include nonlinear machine-learning methods such as random forests, XGBoost, and LightGBM (Breiman 2001; Chen and Guestrin 2016; Ke et al. 2017). These models can improve forecast accuracy, but model deployment also creates governance, monitoring, and switching burden. From an operations perspective, Forrester (1961) shows that industrial systems can amplify instability when material and information flows respond with delays. Advanced planning systems similarly separate forecasting, planning, coordination, and execution layers (Stadtler et al. 2015). This separation motivates explicit measurement of planning volatility and execution-capacity violations.
+
+Rolling-horizon decision theory also supports finite-horizon selection logic because a locally attractive action can be undesirable once future transitions are considered (Sethi and Sorger 1991). This perspective is consistent with the paper's use of greedy-to-DP comparisons to measure myopic planning suboptimality.
+
+\subsection{Research Gap}
+
+Existing studies improve forecasts, combine forecasts, or optimize downstream decisions. Fewer studies provide a practical decision layer that compares forecasting-driven strategies by inventory exposure, planning volatility, switching burden, and execution-capacity violations. This paper addresses that gap by defining planning-execution gap rate and feasibility-adjusted normalized planning loss. The goal is not to replace forecasting metrics, but to position WAPE as a diagnostic measure alongside operational feasibility.

@@ -1,0 +1,18 @@
+\begin{table}[htbp]
+\centering
+\caption{M5 hierarchy and intermittency robustness summary.}
+\label{tab:m5-robustness}
+\scriptsize
+\begin{tabular}{@{}p{0.28\linewidth}p{0.24\linewidth}p{0.11\linewidth}p{0.12\linewidth}p{0.10\linewidth}@{}}
+\toprule
+\textbf{Robustness slice} & \textbf{Best deployable method} & \textbf{WAPE} & \textbf{PEG rate} & \textbf{Norm. loss} \\
+\midrule
+Hierarchy: category-store & Operational Ensemble & 0.159 & 0.063 & 1.261 \\
+Hierarchy: department-store & Operational Ensemble & 0.162 & 0.100 & 1.177 \\
+Hierarchy: item-store & Smoothed Alpha 0.25 & 0.368 & 0.010 & 1.223 \\
+Intermittency: high & Smoothed Alpha 0.25 & 0.616 & 0.030 & 1.284 \\
+Intermittency: low & Smoothed Alpha 0.25 & 0.254 & 0.000 & 1.156 \\
+Intermittency: medium & Smoothed Alpha 0.25 & 0.367 & 0.001 & 1.168 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,22 @@
+\begin{table}[htbp]
+\centering
+\caption{Method components, validation evidence, and operational implication.}
+\label{tab:method-alignment}
+\scriptsize
+\begin{tabular}{@{}p{0.19\linewidth}p{0.23\linewidth}p{0.25\linewidth}p{0.21\linewidth}@{}}
+\toprule
+\textbf{Method component} & \textbf{What it tests} & \textbf{Paper-facing evidence} & \textbf{Operational implication} \\
+\midrule
+Forecast-to-plan conversion & Whether forecasts become materially different planning signals & Accuracy-first mismatch rate and Favorita frontier & Evaluate plans, not forecasts alone. \\
+Planning-execution gap rate & Whether plans exceed execution capacity & PEG rate: 15.4\% accuracy-first vs. 2.7\% best deployable & Monitor feasibility as a deployment metric. \\
+DataCo scenarios & Whether empirical execution-risk regimes reorder strategies & Baseline-to-severe Favorita ranking shifts & Use scenario tests before rollout. \\
+Greedy selector & Whether one-step selection is sufficient & Greedy-to-DP gap & Greedy policies can be myopic. \\
+Finite-horizon DP & Value of planning ahead under transition costs & Greedy-to-DP gap and DP oracle gap & Account for future switching and execution burden. \\
+Budgeted DP & Governance limit on model switching & Hard switch budget and flagged fallback semantics & Use when model changes require approval. \\
+Smoothing policy & Gradual operational adaptation & Lower execution burden with inventory tradeoff & Adapt slowly when infrastructure is constrained. \\
+Ensemble policy & Soft composition across models & Lower execution burden in Favorita severe scenario & Reduce model-specific plan jumps. \\
+Oracle benchmarks & Value of unavailable future information & gap\_to\_dp\_oracle and gap\_to\_perfect\_oracle & Separate selection suboptimality from forecast uncertainty. \\
+M5 robustness & Sensitivity to planning grain and intermittency & Best method changes across M5 slices & Avoid one-size-fits-all deployment rules. \\
+\bottomrule
+\end{tabular}
+\end{table}

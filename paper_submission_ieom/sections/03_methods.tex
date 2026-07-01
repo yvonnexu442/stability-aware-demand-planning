@@ -1,0 +1,116 @@
+\section{Methods}
+
+The proposed method follows the IEOM sample-paper pattern of a visual workflow followed by stepwise algorithmic logic. Figure~\ref{fig:framework} gives the framework overview. Candidate forecasts are generated first, but the decision layer evaluates their implied planning signals before choosing a deployable planning strategy. This framing follows the forecast-to-decision logic that downstream objectives may differ from forecast-error objectives (Elmachtoub and Grigas 2022; Mandi et al. 2024).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.76\linewidth]{figures/ieom_framework_flowchart.png}
+\caption{Feasibility-constrained planning framework.}
+\label{fig:framework}
+\end{figure}
+
+\subsection{Feasibility-constrained Planning Model}
+
+Let $i$ index a planning unit, $t$ index a planning period, and $m$ index a candidate forecasting model. The candidate forecast is $\hat{y}_{i,t}^{m}$, and the executable planning signal is $p_{i,t}^{m}$. The planning signal is created through a forecast-to-plan conversion rule:
+\begin{equation}
+p_{i,t}^{m}=g(\hat{y}_{i,t}^{m},\mathrm{policy}_{t}).
+\end{equation}
+In the current implementation, $p_{i,t}^{m}$ is an inventory target implied by the forecast and safety-stock policy.
+
+Inventory exposure is measured through holding and shortage terms:
+\begin{equation}
+IC_{i,t}^{m}=h[p_{i,t}^{m}-y_{i,t}]^{+}+b[y_{i,t}-p_{i,t}^{m}]^{+},
+\end{equation}
+where $h$ is holding cost, $b$ is shortage cost, $y_{i,t}$ is realized demand, and $[x]^+=\max(x,0)$.
+
+Planning volatility is the absolute movement in the planning signal:
+\begin{equation}
+PV_{i,t}^{m}=|p_{i,t}^{m}-p_{i,t-1}|.
+\end{equation}
+Execution capacity $C_{i,t}$ is the amount of plan movement the operation can absorb in period $t$. The execution violation is:
+\begin{equation}
+EV_{i,t}^{m}=[|p_{i,t}^{m}-p_{i,t-1}|-C_{i,t}]^{+}.
+\end{equation}
+The paper-facing planning-execution gap rate for strategy $s$ is:
+\begin{equation}
+PEG(s)=\frac{1}{T}\sum_{t=1}^{T}\mathbb{I}\{EV_t(s)>0\}.
+\end{equation}
+
+The normalized planning loss is:
+\begin{align}
+L(s)={}&
+\beta_{\mathrm{inventory}}\cdot \mathrm{NIC}(s)
++\lambda_{\mathrm{volatility}}\cdot \mathrm{NVC}(s) \notag \\
+&+\lambda_{\mathrm{execution}}\cdot \mathrm{NEC}(s)
++\lambda_{\mathrm{switch}}\cdot \mathrm{NSC}(s),
+\end{align}
+where NIC, NVC, NEC, and NSC denote normalized inventory, volatility, execution, and switching components. WAPE is reported as diagnostic forecast accuracy. The main operational objective excludes direct forecast-error terms because inventory exposure and feasibility terms capture the deployable consequences of forecast-driven planning decisions.
+
+\subsection{Feasibility-constrained Selection Procedure}
+
+The selection procedure has ten steps.
+
+\textbf{Step 1. Define planning units and candidate forecasting models.} The planning units are store-family or item-store style series, and candidate models include transparent baselines, machine-learning candidates where available, ensembles, smoothing policies, and decision-layer selectors.
+
+\textbf{Step 2. Generate candidate forecasts.} Each candidate model produces a forecast for each planning unit and period using only information available before the forecast timestamp.
+
+\textbf{Step 3. Convert each forecast into a planning signal.} The forecast is translated into an inventory planning signal using the policy function $g(\cdot)$.
+
+\textbf{Step 4. Compute inventory exposure.} Holding and shortage terms are computed from the candidate planning signal and realized demand for evaluation.
+
+\textbf{Step 5. Compute planning volatility.} Each candidate signal is compared with the previous executed plan to measure plan movement.
+
+\textbf{Step 6. Compute execution violation.} The plan movement is compared with execution capacity $C_{i,t}$ to determine whether the period creates a planning-execution gap.
+
+\textbf{Step 7. Compute switching burden.} For hard model selection, a switching indicator is recorded when the selected model differs from the previous period's model.
+
+\textbf{Step 8. Compute normalized operational loss.} Inventory, volatility, execution, and switching components are normalized within the relevant evaluation group and combined using the stated planning weights.
+
+\textbf{Step 9. Select the deployable planning action.} The decision layer selects a candidate plan using an accuracy-first, ensemble, smoothing, greedy, DP, or budgeted-DP policy.
+
+\textbf{Step 10. Validate against oracle benchmarks.} Deployable strategies are compared with non-deployable oracle diagnostics to separate selection suboptimality from forecast uncertainty.
+
+\subsection{Greedy and Dynamic Programming Selectors}
+
+The greedy selector minimizes current-period operational cost only. Let $c_t(m_{t-1},m)$ denote the validation-derived stage cost of switching from previous model $m_{t-1}$ to candidate model $m$ at time $t$. The greedy selector chooses:
+\begin{equation}
+m_t^{G}=\arg\min_{m\in\mathcal{M}} c_t(m_{t-1},m).
+\end{equation}
+This policy is interpretable but myopic because it ignores future switching and execution consequences.
+
+The finite-horizon DP selector accounts for future operational costs:
+\begin{equation}
+V_t(m_{t-1})=\min_{m\in\mathcal{M}}\{c_t(m_{t-1},m)+V_{t+1}(m)\},
+\end{equation}
+with terminal condition:
+\begin{equation}
+V_{T+1}(\cdot)=0.
+\end{equation}
+The greedy-to-DP gap measures myopic selection suboptimality. DP is included to quantify the value of planning ahead over one-step operational selection.
+
+\subsection{Budgeted DP Selector}
+
+Some planning organizations impose governance limits on model changes. The budgeted DP selector adds:
+\begin{equation}
+\sum_{t=2}^{T}\mathbb{I}\{m_t\neq m_{t-1}\}\leq K.
+\end{equation}
+The DP state includes the previous model and the number of switches already used. Transitions that exceed the switch budget are discarded. If missing candidate availability leaves no feasible path, the implementation uses a flagged incumbent-stays fallback: it chooses the first period's lowest-cost model and holds that incumbent when available. This fallback is budget-compliant when the incumbent model is available throughout the horizon and is marked diagnostically if availability fails.
+
+\subsection{Ensemble and Smoothing Policies}
+
+The Simple Ensemble averages candidate forecasts without using operational-loss information. The Operational-Loss Ensemble uses validation normalized planning loss to assign nonnegative weights. These policies test whether soft forecast composition can reduce abrupt execution burden while retaining useful accuracy.
+
+The smoothing policy changes the executed planning signal, not the underlying forecast:
+\begin{equation}
+p_t=\alpha p_t^{\mathrm{candidate}}+(1-\alpha)p_{t-1}.
+\end{equation}
+Lower $\alpha$ values reduce execution burden by adapting gradually, but they can increase inventory exposure if the plan responds too slowly to demand changes.
+
+\subsection{Oracle Benchmarks and Validation Gaps}
+
+The Realized-Inventory Oracle DP is non-deployable. It uses realized test-period inventory outcomes over the same forecast candidates and is used only to quantify the value of unavailable inventory-outcome information. It is not a perfect-forecast oracle.
+
+The Perfect-Demand Oracle uses realized demand as the forecast signal. It is also non-deployable and can still create volatility or execution penalties because perfect demand tracking may move faster than execution capacity. The metric \texttt{gap\_to\_dp\_oracle} measures selection suboptimality relative to the realized-inventory DP benchmark. The metric \texttt{gap\_to\_perfect\_oracle} measures the total gap to a realized-demand reference, including both forecast uncertainty and feasibility effects.
+
+Table~\ref{tab:method-alignment} links each method component to its evidence and operational implication.
+\input{tables/method_alignment_table}
