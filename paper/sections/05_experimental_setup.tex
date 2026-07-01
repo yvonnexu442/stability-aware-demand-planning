@@ -55,7 +55,7 @@ Transparent baselines are always computed. Machine-learning models (LightGBM, XG
 
 \subsubsection{M5 Candidate Forecasts}
 
-M5 evaluation uses transparent baselines (naive, seasonal naive, moving average, exponential smoothing) to ensure computational feasibility across all hierarchy levels and intermittency stress tests. The baseline-only design reflects a practical constraint: ML models on sparse hierarchical data require careful feature engineering that is deferred to future work.
+M5 evaluation uses transparent baselines (naive, seasonal naive, moving average, exponential smoothing) to ensure computational feasibility across hierarchy levels and intermittency stress tests. Unlike Favorita and Walmart, the current M5 robustness pass does not include a global ML candidate. This limits claims about M5 forecast-model competitiveness and should be read as a decision-layer robustness check over a transparent candidate set, not as a full M5 forecasting leaderboard. Integrating ML candidates for sparse hierarchical M5 demand is deferred to future work.
 
 \subsubsection{Walmart Candidate Forecasts}
 
@@ -79,6 +79,8 @@ The analysis compares accuracy-first, stability-first, ensemble-based, smoothing
 \subsection{Evaluation Metrics}
 
 The evaluation reports WAPE, inventory cost, planning volatility, execution penalty, execution violation rate, model-switching burden, normalized total loss, gap to the Realized-Inventory Oracle DP, and gap to the Realized Demand Oracle. The benchmark ladder also includes a Full-Outcome Oracle DP where available; this non-deployable diagnostic uses realized test forecast error and realized inventory outcome over the same candidate forecasts. WAPE is reported as a diagnostic forecast metric and is not part of the default operational planning objective. Normalized planning loss is reported relative to the accuracy-first BestAccuracy or Global Best baseline within the same run mode and split. Raw metrics remain visible in the result tables so that normalized rankings do not hide the underlying tradeoffs.
+
+\input{tables/oracle_taxonomy_table.tex}
 
 \subsection{Planning Parameters}
 
@@ -185,7 +187,7 @@ The Walmart robustness pass includes three components:
     \item \textbf{Weekly cadence constraints}: Budgeted DP uses a quarterly switch budget, a short holiday freeze window, and a maximum weekly plan-change rate. Fallback rows, if any, are reported explicitly using fallback metadata.
 \end{itemize}
 
-Walmart results are reported as business-context robustness evidence. Final interpretation will be written after reviewing the generated robustness tables and figures.
+Walmart results are reported as business-context robustness evidence rather than as a standalone forecasting leaderboard. The generated tables are interpreted primarily for whether weekly business context changes the accuracy-feasibility tradeoff and whether strict model-governance constraints alter the deployable strategy ranking.
 
 \subsection{Switch-Budget Sensitivity}
 

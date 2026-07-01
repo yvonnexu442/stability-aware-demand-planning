@@ -42,6 +42,25 @@ The DPFeasibilitySelector solves the deterministic finite-horizon model-selectio
 
 The finite-horizon DP is used to quantify the value of planning ahead under switching and execution costs. Greedy selection is a one-step policy, while DP minimizes cumulative loss over the horizon. The greedy-to-DP gap therefore measures myopic selection suboptimality under the same validation-derived cost information.
 
+\begin{center}
+\fbox{\begin{minipage}{0.92\linewidth}
+\textbf{Proposition 1 (Greedy selection as one-step DP).}
+Let $c_t(m \mid m_{t-1}, x_{t-1})$ denote the validation-derived stage cost of choosing model $m$ at period $t$, conditional on the previous model $m_{t-1}$ and previous executed planning signal $x_{t-1}$. The finite-horizon DP value function is
+\begin{equation}
+V_t(m_{t-1}, x_{t-1})
+=
+\min_{m \in \mathcal{M}_t}
+\left\{
+c_t(m \mid m_{t-1}, x_{t-1})
++ V_{t+1}(m, x_t^{m})
+\right\},
+\quad
+V_{T+1}=0.
+\end{equation}
+The GreedyFeasibilitySelector is equivalent to this DP when the remaining horizon is one period, or when the continuation value $V_{t+1}$ is set to zero for all states. Therefore, any performance gap between GreedyFeasibilitySelector and DPFeasibilitySelector measures myopic selection suboptimality under the same candidate forecasts and the same validation-derived stage-cost information.
+\end{minipage}}
+\end{center}
+
 The BudgetedDPFeasibilitySelector adds a hard maximum switch budget $K$ to the finite-horizon DP. Unlike the soft switching penalty, this budget constrains the feasible path set. This variant is useful for planning environments where governance, monitoring, or approval processes impose a strict limit on model changes over a planning window. If missing candidate availability leaves no budget-feasible path, the implementation uses a pipeline-safe incumbent-stays fallback and marks the affected rows with fallback metadata. The fallback chooses the first period's lowest-cost model and holds that incumbent when it remains available. If the incumbent is missing later, the output is marked as potentially non-strict. These fallback cases are diagnostic and should not be interpreted as silently valid strict budgeted-DP solutions.
 
 \subsection{Oracle Diagnostic}

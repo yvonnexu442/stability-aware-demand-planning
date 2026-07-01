@@ -140,7 +140,11 @@ The M5 intermittent-demand stress test further supports controlled adaptation. A
 
 \subsection{Result 8: Walmart Business-Context Robustness}
 
-Walmart is used to test whether weekly business-context signals alter deployable strategy rankings. The current outputs compare history-only candidate forecasts with history-plus-context candidate forecasts, then evaluate the same decision-layer strategies under DataCo-informed execution scenarios. Final interpretation will be written after reviewing the generated robustness results. The current tables and figures are included as paper-ready assets so that the manuscript can distinguish context effects from the main Favorita and M5 claims.
+Walmart is used to test whether weekly business-context signals alter deployable strategy rankings. The current outputs compare history-only candidate forecasts with history-plus-context candidate forecasts, then evaluate the same decision-layer strategies under DataCo-informed execution scenarios. The evidence is mixed in a useful way. In the baseline history-plus-context setting, Global Best remains a strong deployable reference, with WAPE 0.057 and normalized total loss 1.150. Budgeted DP and DP Feasibility have similar WAPE, lower execution violation rates, and lower execution penalties, but their switch-count and inventory tradeoffs keep them behind Global Best under the baseline weight setting.
+
+The ranking changes when execution-risk sensitivity increases. Under the DataCo severe scenario with history-plus-context forecasts, Budgeted DP has normalized total loss 1.452, execution penalty 33,796, and execution violation rate 0.009, while Global Best has normalized total loss 1.600, execution penalty 56,342, and violation rate 0.028. This does not mean that business context always makes feasibility-aware selection dominate. It shows that, once execution risk is weighted more heavily, a finite-horizon or budgeted decision layer can become preferable even when the accuracy-first baseline remains highly competitive on WAPE.
+
+The context-aware versus context-free comparison also suggests that context features should be interpreted as robustness inputs rather than automatic improvements. For Global Best, adding context slightly worsens WAPE in the baseline comparison but reduces execution penalty and violation rate. For DP-based strategies, context slightly improves WAPE and reduces execution burden, while normalized total loss changes only modestly. These patterns support the paper's central claim: the value of business context is clearest when it is evaluated at the forecast-to-plan layer, not only through forecast error.
 
 \input{tables/walmart_context_robustness_summary_table.tex}
 \input{tables/walmart_context_aware_vs_context_free_comparison_table.tex}
@@ -159,7 +163,7 @@ Walmart is used to test whether weekly business-context signals alter deployable
 \label{fig:walmart-context-ranking-shift}
 \end{figure}
 
-Holiday, markdown, and weekly-cadence stress outputs are retained as supplementary robustness assets. These outputs should be interpreted cautiously until the table-level patterns are reviewed.
+Holiday, markdown, and weekly-cadence stress outputs are retained as supplementary robustness assets. These outputs are used to check whether the Walmart conclusions are driven only by average weeks or whether the same accuracy-feasibility tension appears in higher-context operating windows.
 
 \subsection{Result 9: Switch-Budget Sensitivity Quantifies the Cost of Strict Model Governance}
 

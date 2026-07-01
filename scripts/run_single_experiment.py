@@ -1,4 +1,11 @@
-"""Run one current experiment module through a stable command-line entry point."""
+"""Convenience wrapper for one current experiment module.
+
+Dataset-specific scripts remain the canonical entry points:
+``profile_dataco.py``, ``run_favorita_minimal_pipeline.py``,
+``run_m5_robustness_pipeline.py``, ``run_walmart_robustness_pipeline.py``,
+``run_switch_budget_sensitivity.py``, and ``run_thesis_quantification.py``.
+This wrapper is maintained for stable command-line dispatch.
+"""
 
 import argparse
 import os

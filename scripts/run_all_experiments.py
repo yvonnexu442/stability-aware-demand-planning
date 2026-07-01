@@ -1,4 +1,11 @@
-"""Run the current reproducible experiment modules in sequence."""
+"""Convenience wrapper for running current experiment modules.
+
+Dataset-specific scripts remain the canonical entry points:
+``profile_dataco.py``, ``run_favorita_minimal_pipeline.py``,
+``run_m5_robustness_pipeline.py``, ``run_walmart_robustness_pipeline.py``,
+``run_switch_budget_sensitivity.py``, and ``run_thesis_quantification.py``.
+This wrapper is maintained for reproducible batch execution.
+"""
 
 import argparse
 import os

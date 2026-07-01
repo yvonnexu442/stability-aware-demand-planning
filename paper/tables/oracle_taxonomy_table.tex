@@ -1,0 +1,16 @@
+\begin{table}[htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{Oracle Diagnostics and Information Access}
+\label{tab:oracle-taxonomy}
+\begin{tabular}{p{0.22\linewidth}p{0.36\linewidth}p{0.10\linewidth}p{0.22\linewidth}}
+\toprule
+\textbf{Oracle Diagnostic} & \textbf{Information Used} & \textbf{Deploy.} & \textbf{Purpose} \\
+\midrule
+Realized-Inventory Oracle DP & Validation-derived forecast loss plus realized test-period inventory outcomes by series, model, and date & No & Upper-bound diagnostic for the value of inventory-outcome information over the same forecast candidates \\
+Full-Outcome Oracle DP & Realized test-period forecast error plus realized test-period inventory outcomes over the same forecast candidates & No & Strongest candidate-model outcome-information diagnostic; not a perfect-forecast oracle \\
+Realized Demand Oracle & Realized test demand used as the forecast signal & No & Perfect-demand reference for separating forecast uncertainty from model-selection suboptimality \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -12,9 +12,9 @@ m5_large_scale_replication,m5,1,1.0,4.935,1.223,3.712,3.712,Simple Ensemble,Smoo
 m5_robustness_summary,m5,10,0.9,3.932,1.189,2.743,1.741,Simple Ensemble; Operational Ensemble,Smoothed Alpha 0.25; Operational Ensemble
 m5_switch_budget_sensitivity,m5,5,1.0,1.359,1.053,0.306,0.306,Simple Ensemble,Smoothed Alpha 0.25
 pareto_summary,favorita,1,1.0,2.5,1.517,0.983,0.983,Global Best,Simple Ensemble
-walmart_context_robustness_summary,walmart,10,0.9,1.381,1.302,0.079,0.035,DP Feasibility; Global Best,Budgeted DP; Global Best
+walmart_context_robustness_summary,walmart,10,0.9,1.381,1.302,0.079,0.035,Global Best; DP Feasibility,Budgeted DP; Global Best
 walmart_holiday_markdown_stress_by_window,walmart,8,0.875,1.212,1.195,0.017,0.013,Global Best; DP Feasibility,Budgeted DP; Global Best
 walmart_robustness_summary,walmart,20,0.8,1.295,1.249,0.046,0.019,Global Best; DP Feasibility,Budgeted DP; Global Best
-walmart_switch_budget_sensitivity,walmart,5,0.8,1.222,1.198,0.024,0.029,DP Feasibility; Budgeted DP,Global Best; DP Feasibility; Budgeted DP
+walmart_switch_budget_sensitivity,walmart,5,0.8,1.222,1.198,0.024,0.029,DP Feasibility; Budgeted DP,Global Best; Budgeted DP; DP Feasibility
 walmart_weekly_cadence_constraints,walmart,2,0.0,1.2,1.2,0.0,0.0,Global Best,Global Best
 weight_sensitivity_results,favorita,30,1.0,46.533,3.195,43.339,25.359,Global Best,Best Stability; Simple Ensemble
