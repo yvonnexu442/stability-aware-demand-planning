@@ -4,6 +4,14 @@ Working title: **Beyond Forecast Accuracy: Stability-Aware Operational Demand Pl
 
 This repository is a research-grade Python skeleton for studying stability-aware operational demand planning. It is designed for paper development, mathematical clarity, and reproducible evaluation logic. It is not intended to become a Kaggle-style forecasting leaderboard.
 
+## Compiled Paper Draft
+
+The current compiled manuscript draft is available at:
+
+[`paper/stability_aware_demand_planning_draft.pdf`](paper/stability_aware_demand_planning_draft.pdf)
+
+The LaTeX source remains under `paper/main.tex` and `paper/sections/`. The local build artifact `paper/main.pdf` is ignored by git, so the tracked draft PDF above is the GitHub-facing copy.
+
 ## Current Thesis
 
 Forecast-driven demand planning should be treated as a feasibility-constrained model selection problem rather than a pure forecast-accuracy ranking problem. The forecast with the best WAPE is not necessarily the best deployable planning strategy once inventory exposure, planning-signal volatility, model-switching burden, and execution-capacity violations are considered.
