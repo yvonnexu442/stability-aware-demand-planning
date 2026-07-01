@@ -2,24 +2,16 @@
 
 \subsection{Demand Forecasting and Inventory Implications}
 
-Demand forecasting research studies how predictive models can estimate future demand across products, stores, regions, and time periods. A closely related stream connects forecast quality to downstream inventory and service outcomes. This paper builds on that operational motivation but focuses on an intermediate layer that is often left implicit: the conversion of candidate forecasts into planning signals that must be executed under finite adjustment capacity.
-
-% TODO: cite demand forecasting and inventory-control literature.
+Demand forecasting research studies how predictive models can estimate future demand across products, stores, regions, and time periods. Forecast-accuracy metrics are well studied, including known limitations of comparing series using error measures alone \citep{hyndman2006accuracy}. Retail demand competitions such as M5 have further emphasized large-scale empirical forecasting under hierarchical product-store structure \citep{makridakis2022m5}. A closely related stream connects forecast quality to downstream inventory and service outcomes through inventory-control and production-planning models \citep{silver1998inventory,axsater2015inventory}. This paper builds on that operational motivation but focuses on an intermediate layer that is often left implicit: the conversion of candidate forecasts into planning signals that must be executed under finite adjustment capacity.
 
 \subsection{Forecast Combination and Model Selection}
 
-Forecast-combination and model-selection methods provide mechanisms for choosing among or aggregating candidate forecasts. Standard selection criteria often prioritize forecast error on validation data. The present paper differs by evaluating deployable planning utility rather than forecast error alone. A forecast combination can be attractive not only because it improves accuracy, but because it reduces abrupt plan changes, spreads model risk, or avoids unnecessary switching.
-
-% TODO: cite forecast combination and model-selection literature.
+Forecast-combination and model-selection methods provide mechanisms for choosing among or aggregating candidate forecasts. Classic forecast-combination work shows why averaging or weighting forecasts can be useful when no single candidate is uniformly best \citep{bates1969combination}. Modern empirical forecasting pipelines also commonly include tree-based learners such as LightGBM, XGBoost, and random forests as scalable nonlinear candidates \citep{ke2017lightgbm,chen2016xgboost,breiman2001random}. Standard selection criteria often prioritize forecast error on validation data. The present paper differs by evaluating deployable planning utility rather than forecast error alone. A forecast combination can be attractive not only because it improves accuracy, but because it reduces abrupt plan changes, spreads model risk, or avoids unnecessary switching.
 
 \subsection{Cost-Sensitive and Multi-Objective Decision Making}
 
-Cost-sensitive and multi-objective decision methods are related because demand planning rarely has a single objective. Inventory cost, service level, volatility, and execution burden can move in different directions. The contribution here is not a generic multi-objective optimizer. It is a structured operational planning evaluation framework in which forecast-driven plans are compared against execution-capacity constraints and normalized relative to an accuracy-first baseline.
-
-% TODO: cite cost-sensitive learning and multi-objective optimization literature.
+Cost-sensitive and multi-objective decision methods are related because demand planning rarely has a single objective. Inventory cost, service level, volatility, and execution burden can move in different directions. Rolling-horizon decision models provide a natural connection between forecast updates and finite-horizon planning decisions \citep{sethi1991rolling}. The contribution here is not a generic multi-objective optimizer. It is a structured operational planning evaluation framework in which forecast-driven plans are compared against execution-capacity constraints and normalized relative to an accuracy-first baseline.
 
 \subsection{Supply-Chain Execution Risk and Planning Stability}
 
-Supply-chain execution risk, planning nervousness, and plan volatility are central to the gap studied in this paper. Downstream operations may be unable to absorb large changes in inventory targets, replenishment quantities, transportation commitments, or staffing plans. This paper connects forecast-driven model selection to measurable execution feasibility by using supply-chain execution evidence to define scenario weights and by evaluating planning volatility and execution violations directly.
-
-% TODO: cite supply-chain execution risk, planning nervousness, and volatility literature.
+Supply-chain execution risk, planning nervousness, and plan volatility are central to the gap studied in this paper. Early industrial-dynamics work emphasized that operational systems can amplify instability when information and material flows respond with delays or constraints \citep{forrester1961industrial}. Advanced planning systems similarly separate planning, coordination, and execution layers in supply-chain software and governance \citep{stadtler2015advanced}. Downstream operations may be unable to absorb large changes in inventory targets, replenishment quantities, transportation commitments, or staffing plans. This paper connects forecast-driven model selection to measurable execution feasibility by using supply-chain execution evidence to define scenario weights and by evaluating planning volatility and execution violations directly.

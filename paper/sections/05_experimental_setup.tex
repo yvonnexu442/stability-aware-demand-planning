@@ -78,7 +78,7 @@ The analysis compares accuracy-first, stability-first, ensemble-based, smoothing
 
 \subsection{Evaluation Metrics}
 
-The evaluation reports WAPE, inventory cost, planning volatility, execution penalty, execution violation rate, model-switching burden, normalized total loss, gap to the Realized-Inventory Oracle DP, and gap to the Realized Demand Oracle. WAPE is reported as a diagnostic forecast metric and is not part of the default operational planning objective. Normalized planning loss is reported relative to the accuracy-first BestAccuracy or Global Best baseline within the same run mode and split. Raw metrics remain visible in the result tables so that normalized rankings do not hide the underlying tradeoffs.
+The evaluation reports WAPE, inventory cost, planning volatility, execution penalty, execution violation rate, model-switching burden, normalized total loss, gap to the Realized-Inventory Oracle DP, and gap to the Realized Demand Oracle. The benchmark ladder also includes a Full-Outcome Oracle DP where available; this non-deployable diagnostic uses realized test forecast error and realized inventory outcome over the same candidate forecasts. WAPE is reported as a diagnostic forecast metric and is not part of the default operational planning objective. Normalized planning loss is reported relative to the accuracy-first BestAccuracy or Global Best baseline within the same run mode and split. Raw metrics remain visible in the result tables so that normalized rankings do not hide the underlying tradeoffs.
 
 \subsection{Planning Parameters}
 
@@ -144,6 +144,8 @@ This mapping is configurable and intended as a data-informed sensitivity design,
 
 These scenarios should be interpreted as data-informed sensitivity weights, not as exact economic cost calibrations for Favorita or M5. When DataCo anchors are unavailable, the pipeline records fallback usage and applies configured default scenario values.
 
+Because public demand-planning datasets do not observe internal execution-capacity limits, DataCo is used as an external execution-risk anchor. Late-delivery behavior is not identical to inventory execution violation, but both represent downstream operational inability to absorb or fulfill planning commitments. The analysis therefore transfers the empirical heterogeneity of execution risk, not exact dollar costs.
+
 \subsection{Data Leakage Prevention}
 
 All selectors explicitly prevent test-period outcomes from influencing model selection decisions:
@@ -151,7 +153,7 @@ All selectors explicitly prevent test-period outcomes from influencing model sel
 \begin{itemize}
     \item \textbf{Deployable selectors} (Greedy, DP, Budgeted-DP): Use validation-calibrated expected losses and forecast-implied planning signals. Test-period actual outcomes are never accessed.
 
-    \item \textbf{Oracle selectors} (Realized-Inventory Oracle, Realized-Demand Oracle): Explicitly marked non-deployable. Used only as diagnostic upper bounds. Test outcomes are accessed only after selection to measure gap to unrealistic oracles.
+    \item \textbf{Oracle selectors} (Realized-Inventory Oracle, Full-Outcome Oracle, Realized-Demand Oracle): Explicitly marked non-deployable. Used only as diagnostic upper bounds. Test outcomes are accessed only after selection to measure gap to unrealistic oracles.
 
     \item \textbf{Time-split validation}: Training features and rolling statistics computed on train-only and validation-only data; test-period statistics computed only on test actuals after deployment.
 \end{itemize}
@@ -184,6 +186,10 @@ The Walmart robustness pass includes three components:
 \end{itemize}
 
 Walmart results are reported as business-context robustness evidence. Final interpretation will be written after reviewing the generated robustness tables and figures.
+
+\subsection{Switch-Budget Sensitivity}
+
+The hard switch budget $K$ is configurable and can be swept using the switch-budget sensitivity runner. This analysis reruns Budgeted DP under multiple values of $K$ while keeping the remaining planning objective fixed. The purpose is to test whether the allowed number of model switches controls the accuracy-feasibility tradeoff smoothly, not to choose $K$ after seeing test outcomes.
 
 \subsection{Validation and Cross-Validation Design}
 

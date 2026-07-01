@@ -113,6 +113,16 @@ Let $C_{i,t}$ denote execution capacity, defined as the maximum plan change the 
 
 This penalty captures the planning-infrastructure gap. It becomes positive when the forecast or planning signal changes faster than execution infrastructure can absorb. In practical terms, the forecasting layer may update rapidly, while procurement, staffing, production, transportation, software systems, or planner workflows may only absorb smaller or slower changes.
 
+The paper-facing planning-execution gap rate is the fraction of periods in which a strategy produces a positive execution violation:
+\begin{equation}
+    \mathrm{PEG}(s)
+    =
+    \frac{1}{T}
+    \sum_{t=1}^{T}
+    \mathbb{I}\{\mathrm{EV}_{t}(s) > 0\},
+\end{equation}
+where $\mathrm{EV}_{t}(s)$ is the execution violation of strategy $s$ in period $t$. The empirical tables retain the implementation metric \texttt{execution\_violation\_rate} and expose \texttt{planning\_execution\_gap\_rate} as the paper-facing interpretation.
+
 \subsection{Multi-objective Planning Loss}
 
 The project evaluates planning utility through a multi-objective loss:
@@ -139,7 +149,7 @@ where $\ell_{i,t}$ includes expected inventory cost, planning volatility, model-
 \begin{equation}
     \sum_{t=2}^{T}\mathbb{I}\{z_{i,t} \neq z_{i,t-1}\} \leq K.
 \end{equation}
-Deployable DP selectors use validation-derived expected costs and forecast-implied planning signals. Realized test demand is not used for deployable DP selection. If realized test demand is used in a future DP variant, the result must be labeled as an Oracle diagnostic.
+Deployable DP selectors use validation-derived expected costs and forecast-implied planning signals. Realized test demand is not used for deployable DP selection. When realized test-period forecast error or inventory outcomes are used by Oracle DP variants, the resulting strategies are explicitly labeled as non-deployable diagnostics.
 
 \subsection{Normalized Planning Loss}
 

@@ -101,6 +101,7 @@ WALMART_STRATEGY_ORDER = [
     "dp_feasibility_selector",
     "budgeted_dp_feasibility_selector",
     "oracle_dp_feasibility_selector",
+    "full_outcome_oracle_dp_feasibility_selector",
     "oracle_realized_demand",
 ]
 

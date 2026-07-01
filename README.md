@@ -157,12 +157,12 @@ the manuscript workflow.
 ### LaTeX Paper Drafting Mode
 
 The manuscript has moved from placeholder structure to an integrated LaTeX draft
-using the current DataCo, Favorita, and M5 outputs. The draft frames operational
-demand planning as feasibility-constrained model selection, keeps Related Work
-citation-light with TODO placeholders, uses generated tables and figures where
-available, and preserves Walmart and Rossmann as future robustness extensions.
-A standalone `paper/full_draft_snapshot.tex` file provides a single-file review
-snapshot of the current paper narrative.
+using the current DataCo, Favorita, M5, and Walmart outputs. The draft frames operational
+demand planning as feasibility-constrained model selection, includes an initial
+verified Related Work citation set, uses generated tables and figures where
+available, and preserves Rossmann as a future robustness extension.
+The `paper/full_draft_snapshot.tex` file is a synchronized review build that
+imports the current manuscript sections.
 
 ### Finite-Horizon Decision Layer
 
@@ -175,9 +175,12 @@ selectors use validation-derived expected costs and forecast-implied planning
 signals; realized test demand remains reserved for Oracle-labeled diagnostics.
 The Realized-Inventory Oracle DP is non-deployable and uses period-specific
 realized test inventory outcomes as an information-access upper bound, not as a
-perfect-forecast oracle. Budgeted DP keeps an incumbent-stays fallback for
-pipeline safety when no budget-feasible path remains; fallback rows are
-diagnostic and are explicitly marked in output metadata.
+perfect-forecast oracle. The Full-Outcome Oracle DP adds a stronger
+non-deployable benchmark that uses realized test forecast error and realized
+inventory outcomes over the same forecast candidates. Budgeted DP keeps an
+incumbent-stays fallback for pipeline safety when no budget-feasible path
+remains; fallback rows are diagnostic and are explicitly marked in output
+metadata.
 
 ### Decision-Layer Audit and Oracle Semantics
 
@@ -325,10 +328,48 @@ history-plus-context feature sets, evaluates holiday and markdown stress
 windows, and applies weekly cadence constraints. Medium mode is supported, while
 full mode is disabled by default in `configs/default.yaml`.
 
+## Unified Experiment Entry Points
+
+Run one current module through the stable wrapper:
+
+```bash
+PYTHONPATH=src:scripts python3 scripts/run_single_experiment.py walmart --run-mode quick
+PYTHONPATH=src:scripts python3 scripts/run_single_experiment.py switch_budget --dataset walmart --run-mode quick
+PYTHONPATH=src:scripts python3 scripts/run_single_experiment.py thesis_quantification
+```
+
+Preview the full command sequence without running it:
+
+```bash
+PYTHONPATH=src:scripts python3 scripts/run_all_experiments.py --dry-run
+```
+
+Run quick-mode modules in sequence:
+
+```bash
+PYTHONPATH=src:scripts python3 scripts/run_all_experiments.py --run-mode quick --continue-on-error
+```
+
+Switch-budget sensitivity can also be run directly:
+
+```bash
+PYTHONPATH=src:scripts python3 scripts/run_switch_budget_sensitivity.py \
+  --dataset walmart \
+  --run-mode quick \
+  --k-values 0 1 2 4 8
+```
+
+Thesis-level summary tables can be refreshed from the current result CSV files:
+
+```bash
+PYTHONPATH=src python3 scripts/run_thesis_quantification.py
+```
+
 ## Current Status
 
 The current implementation contains the core planning-stability modules, the
 LaTeX paper workflow, DataCo execution-risk calibration, Favorita proof-of-
 concept and method-improvement pipelines, M5 hierarchy/intermittency
-robustness, and Walmart business-context robustness. Rossmann remains a future
-extension.
+robustness, Walmart business-context robustness, and a thesis-quantification
+layer that summarizes accuracy-ranking mismatch, planning-execution gap rate,
+Greedy-vs-DP value, and split Oracle gaps. Rossmann remains a future extension.

@@ -1,10 +1,21 @@
 \section{Results}
 
-The results report WAPE as a diagnostic forecast metric. The default normalized planning objective excludes direct forecast-error terms and combines inventory exposure, planning volatility, execution burden, and model-switching burden. Oracle gaps are reported in two forms: gap to the Realized-Inventory Oracle DP, which isolates non-deployable model-selection information over the same forecast candidates, and gap to the Realized Demand Oracle, which also reflects forecast uncertainty.
+The results report WAPE as a diagnostic forecast metric. The default normalized planning objective excludes direct forecast-error terms and combines inventory exposure, planning volatility, execution burden, and model-switching burden. Oracle gaps are reported in two forms: gap to the Realized-Inventory Oracle DP, which isolates non-deployable model-selection information over the same forecast candidates, and gap to the Realized Demand Oracle, which also reflects forecast uncertainty. The codebase also includes a Full-Outcome Oracle DP benchmark for explicit forecast-error sensitivity settings; final result tables will be regenerated before any claims are made from that benchmark.
+
+\subsection{Thesis-Level Quantification}
+
+The thesis-quantification pass summarizes the empirical bridge between forecast accuracy and deployable planning utility. Table~\ref{tab:thesis-accuracy-ranking-mismatch} reports how often the deployable method with the best WAPE differs from the deployable method with the lowest normalized operational loss within each evaluation group. Table~\ref{tab:thesis-planning-execution-gap-summary} reports the planning-execution gap rate, defined as the fraction of periods with positive execution violation. Table~\ref{tab:thesis-greedy-vs-dp-summary} reports the value of finite-horizon DP relative to one-step greedy selection where both selectors are available. Table~\ref{tab:thesis-quantification-summary} integrates these quantities with the split Oracle gaps. These tables are generated directly from the current output CSV files and should be regenerated whenever experiment tables are refreshed.
+
+\input{tables/thesis_accuracy_ranking_mismatch_table.tex}
+\input{tables/thesis_planning_execution_gap_summary_table.tex}
+\input{tables/thesis_greedy_vs_dp_summary_table.tex}
+\input{tables/thesis_quantification_summary_table.tex}
 
 \subsection{Result 1: Execution Feasibility Is Empirically Measurable}
 
 The DataCo analysis shows that execution risk is observable in public supply-chain execution data. The generated calibration table reports a global late-delivery rate of 0.548, with context-level late-delivery-rate percentiles of 0.535 at the 30th percentile, 0.552 at the median, 0.581 at the 75th percentile, and 0.901 at the 95th percentile. These values are not interpreted as direct economic costs for the retail demand datasets. They are used to construct data-informed execution-risk sensitivity scenarios.
+
+DataCo is therefore an execution-risk scenario anchor rather than an exact cost-calibration source. The paper transfers the observed heterogeneity of late-delivery risk into relative execution-risk regimes; it does not claim that a DataCo late-delivery percentage is the dollar cost of an inventory execution violation in Favorita, M5, or Walmart.
 
 \input{tables/dataco_execution_risk_percentiles_table.tex}
 
@@ -152,7 +163,7 @@ Holiday, markdown, and weekly-cadence stress outputs are retained as supplementa
 
 \subsection{Supplementary Sensitivity Outputs}
 
-Several supplementary outputs remain useful for robustness review. The execution-capacity stress test, weight-sensitivity analysis, Pareto analysis, sample-size reproducibility outputs, and M5 DataCo-scenario robustness table are retained as paper-ready assets. The final manuscript may move some of these tables to an appendix after the Walmart and Rossmann robustness decision is made.
+Several supplementary outputs remain useful for robustness review. The execution-capacity stress test, weight-sensitivity analysis, Pareto analysis, sample-size reproducibility outputs, M5 DataCo-scenario robustness table, and Walmart stress-window assets are retained as paper-ready outputs. The final manuscript may move some of these tables to an appendix after the empirical scope is narrowed for submission.
 
 \input{tables/execution_capacity_stress_test.tex}
 \input{tables/weight_sensitivity_results.tex}

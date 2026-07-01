@@ -1,0 +1,18 @@
+source_table,dataset_name,evaluation_group_count,accuracy_first_planning_execution_gap_rate,best_deployable_planning_execution_gap_rate,relative_gap_reduction,accuracy_first_examples,best_deployable_examples
+overall,all,113,0.157,0.028,0.458,multiple,multiple
+execution_capacity_stress_test,favorita,4,0.412,0.112,0.76,Global Best,Simple Ensemble; Best Stability
+favorita_baseline_weights_comparison,favorita,1,0.284,0.066,0.766,Global Best,Simple Ensemble
+favorita_dataco_informed_weight_sensitivity,favorita,5,0.284,0.066,0.766,Global Best,Simple Ensemble
+favorita_improved_feasibility_methods,favorita,5,0.042,0.08,-0.909,Smoothed Alpha 0.50; Scenario Alpha,Simple Ensemble; Operational Ensemble
+favorita_method_family_summary,favorita,5,0.0,0.08,,Utility Alpha,Simple Ensemble; Operational Ensemble
+m5_dataco_scenario_robustness,m5,5,0.233,0.01,0.955,Simple Ensemble,Smoothed Alpha 0.25
+m5_hierarchy_sensitivity,m5,3,0.143,0.058,0.433,Simple Ensemble; Operational Ensemble,Operational Ensemble; Smoothed Alpha 0.25
+m5_intermittent_demand_stress,m5,3,0.233,0.01,0.97,Simple Ensemble,Smoothed Alpha 0.25
+m5_large_scale_replication,m5,1,0.233,0.01,0.955,Simple Ensemble,Smoothed Alpha 0.25
+m5_robustness_summary,m5,10,0.206,0.025,0.803,Simple Ensemble; Operational Ensemble,Smoothed Alpha 0.25; Operational Ensemble
+pareto_summary,favorita,1,0.284,0.066,0.766,Global Best,Simple Ensemble
+walmart_context_robustness_summary,walmart,10,0.02,0.013,0.03,Global Best; DP Feasibility,Budgeted DP; Global Best
+walmart_holiday_markdown_stress_by_window,walmart,8,0.017,0.014,-0.097,Global Best; DP Feasibility,Budgeted DP; Global Best
+walmart_robustness_summary,walmart,20,0.02,0.015,-0.024,Global Best; DP Feasibility,Budgeted DP; Global Best
+walmart_weekly_cadence_constraints,walmart,2,0.029,0.029,0.0,Global Best,Global Best
+weight_sensitivity_results,favorita,30,0.284,0.013,0.953,Global Best,Best Stability; Simple Ensemble

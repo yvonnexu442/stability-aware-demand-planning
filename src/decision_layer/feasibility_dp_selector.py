@@ -396,6 +396,86 @@ class OracleDPFeasibilitySelector(DPFeasibilitySelector):
         return 0.0
 
 
+class FullOutcomeOracleDPFeasibilitySelector(OracleDPFeasibilitySelector):
+    """Non-deployable DP selector with realized test forecast and inventory outcomes.
+
+    This is the strongest candidate-model oracle in the benchmark ladder. It is
+    still constrained to choose among the supplied forecast candidates, but its
+    stage cost can use realized test-period forecast error and realized
+    inventory outcome information. It is therefore not deployable and should be
+    used only as an upper-bound diagnostic.
+
+    Under the repository's default objective, ``alpha_forecast=0.0``, so the
+    realized forecast-error term is diagnostic unless an explicit sensitivity
+    setting gives it positive weight.
+    """
+
+    ORACLE_LABEL = "[FULL-OUTCOME ORACLE DP - non-deployable]"
+    ORACLE_TYPE = "full_outcome_oracle"
+
+    def __init__(
+        self,
+        expected_losses: Mapping[LossKey, Mapping[str, float]],
+        realized_inventory_costs: Mapping[Tuple[Any, ...], float],
+        realized_forecast_losses: Mapping[Tuple[Any, ...], float],
+        global_expected_losses: Optional[Mapping[str, Mapping[str, float]]] = None,
+        weights: Optional[Mapping[str, float]] = None,
+        switch_penalty: float = 0.02,
+        max_plan_change_rate: float = 0.20,
+        calibration_group_column: str = "series_id",
+        strategy_name: str = "full_outcome_oracle_dp_feasibility_selector",
+    ) -> None:
+        super().__init__(
+            expected_losses=expected_losses,
+            realized_inventory_costs=realized_inventory_costs,
+            global_expected_losses=global_expected_losses,
+            weights=weights,
+            switch_penalty=switch_penalty,
+            max_plan_change_rate=max_plan_change_rate,
+            calibration_group_column=calibration_group_column,
+            strategy_name=strategy_name,
+        )
+        self.realized_forecast_losses = dict(realized_forecast_losses)
+
+    def _base_expected_cost(self, row: pd.Series) -> float:
+        """Use realized forecast error and inventory outcome for one stage."""
+        model_name = str(row["model_name"])
+        calibration_group = str(row.get(self.calibration_group_column, row.get("series_id", "global")))
+        realized_inventory = self._period_realized_inventory_cost(row, model_name, calibration_group)
+        realized_forecast = self._period_realized_forecast_loss(row, model_name, calibration_group)
+        return (
+            planning_loss_weight(self.weights, "alpha_forecast") * float(realized_forecast)
+            + planning_loss_weight(self.weights, "beta_inventory") * float(realized_inventory)
+        )
+
+    def _period_realized_forecast_loss(
+        self,
+        row: pd.Series,
+        model_name: str,
+        calibration_group: str,
+    ) -> float:
+        """Return period-specific realized forecast loss for one candidate."""
+        series_id = str(row.get("series_id", calibration_group))
+        date_value = _normalized_date_key(row.get("date", None))
+        lookup_keys = [
+            (series_id, model_name, date_value),
+            (calibration_group, model_name, date_value),
+            ("global", model_name, date_value),
+            (series_id, model_name),
+            (calibration_group, model_name),
+            ("global", model_name),
+        ]
+        for key in lookup_keys:
+            if key in self.realized_forecast_losses:
+                return float(self.realized_forecast_losses[key])
+
+        losses = self.expected_losses.get(
+            (calibration_group, model_name),
+            self.global_expected_losses.get(model_name, self.expected_losses.get(("global", model_name), {})),
+        )
+        return float(losses.get("wape", 1.0))
+
+
 def _period_candidates(period_frame: pd.DataFrame) -> List[pd.Series]:
     """Return deterministic candidate rows for a single period."""
     return [

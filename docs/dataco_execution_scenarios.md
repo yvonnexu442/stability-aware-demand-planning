@@ -4,6 +4,8 @@ DataCo is used to measure execution risk through late delivery behavior. The dat
 
 The project uses DataCo to construct data-informed execution-risk scenarios rather than to directly estimate the exact economic cost of execution violations in the demand-planning datasets. Global and context-level late delivery rates provide evidence that execution feasibility varies across supply-chain conditions, and percentile anchors from the context-level distribution are mapped to `lambda_execution` values through a transparent configurable formula.
 
+Because public demand-planning datasets do not observe internal execution-capacity limits, DataCo is used as an external execution-risk anchor. Late-delivery behavior is not identical to inventory execution violation, but both represent downstream operational inability to absorb or fulfill planning commitments. The scenario transfer therefore uses the empirical heterogeneity of execution risk, not exact dollar costs.
+
 Configured values are used only as fallbacks when DataCo-derived anchors are unavailable. Any generated values should be interpreted as dataset-derived sensitivity weights, not universal late-delivery rates or exact economic estimates.
 
 The purpose of these scenarios is to test whether the preferred demand-planning strategy changes when execution burden becomes more important.

@@ -40,6 +40,10 @@
 - `paper/tables/m5_robustness_summary_table.tex`
 - `paper/tables/normalization_reference_values_table.tex`
 - `paper/tables/pareto_summary.tex`
+- `paper/tables/thesis_accuracy_ranking_mismatch_table.tex`
+- `paper/tables/thesis_greedy_vs_dp_summary_table.tex`
+- `paper/tables/thesis_planning_execution_gap_summary_table.tex`
+- `paper/tables/thesis_quantification_summary_table.tex`
 - `paper/tables/weight_sensitivity_results.tex`
 - `paper/tables/walmart_context_aware_vs_context_free_comparison_table.tex`
 - `paper/tables/walmart_context_robustness_summary_table.tex`

@@ -1,0 +1,18 @@
+source_table,dataset_name,evaluation_group_count,accuracy_first_not_operational_best_rate,accuracy_first_normalized_loss,operational_best_normalized_loss,mean_accuracy_first_loss_gap,median_accuracy_first_loss_gap,accuracy_first_examples,operational_best_examples
+overall,all,113,0.912,13.943,1.8,12.143,7.23,multiple,multiple
+execution_capacity_stress_test,favorita,4,1.0,2.5,1.619,0.881,0.881,Global Best,Simple Ensemble; Best Stability
+favorita_baseline_weights_comparison,favorita,1,1.0,2.5,1.517,0.983,0.983,Global Best,Simple Ensemble
+favorita_dataco_informed_weight_sensitivity,favorita,5,1.0,1.807,1.456,0.35,0.368,Global Best,Simple Ensemble
+favorita_improved_feasibility_methods,favorita,5,1.0,1.861,1.454,0.407,0.45,Smoothed Alpha 0.50; Scenario Alpha,Simple Ensemble; Operational Ensemble
+favorita_method_family_summary,favorita,5,1.0,1.836,1.454,0.382,0.377,Utility Alpha,Simple Ensemble; Operational Ensemble
+m5_dataco_scenario_robustness,m5,5,1.0,2.524,1.168,1.355,1.421,Simple Ensemble,Smoothed Alpha 0.25
+m5_hierarchy_sensitivity,m5,3,0.667,2.458,1.22,1.237,0.0,Simple Ensemble; Operational Ensemble,Operational Ensemble; Smoothed Alpha 0.25
+m5_intermittent_demand_stress,m5,3,1.0,6.986,1.203,5.783,5.236,Simple Ensemble,Smoothed Alpha 0.25
+m5_large_scale_replication,m5,1,1.0,4.935,1.223,3.712,3.712,Simple Ensemble,Smoothed Alpha 0.25
+m5_robustness_summary,m5,10,0.9,3.932,1.189,2.743,1.741,Simple Ensemble; Operational Ensemble,Smoothed Alpha 0.25; Operational Ensemble
+pareto_summary,favorita,1,1.0,2.5,1.517,0.983,0.983,Global Best,Simple Ensemble
+walmart_context_robustness_summary,walmart,10,0.9,1.381,1.302,0.079,0.035,Global Best; DP Feasibility,Budgeted DP; Global Best
+walmart_holiday_markdown_stress_by_window,walmart,8,0.875,1.212,1.195,0.017,0.013,Global Best; DP Feasibility,Budgeted DP; Global Best
+walmart_robustness_summary,walmart,20,0.8,1.295,1.249,0.046,0.019,Global Best; DP Feasibility,Budgeted DP; Global Best
+walmart_weekly_cadence_constraints,walmart,2,0.0,1.2,1.2,0.0,0.0,Global Best,Global Best
+weight_sensitivity_results,favorita,30,1.0,46.533,3.195,43.339,25.359,Global Best,Best Stability; Simple Ensemble

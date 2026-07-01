@@ -142,6 +142,14 @@ execution_penalty = max(0, abs(x_i,t - x_i,t-1) - C_i,t)
 
 The execution penalty captures the planning-infrastructure gap. It becomes positive when the forecast or planning signal changes faster than execution infrastructure can absorb. In practical terms, the forecast layer may be capable of adapting every day, while procurement, staffing, production, transportation, or software infrastructure may only absorb smaller or slower changes.
 
+The paper-facing planning-execution gap rate is the fraction of evaluated periods in which the execution violation is positive:
+
+```text
+PEG(s) = (1 / T) * sum_t 1{EV_t(s) > 0}
+```
+
+where `EV_t(s)` is the execution violation for strategy `s` in period `t`. In output tables this quantity is reported as `planning_execution_gap_rate`, with `execution_violation_rate` retained as the implementation-level metric name.
+
 ## Finite-Horizon DP and Oracle Semantics
 
 The deployable DP selector minimizes cumulative expected operational loss over a finite horizon using validation-derived expected forecast and inventory costs:
@@ -165,6 +173,8 @@ The Realized-Inventory Oracle DP is non-deployable. It replaces the deployable e
 ```
 
 This oracle is not a perfect-forecast oracle. It measures the upper-bound value of knowing future inventory outcomes, not the value of knowing future demand exactly.
+
+The Full-Outcome Oracle DP is a stronger non-deployable diagnostic over the same candidate forecasts. It uses period-specific realized forecast error and realized inventory outcome cost keyed by `(series_id, model_name, date)`. It remains constrained to the supplied forecast candidates and therefore is not the same object as the Realized Demand Oracle. Under the default objective, `alpha_forecast = 0.0`, so the realized forecast-error term affects the Full-Outcome Oracle only in explicit forecast-error sensitivity settings.
 
 ## Reporting Requirements
 

@@ -6,6 +6,7 @@ import pandas as pd
 from decision_layer.feasibility_dp_selector import (
     BudgetedDPFeasibilitySelector,
     DPFeasibilitySelector,
+    FullOutcomeOracleDPFeasibilitySelector,
     GreedyFeasibilitySelector,
     OracleDPFeasibilitySelector,
 )
@@ -171,6 +172,36 @@ class FeasibilityDPSelectorTest(unittest.TestCase):
         selected = oracle.select(self.candidates)
 
         self.assertEqual(selected["selected_model"].tolist(), ["A", "B"])
+
+    def test_full_outcome_oracle_uses_realized_forecast_losses(self):
+        oracle = FullOutcomeOracleDPFeasibilitySelector(
+            expected_losses=self.expected_losses,
+            realized_inventory_costs={
+                ("item_1", "A", pd.Timestamp("2026-01-01")): 0.0,
+                ("item_1", "B", pd.Timestamp("2026-01-01")): 0.0,
+                ("item_1", "A", pd.Timestamp("2026-01-02")): 0.0,
+                ("item_1", "B", pd.Timestamp("2026-01-02")): 0.0,
+            },
+            realized_forecast_losses={
+                ("item_1", "A", pd.Timestamp("2026-01-01")): 0.0,
+                ("item_1", "B", pd.Timestamp("2026-01-01")): 10.0,
+                ("item_1", "A", pd.Timestamp("2026-01-02")): 0.0,
+                ("item_1", "B", pd.Timestamp("2026-01-02")): 10.0,
+            },
+            weights={
+                "alpha_forecast": 1.0,
+                "beta_inventory": 0.0,
+                "lambda_volatility": 0.0,
+                "lambda_switch": 0.0,
+                "lambda_execution": 0.0,
+            },
+            switch_penalty=0.0,
+            calibration_group_column="series_id",
+        )
+
+        selected = oracle.select(self.candidates)
+
+        self.assertEqual(selected["selected_model"].tolist(), ["A", "A"])
 
     def test_deployable_selectors_reject_test_actual(self):
         selector = DPFeasibilitySelector(

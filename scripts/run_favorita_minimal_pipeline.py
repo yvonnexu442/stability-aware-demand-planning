@@ -26,6 +26,7 @@ from data_loaders.dataco_loader import load_dataco_orders
 from decision_layer.feasibility_dp_selector import (
     BudgetedDPFeasibilitySelector,
     DPFeasibilitySelector,
+    FullOutcomeOracleDPFeasibilitySelector,
     GreedyFeasibilitySelector,
     OracleDPFeasibilitySelector,
 )
@@ -84,6 +85,7 @@ PAPER_STRATEGY_ORDER = [
     "individual_global_xgboost",
     "individual_moving_average",
     "oracle_dp_feasibility_selector",
+    "full_outcome_oracle_dp_feasibility_selector",
     "oracle_realized_demand",
 ]
 
@@ -99,6 +101,7 @@ BASELINE_COMPARISON_STRATEGIES = [
     "best_inventory_cost_model",
     "best_stability_model",
     "oracle_dp_feasibility_selector",
+    "full_outcome_oracle_dp_feasibility_selector",
     "oracle_realized_demand",
 ]
 
@@ -122,6 +125,7 @@ IMPROVED_METHOD_COMPARISON_STRATEGIES = [
     "best_inventory_cost_model",
     "best_stability_model",
     "oracle_dp_feasibility_selector",
+    "full_outcome_oracle_dp_feasibility_selector",
     "oracle_realized_demand",
 ]
 
@@ -732,8 +736,16 @@ def _build_decision_outputs(
         test_forecasts,
         key_columns=("date", "series_id"),
     )
+    full_outcome_oracle_decisions = attach_actuals_for_evaluation(
+        _full_outcome_oracle_dp_selection(deployable_test_forecasts, test_forecasts, forecasts, modeling_table, forecast_metrics, config),
+        test_forecasts,
+        key_columns=("date", "series_id"),
+    )
     oracle_decisions = _oracle_realized_demand_selection(test_forecasts)
-    selected_decisions = pd.concat([deployable_decisions, oracle_dp_decisions, oracle_decisions], ignore_index=True)
+    selected_decisions = pd.concat(
+        [deployable_decisions, oracle_dp_decisions, full_outcome_oracle_decisions, oracle_decisions],
+        ignore_index=True,
+    )
     return _evaluate_selected_decisions(selected_decisions, config)
 
 
@@ -1118,6 +1130,33 @@ def _oracle_dp_feasibility_selection(
     return selector.select(test_forecasts)
 
 
+def _full_outcome_oracle_dp_selection(
+    test_forecasts: pd.DataFrame,
+    test_forecasts_with_actual: pd.DataFrame,
+    all_forecasts: pd.DataFrame,
+    modeling_table: pd.DataFrame,
+    forecast_metrics: pd.DataFrame,
+    config: Mapping[str, object],
+) -> pd.DataFrame:
+    """Select non-deployable Full-Outcome Oracle DP path."""
+    require_no_future_outcomes(test_forecasts, "_full_outcome_oracle_dp_selection")
+    expected_losses, global_expected_losses = _favorita_dp_expected_losses(all_forecasts, modeling_table, forecast_metrics, config)
+    realized_inventory_costs = _realized_inventory_costs_by_family_model(test_forecasts_with_actual, config)
+    realized_forecast_losses = _realized_forecast_losses_by_family_model(test_forecasts_with_actual)
+    selector = FullOutcomeOracleDPFeasibilitySelector(
+        expected_losses=expected_losses,
+        realized_inventory_costs=realized_inventory_costs,
+        realized_forecast_losses=realized_forecast_losses,
+        global_expected_losses=global_expected_losses,
+        weights=config.get("planning_loss_weights", {}),
+        switch_penalty=_selector_switch_penalty(config),
+        max_plan_change_rate=_selector_max_plan_change_rate(config),
+        calibration_group_column="family",
+        strategy_name="full_outcome_oracle_dp_feasibility_selector",
+    )
+    return selector.select(test_forecasts)
+
+
 def _favorita_dp_expected_losses(
     all_forecasts: pd.DataFrame,
     modeling_table: pd.DataFrame,
@@ -1251,6 +1290,35 @@ def _realized_inventory_costs_by_family_model(
     for model_name, group in frame.groupby("model_name"):
         realized_costs[("global", str(model_name))] = float(group["realized_inventory_cost"].mean())
     return realized_costs
+
+
+def _realized_forecast_losses_by_family_model(test_forecasts: pd.DataFrame) -> Dict[Tuple[object, ...], float]:
+    """Return period-specific realized forecast losses for Full-Outcome Oracle DP."""
+    frame = test_forecasts.copy()
+    frame["date"] = pd.to_datetime(frame["date"])
+    actual = pd.to_numeric(frame["actual"], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+    forecast = pd.to_numeric(frame["forecast"], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+    frame["realized_forecast_loss"] = np.abs(actual - forecast) / np.maximum(np.abs(actual), 1.0)
+
+    realized_losses: Dict[Tuple[object, ...], float] = {}
+    for row in frame.itertuples(index=False):
+        realized_losses[(str(row.series_id), str(row.model_name), pd.Timestamp(row.date))] = float(row.realized_forecast_loss)
+
+    for (family, model_name, date), group in frame.groupby(["family", "model_name", "date"]):
+        realized_losses[(str(family), str(model_name), pd.Timestamp(date))] = float(group["realized_forecast_loss"].mean())
+
+    for (model_name, date), group in frame.groupby(["model_name", "date"]):
+        realized_losses[("global", str(model_name), pd.Timestamp(date))] = float(group["realized_forecast_loss"].mean())
+
+    for (series_id, model_name), group in frame.groupby(["series_id", "model_name"]):
+        realized_losses[(str(series_id), str(model_name))] = float(group["realized_forecast_loss"].mean())
+
+    for (family, model_name), group in frame.groupby(["family", "model_name"]):
+        realized_losses[(str(family), str(model_name))] = float(group["realized_forecast_loss"].mean())
+
+    for model_name, group in frame.groupby("model_name"):
+        realized_losses[("global", str(model_name))] = float(group["realized_forecast_loss"].mean())
+    return realized_losses
 
 
 def _global_validation_expected_planning_losses(
@@ -2917,7 +2985,7 @@ def _method_family_from_strategy(strategy: str) -> str:
         return "FeasibilityAwareEnsemble"
     if strategy == "simple_ensemble":
         return "ReferenceEnsemble"
-    if strategy in {"oracle_dp_feasibility_selector", "oracle_realized_demand"}:
+    if strategy in {"oracle_dp_feasibility_selector", "full_outcome_oracle_dp_feasibility_selector", "oracle_realized_demand"}:
         return "Oracle"
     return "Baseline"
 
@@ -3812,6 +3880,7 @@ def _improved_plot_strategies() -> List[str]:
         "feasibility_aware_ensemble_constrained",
         "best_stability_model",
         "oracle_dp_feasibility_selector",
+        "full_outcome_oracle_dp_feasibility_selector",
         "oracle_realized_demand",
     ]
 
@@ -4429,6 +4498,7 @@ def _short_strategy_label(strategy: str) -> str:
         "feasibility_aware_ensemble_inverse_operational_loss": "Operational Ensemble",
         "feasibility_aware_ensemble_constrained": "Constrained Ensemble",
         "oracle_dp_feasibility_selector": "Realized-Inventory Oracle DP",
+        "full_outcome_oracle_dp_feasibility_selector": "Full-Outcome Oracle DP",
         "oracle_realized_demand": "Realized Demand Oracle",
     }
     return replacements.get(strategy, strategy.replace("_", " ").title())

@@ -1,0 +1,31 @@
+\begin{table}
+\centering
+\caption{Planning-execution gap rate summary.}
+\label{tab:thesis-planning-execution-gap-summary}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrlllll}
+\toprule
+                                source\_table & dataset\_name &  evaluation\_group\_count & accuracy\_first\_planning\_execution\_gap\_rate & best\_deployable\_planning\_execution\_gap\_rate & relative\_gap\_reduction &                accuracy\_first\_examples &                   best\_deployable\_examples \\
+\midrule
+                                     overall &          all &                     113 &                                      0.157 &                                       0.028 &                  0.458 &                               multiple &                                   multiple \\
+              execution\_capacity\_stress\_test &     favorita &                       4 &                                      0.412 &                                       0.112 &                  0.760 &                            Global Best &            Simple Ensemble; Best Stability \\
+        favorita\_baseline\_weights\_comparison &     favorita &                       1 &                                      0.284 &                                       0.066 &                  0.766 &                            Global Best &                            Simple Ensemble \\
+ favorita\_dataco\_informed\_weight\_sensitivity &     favorita &                       5 &                                      0.284 &                                       0.066 &                  0.766 &                            Global Best &                            Simple Ensemble \\
+       favorita\_improved\_feasibility\_methods &     favorita &                       5 &                                      0.042 &                                       0.080 &                 -0.909 &    Smoothed Alpha 0.50; Scenario Alpha &      Simple Ensemble; Operational Ensemble \\
+              favorita\_method\_family\_summary &     favorita &                       5 &                                      0.000 &                                       0.080 &                        &                          Utility Alpha &      Simple Ensemble; Operational Ensemble \\
+               m5\_dataco\_scenario\_robustness &           m5 &                       5 &                                      0.233 &                                       0.010 &                  0.955 &                        Simple Ensemble &                        Smoothed Alpha 0.25 \\
+                    m5\_hierarchy\_sensitivity &           m5 &                       3 &                                      0.143 &                                       0.058 &                  0.433 &  Simple Ensemble; Operational Ensemble &  Operational Ensemble; Smoothed Alpha 0.25 \\
+               m5\_intermittent\_demand\_stress &           m5 &                       3 &                                      0.233 &                                       0.010 &                  0.970 &                        Simple Ensemble &                        Smoothed Alpha 0.25 \\
+                  m5\_large\_scale\_replication &           m5 &                       1 &                                      0.233 &                                       0.010 &                  0.955 &                        Simple Ensemble &                        Smoothed Alpha 0.25 \\
+                       m5\_robustness\_summary &           m5 &                      10 &                                      0.206 &                                       0.025 &                  0.803 &  Simple Ensemble; Operational Ensemble &  Smoothed Alpha 0.25; Operational Ensemble \\
+                              pareto\_summary &     favorita &                       1 &                                      0.284 &                                       0.066 &                  0.766 &                            Global Best &                            Simple Ensemble \\
+          walmart\_context\_robustness\_summary &      walmart &                      10 &                                      0.020 &                                       0.013 &                  0.030 &            Global Best; DP Feasibility &                   Budgeted DP; Global Best \\
+   walmart\_holiday\_markdown\_stress\_by\_window &      walmart &                       8 &                                      0.017 &                                       0.014 &                 -0.097 &            Global Best; DP Feasibility &                   Budgeted DP; Global Best \\
+                  walmart\_robustness\_summary &      walmart &                      20 &                                      0.020 &                                       0.015 &                 -0.024 &            Global Best; DP Feasibility &                   Budgeted DP; Global Best \\
+          walmart\_weekly\_cadence\_constraints &      walmart &                       2 &                                      0.029 &                                       0.029 &                  0.000 &                            Global Best &                                Global Best \\
+                  weight\_sensitivity\_results &     favorita &                      30 &                                      0.284 &                                       0.013 &                  0.953 &                            Global Best &            Best Stability; Simple Ensemble \\
+\bottomrule
+\end{tabular}
+}
+
+\end{table}

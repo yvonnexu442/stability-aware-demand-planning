@@ -46,6 +46,21 @@ submission-ready.
 - Walmart is treated as a narrow business-context robustness check, not as a new
   forecasting leaderboard.
 
+### Methodology Cleanup
+
+- The decision-layer benchmark ladder now includes a Full-Outcome Oracle DP
+  diagnostic in addition to the Realized-Inventory Oracle DP and Realized Demand
+  Oracle.
+- A switch-budget sensitivity runner is available for studying how the hard
+  budget `K` changes Budgeted-DP behavior.
+- The generic `run_single_experiment.py` and `run_all_experiments.py` entry
+  points now route to current pipeline modules rather than placeholder logs.
+- A thesis-quantification pass now exports paper-ready summaries for accuracy
+  ranking mismatch, planning-execution gap rate, Greedy-vs-DP value, and split
+  Oracle gaps.
+- The bibliography contains an initial verified citation set, but the literature
+  section still needs a deeper submission-quality pass.
+
 ### Rossmann
 
 - Rossmann raw data are available for a future robustness check.

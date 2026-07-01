@@ -6,9 +6,11 @@ import pandas as pd
 
 
 REALIZED_INVENTORY_ORACLE = "oracle_dp_feasibility_selector"
+FULL_OUTCOME_ORACLE = "full_outcome_oracle_dp_feasibility_selector"
 REALIZED_DEMAND_ORACLE = "oracle_realized_demand"
 NON_DEPLOYABLE_STRATEGIES = {
     REALIZED_INVENTORY_ORACLE,
+    FULL_OUTCOME_ORACLE,
     REALIZED_DEMAND_ORACLE,
 }
 
@@ -23,6 +25,8 @@ def strategy_oracle_type(strategy: str) -> str:
     strategy_name = str(strategy)
     if strategy_name == REALIZED_INVENTORY_ORACLE:
         return "realized_inventory_oracle"
+    if strategy_name == FULL_OUTCOME_ORACLE:
+        return "full_outcome_oracle"
     if strategy_name == REALIZED_DEMAND_ORACLE:
         return "perfect_demand_oracle"
     return "none"
