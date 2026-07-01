@@ -1,3 +1,7 @@
+% Legacy results draft retained for reference only.
+% This file is not included by paper/main.tex. The active results section is
+% paper/sections/06_results.tex.
+
 \section{Results}
 
 The results report WAPE as a diagnostic forecast metric. The default normalized planning objective excludes direct forecast-error terms and combines inventory exposure, planning volatility, execution burden, and model-switching burden. Oracle gaps are reported in two forms: gap to the Realized-Inventory Oracle DP, which isolates non-deployable model-selection information over the same forecast candidates, and gap to the Realized Demand Oracle, which also reflects forecast uncertainty.
@@ -165,7 +169,7 @@ The Realized-Inventory Oracle DP provides an upper bound on the value of invento
 
     \item The execution-accuracy tradeoff is bounded: DP achieves $>99.9\%$ execution penalty reduction for $<1.3\%$ accuracy decrease.
 
-    \item Rankings are stable across data sizes (100→500→1000 series), indicating robustness to scale.
+    \item Rankings are stable across data sizes (100 to 500 to 1000 series), indicating robustness to scale.
 
     \item Hard switch budgets (Budgeted DP) are operationally feasible with minimal fallback activation.
 \end{enumerate}

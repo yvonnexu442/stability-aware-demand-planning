@@ -41,6 +41,12 @@
 - `paper/tables/normalization_reference_values_table.tex`
 - `paper/tables/pareto_summary.tex`
 - `paper/tables/weight_sensitivity_results.tex`
+- `paper/tables/walmart_context_aware_vs_context_free_comparison_table.tex`
+- `paper/tables/walmart_context_robustness_summary_table.tex`
+- `paper/tables/walmart_forecast_metrics_table.tex`
+- `paper/tables/walmart_holiday_markdown_stress_by_window_table.tex`
+- `paper/tables/walmart_robustness_summary_table.tex`
+- `paper/tables/walmart_weekly_cadence_constraints_table.tex`
 
 ## Figures
 - `paper/figures/dataco_execution_lambda_scenarios.pdf`
@@ -75,3 +81,9 @@
 - `paper/figures/pareto_inventory_cost_vs_execution_penalty.pdf`
 - `paper/figures/plot_weight_sensitivity_execution_penalty.pdf`
 - `paper/figures/plot_weight_sensitivity_total_loss.pdf`
+- `paper/figures/walmart_budgeted_dp_switching_behavior.pdf`
+- `paper/figures/walmart_context_aware_vs_context_free_tradeoff.pdf`
+- `paper/figures/walmart_context_ranking_shift.pdf`
+- `paper/figures/walmart_weekly_cadence_constraints.pdf`
+- `paper/figures/walmart_window_type_execution_penalty.pdf`
+- `paper/figures/walmart_window_type_normalized_loss.pdf`

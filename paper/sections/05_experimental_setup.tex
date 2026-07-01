@@ -11,11 +11,11 @@ The empirical design assigns distinct roles to the available public datasets. Th
 \end{itemize}
 These empirical rates inform execution-risk sensitivity scenarios applied to downstream planning evaluations.
 
-\paragraph{Favorita (Main Proof-of-Concept).} Favorita is a public grocery sales dataset from Corporación Favorita (Ecuador) covering January 2013--August 2017. It provides weekly sales with product promotion, holiday, oil price, and store-context signals. The analysis dataset structure:
+\paragraph{Favorita (Main Proof-of-Concept).} Favorita is a public grocery sales dataset from Corporacion Favorita (Ecuador) covering January 2013--August 2017. The pipeline treats Favorita as a daily store-family demand-planning panel with product promotion, holiday, oil-price, transaction, and store-context signals. The analysis dataset structure:
 \begin{itemize}
-    \item \textbf{Planning units}: 54 stores $\times$ 33 product families = 1,782 item-store series
+    \item \textbf{Planning units}: 54 stores $\times$ 33 product families = 1,782 store-family series
     \item \textbf{Temporal coverage}: 2013-01-01 to 2017-08-15 (4 years, 8 months)
-    \item \textbf{Train / Validation / Test split}:
+    \item \textbf{Train / Validation / Test split}: chronological daily split with a validation horizon and test horizon of 28 days each.
         \begin{itemize}
             \item Train: 2013-01-01 to 2017-06-20 (4 years 5.5 months)
             \item Validation: 2017-06-21 to 2017-07-18 (28 days)
@@ -24,15 +24,17 @@ These empirical rates inform execution-risk sensitivity scenarios applied to dow
     \item \textbf{Evaluation scales}: Quick mode (100 series sampled), Medium mode (500 series), Full mode (1000 series)
 \end{itemize}
 
-\paragraph{M5 (Hierarchical Robustness).} M5 is a public retail demand dataset from Walmart covering 2011-2016 at daily granularity. It includes a four-level hierarchy: item $\to$ department $\to$ category $\to$ store. Dataset structure:
+\paragraph{M5 (Hierarchical Robustness).} M5 is a public retail demand dataset from Walmart covering 2011-2016 at daily granularity. It contains 3,049 items across 10 stores and supports hierarchy-aware planning views such as item-store, department-store, and category-store. The pipeline samples item-store series for quick and medium robustness runs. Dataset structure:
 \begin{itemize}
-    \item \textbf{Planning units}: 3,049 item-store combinations
+    \item \textbf{Planning units}: sampled item-store series, with aggregated department-store and category-store robustness views
     \item \textbf{Temporal coverage}: 2011-01-29 to 2016-06-30 (5 years, 5 months)
-    \item \textbf{Evaluation scale}: Quick mode (200 series), Medium mode (pending), Full mode (pending)
-    \item \textbf{Intermittency}: 40-50\% of item-store series are zero-demand for extended periods (sparse demand)
+    \item \textbf{Evaluation scale}: quick-mode robustness outputs have been generated; medium and full M5 modes remain optional extensions
+    \item \textbf{Intermittency}: item-store demand can be sparse, so the robustness pass includes explicit intermittency-bucket summaries
 \end{itemize}
 
-\paragraph{Walmart and Rossmann (Future Extensions).} Walmart store-level sales forecasting and Rossmann drug-store sales are available but reserved for future analysis. They are not used to support claims in the current draft.
+\paragraph{Walmart (Business-Context Robustness).} The Walmart Recruiting Store Sales Forecasting dataset is used as a narrow robustness check, not as a new forecasting leaderboard. The analysis treats store-department-week as the planning grain and compares history-only forecasts against forecasts that also use business-context signals such as holidays, markdowns, fuel price, CPI, unemployment, store type, store size, and temperature. The purpose is to test whether weekly business context and cadence constraints alter deployable strategy rankings.
+
+\paragraph{Rossmann (Future Extension).} Rossmann drug-store sales remain reserved for future analysis and are not used to support claims in the current draft.
 
 \subsection{Forecasting Models}
 
@@ -42,8 +44,8 @@ The analysis includes transparent baselines and machine-learning candidates to t
 
 \begin{itemize}
     \item \textbf{Naive Last-Value}: $\hat{y}_{i,t} = y_{i,t-1}$ (lag-1 demand)
-    \item \textbf{Seasonal Naive}: $\hat{y}_{i,t} = y_{i,t-52}$ (lag-52 weeks, annual seasonality)
-    \item \textbf{Moving Average}: $\hat{y}_{i,t} = \text{mean}(y_{i,t-28:t-1})$ (28-week rolling average)
+    \item \textbf{Seasonal Naive}: $\hat{y}_{i,t} = y_{i,t-7}$ (lag-7 daily seasonal baseline)
+    \item \textbf{Moving Average}: $\hat{y}_{i,t} = \text{mean}(y_{i,t-28:t-1})$ (28-day rolling average)
     \item \textbf{Exponential Smoothing}: Holt-Winters method with $\alpha=0.3$ (adaptive smoothing with trend/seasonality)
     \item \textbf{LightGBM}: Gradient boosting with lag features (lags 1, 7, 28) + rolling statistics (mean, std)
     \item \textbf{XGBoost}: Gradient boosting with same feature set as LightGBM
@@ -55,14 +57,19 @@ Transparent baselines are always computed. Machine-learning models (LightGBM, XG
 
 M5 evaluation uses transparent baselines (naive, seasonal naive, moving average, exponential smoothing) to ensure computational feasibility across all hierarchy levels and intermittency stress tests. The baseline-only design reflects a practical constraint: ML models on sparse hierarchical data require careful feature engineering that is deferred to future work.
 
+\subsubsection{Walmart Candidate Forecasts}
+
+Walmart evaluation uses weekly transparent baselines and a lightweight global sklearn model. Two feature sets are compared. The history-only set uses weekly lags, rolling means, rolling standard deviations, exponential smoothing, zero-demand rate, and calendar features. The history-plus-context set adds markdowns, holiday flags, fuel price, CPI, unemployment, store type, store size, and temperature. The context-aware setting tests whether business-context signals change forecast-to-plan feasibility; it is not designed as a Kaggle leaderboard forecasting model.
+
 \subsubsection{Feature Engineering}
 
 For ML candidates:
 \begin{itemize}
-    \item \textbf{Lag features}: Demand at lags 1, 7, 28 (capturing recent, weekly, and monthly patterns)
+    \item \textbf{Lag features}: Demand at lags 1, 7, and 28, capturing recent, weekly-cycle, and monthly-window demand patterns in the daily panel
     \item \textbf{Rolling statistics}: Mean and standard deviation of lagged demands
-    \item \textbf{Exogenous signals} (Favorita only): Promotion flag, holiday indicator, oil price, transaction count
-    \item \textbf{Train-time only}: Features computed on historical data; test-time features computed on validation-only outcomes to prevent look-ahead bias
+    \item \textbf{Known-in-advance context signals} (Favorita and Walmart): Promotion or markdown flags, holiday indicators, and store or product context where available at planning time
+    \item \textbf{Lagged or exogenous context signals}: Oil-price, transaction, fuel-price, CPI, and unemployment features are handled as context variables and interpreted cautiously because they may differ in real-time availability across operational settings
+    \item \textbf{Train-time only}: Features are computed from historical information available before the prediction timestamp; test outcomes are not used by deployable selectors
 \end{itemize}
 
 \subsection{Decision Strategies}
@@ -88,7 +95,7 @@ All analyses use consistent planning parameter values across datasets and run mo
 \multicolumn{4}{c}{\textbf{Inventory Parameters}} \\
 \midrule
 Safety stock method & Rolling 28-day std & Holding cost per unit & \$1.00 \\
-Safety stock multiplier & 1.0× & Shortage cost per unit & \$2.50 \\
+Safety stock multiplier & 0.5 & Shortage cost per unit & \$5.00 \\
 \multicolumn{4}{c}{\textbf{Planning Objective Weights}} \\
 \midrule
 $\alpha_{\text{forecast}}$ (WAPE weight) & 0.0 & $\lambda_{\text{inventory}}$ & 1.0 \\
@@ -114,17 +121,25 @@ Execution capacity scenarios evaluate how planning strategies behave when downst
 
 \subsubsection{DataCo-to-Scenario Mapping}
 
-DataCo-derived late-delivery-risk percentiles are mapped into execution-risk sensitivity scenarios using the formula:
+DataCo-derived late-delivery-risk percentiles are mapped into execution-risk sensitivity scenarios using an additive clipped mapping:
 \begin{equation}
-\lambda_{\text{execution}}^{\text{scenario}} = \lambda_{\text{execution}}^{\text{baseline}} \times \frac{\text{late-delivery-rate}_{\text{scenario}}}{\text{late-delivery-rate}_{\text{median}}}.
+\lambda_{\text{execution}}^{\text{scenario}} =
+\mathrm{clip}\left(
+    \lambda_{\text{base}}
+    + \rho \cdot r_{\text{late}}^{\text{scenario}},
+    \lambda_{\min},
+    \lambda_{\max}
+\right),
 \end{equation}
+where $r_{\text{late}}^{\text{scenario}}$ is the DataCo late-delivery-rate anchor and $\rho$ is a configurable risk-sensitivity coefficient.
 
-This mapping preserves the relative magnitude of execution risk across scenarios while anchoring the baseline weight to historical data. The resulting $\lambda_{\text{execution}}^{\text{scenario}}$ values are:
+This mapping is configurable and intended as a data-informed sensitivity design, not an exact economic calibration. The generated scenario table records the formula, late-delivery anchor, resulting $\lambda_{\text{execution}}$, data source, and fallback flag. The currently generated scenario values are:
 \begin{itemize}
-    \item \textbf{Low-risk scenario} (30th percentile): $\lambda_{\text{execution}} = 0.098 \times (0.535/0.552) \approx 0.095$
-    \item \textbf{Baseline scenario} (50th percentile): $\lambda_{\text{execution}} = 0.10$ (unchanged)
-    \item \textbf{High-risk scenario} (75th percentile): $\lambda_{\text{execution}} = 0.10 \times (0.581/0.552) \approx 0.105$
-    \item \textbf{Severe scenario} (95th percentile): $\lambda_{\text{execution}} = 0.10 \times (0.901/0.552) \approx 0.163$
+    \item \textbf{Baseline}: $\lambda_{\text{execution}} = 0.050$
+    \item \textbf{DataCo low}: $\lambda_{\text{execution}} = 0.318$
+    \item \textbf{DataCo median}: $\lambda_{\text{execution}} = 0.326$
+    \item \textbf{DataCo high}: $\lambda_{\text{execution}} = 0.341$
+    \item \textbf{DataCo severe}: $\lambda_{\text{execution}} = 0.500$
 \end{itemize}
 
 These scenarios should be interpreted as data-informed sensitivity weights, not as exact economic cost calibrations for Favorita or M5. When DataCo anchors are unavailable, the pipeline records fallback usage and applies configured default scenario values.
@@ -148,14 +163,27 @@ The \texttt{require\_no\_future\_outcomes()} validation function is applied at s
 The M5 robustness analysis tests whether the Favorita accuracy-feasibility tradeoff persists under different operational characteristics:
 
 \begin{itemize}
-    \item \textbf{Scale}: Large-scale replication at item-store level (3,049 series vs. Favorita's 1,782)
+    \item \textbf{Scale}: quick-mode item-store robustness with additional aggregated planning grains
     \item \textbf{Hierarchy sensitivity}: Evaluation at item-store, department-store, and category-store grains to test whether aggregation affects strategy ranking
-    \item \textbf{Intermittent demand}: Stress test on sparse-demand series (40-50\% zero-demand periods), where conventional forecasting accuracy metrics may be unstable
-    \item \textbf{Temporal granularity}: Daily data (M5) vs. weekly data (Favorita) to check temporal-pattern independence
+    \item \textbf{Intermittent demand}: Stress test on sparse-demand buckets, where conventional forecasting accuracy metrics may be unstable
+    \item \textbf{Temporal granularity}: Daily M5 data compared with the daily Favorita planning panel
     \item \textbf{Execution scenario robustness}: DataCo-informed scenarios applied identically to validate cross-dataset generalization
 \end{itemize}
 
 The same strategy families, selector algorithms, and normalized planning-loss formulation are reused without modification to ensure comparability.
+
+\subsection{Walmart Business-Context Robustness Design}
+
+The Walmart module evaluates whether business-context features and weekly planning cadence alter deployable strategy rankings. It is intentionally narrower than the Favorita and M5 analyses. The quick mode samples eligible store-department series with sufficient history and nonzero demand, medium mode increases the sample size when computationally feasible, and full mode is disabled by default.
+
+The Walmart robustness pass includes three components:
+\begin{itemize}
+    \item \textbf{Context-aware versus context-free comparison}: History-only candidate forecasts are compared against history-plus-context candidate forecasts using the same deployable selectors and oracle diagnostics.
+    \item \textbf{Holiday and markdown stress windows}: Normal weeks, holiday weeks, markdown-heavy weeks, and holiday-or-markdown weeks are summarized separately to test whether high-context periods change the feasibility tradeoff.
+    \item \textbf{Weekly cadence constraints}: Budgeted DP uses a quarterly switch budget, a short holiday freeze window, and a maximum weekly plan-change rate. Fallback rows, if any, are reported explicitly using fallback metadata.
+\end{itemize}
+
+Walmart results are reported as business-context robustness evidence. Final interpretation will be written after reviewing the generated robustness tables and figures.
 
 \subsection{Validation and Cross-Validation Design}
 
@@ -173,10 +201,12 @@ This avoids single-point validation bias while respecting temporal ordering.
 \subsubsection{Normalization Scope}
 
 Normalized planning loss is computed within groups defined by:
-- Dataset (Favorita, M5)
-- Run mode (Quick, Medium, Full)
-- Split (Validation, Test)
-- Scenario (Baseline, Low-risk, High-risk, Severe)
+\begin{itemize}
+    \item Dataset, such as Favorita or M5
+    \item Run mode, such as quick, medium, or full where applicable
+    \item Split, such as validation or test
+    \item Scenario, such as baseline or DataCo-informed execution-risk scenario
+\end{itemize}
 
 This ensures that normalizations do not mix different operational contexts, and that val-set normalization does not contaminate test-set comparison.
 

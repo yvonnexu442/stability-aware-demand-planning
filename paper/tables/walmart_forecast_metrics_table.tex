@@ -1,0 +1,38 @@
+\begin{table}
+\centering
+\caption{Walmart forecast accuracy diagnostics by feature set and candidate model.}
+\label{tab:walmart-forecast-metrics}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrl}
+\toprule
+      split &             model\_name &  row\_count &  WAPE &      MAE &           feature\_set \\
+\midrule
+       test &         global\_sklearn &       2590 & 0.057 & 3584.512 &          history\_only \\
+       test &       moving\_average\_4 &       2590 & 0.065 & 4082.944 &          history\_only \\
+       test &  exponential\_smoothing &       2590 & 0.065 & 4131.896 &          history\_only \\
+       test &      moving\_average\_13 &       2590 & 0.071 & 4483.299 &          history\_only \\
+       test &        seasonal\_4\_week &       2590 & 0.072 & 4582.874 &          history\_only \\
+       test &       naive\_last\_value &       2590 & 0.074 & 4707.882 &          history\_only \\
+ validation &         global\_sklearn &       2585 & 0.059 & 3755.193 &          history\_only \\
+ validation &       moving\_average\_4 &       2585 & 0.064 & 4051.522 &          history\_only \\
+ validation &  exponential\_smoothing &       2585 & 0.066 & 4144.746 &          history\_only \\
+ validation &        seasonal\_4\_week &       2585 & 0.072 & 4553.756 &          history\_only \\
+ validation &      moving\_average\_13 &       2585 & 0.073 & 4637.729 &          history\_only \\
+ validation &       naive\_last\_value &       2585 & 0.076 & 4786.150 &          history\_only \\
+       test &         global\_sklearn &       2590 & 0.057 & 3634.124 &  history\_plus\_context \\
+       test &       moving\_average\_4 &       2590 & 0.065 & 4082.944 &  history\_plus\_context \\
+       test &  exponential\_smoothing &       2590 & 0.065 & 4131.896 &  history\_plus\_context \\
+       test &      moving\_average\_13 &       2590 & 0.071 & 4483.299 &  history\_plus\_context \\
+       test &        seasonal\_4\_week &       2590 & 0.072 & 4582.874 &  history\_plus\_context \\
+       test &       naive\_last\_value &       2590 & 0.074 & 4707.882 &  history\_plus\_context \\
+ validation &         global\_sklearn &       2585 & 0.060 & 3803.609 &  history\_plus\_context \\
+ validation &       moving\_average\_4 &       2585 & 0.064 & 4051.522 &  history\_plus\_context \\
+ validation &  exponential\_smoothing &       2585 & 0.066 & 4144.746 &  history\_plus\_context \\
+ validation &        seasonal\_4\_week &       2585 & 0.072 & 4553.756 &  history\_plus\_context \\
+ validation &      moving\_average\_13 &       2585 & 0.073 & 4637.729 &  history\_plus\_context \\
+ validation &       naive\_last\_value &       2585 & 0.076 & 4786.150 &  history\_plus\_context \\
+\bottomrule
+\end{tabular}
+}
+
+\end{table}

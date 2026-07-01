@@ -29,9 +29,7 @@ This repository evaluates planning utility as a multi-objective concept. Forecas
 
 ## Repository Scope
 
-This first step implements the repository skeleton and core research modules only. Dataset-specific loaders and full experiments are intentionally left as later work.
-
-Candidate public datasets for future experiments include Favorita, M5/Walmart-style retail demand, Walmart recruiting demand data, and Rossmann sales. These loaders are represented as placeholders so the paper logic can develop before the project becomes a dataset ingestion exercise.
+The repository now supports the core paper workflow across DataCo, Favorita, M5, and Walmart robustness modules. It remains a research repository rather than a Kaggle-style forecasting benchmark. Rossmann is retained as a future extension.
 
 ## Repository Layout
 
@@ -205,6 +203,19 @@ Paper-facing outputs now split Oracle gaps into `gap_to_dp_oracle` and
 `gap_to_perfect_oracle` so model-selection suboptimality and realized-demand
 uncertainty are reported separately.
 
+### Walmart Business-Context Robustness
+
+The Walmart module now implements a weekly store-department robustness check for
+business-context planning signals. It loads `train.csv`, `features.csv`, and
+`stores.csv` from `data/raw/walmart/`, builds history-only and
+history-plus-context forecast candidate sets, and reuses the existing
+Global Best, Simple Ensemble, Operational Ensemble, Greedy Feasibility, DP
+Feasibility, Budgeted DP, and Oracle diagnostic strategies. Quick mode completed
+locally and exports context comparison, holiday/markdown stress-window, weekly
+cadence constraint, and overall robustness tables and figures for the LaTeX
+paper workflow. Walmart is treated as a narrow robustness check, not as a new
+forecasting leaderboard.
+
 ## Raw Data Workflow
 
 Raw benchmark datasets are stored under `data/raw/` with one directory per source:
@@ -291,9 +302,33 @@ writes PNG figures to `outputs/figures/` and manuscript PDF figures to
 `paper/figures/`. These analyses are intended to show the tradeoff surface, not
 to tune weights until one stability-aware strategy always wins.
 
+## How to Run the Walmart Robustness Pipeline
+
+The Walmart business-context robustness module expects manually downloaded
+Walmart Recruiting Store Sales Forecasting files under `data/raw/walmart/`:
+
+```text
+data/raw/walmart/
+  train.csv
+  features.csv
+  stores.csv
+```
+
+Run quick mode with:
+
+```bash
+PYTHONPATH=src:scripts python3 scripts/run_walmart_robustness_pipeline.py --run-mode quick
+```
+
+Quick mode samples eligible store-department series, compares history-only and
+history-plus-context feature sets, evaluates holiday and markdown stress
+windows, and applies weekly cadence constraints. Medium mode is supported, while
+full mode is disabled by default in `configs/default.yaml`.
+
 ## Current Status
 
 The current implementation contains the core planning-stability modules, the
-LaTeX paper workflow, DataCo profiling utilities, and the minimal Favorita
-real-data proof-of-concept pipeline. It does not yet implement the full
-multi-dataset experiment suite.
+LaTeX paper workflow, DataCo execution-risk calibration, Favorita proof-of-
+concept and method-improvement pipelines, M5 hierarchy/intermittency
+robustness, and Walmart business-context robustness. Rossmann remains a future
+extension.

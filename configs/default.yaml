@@ -59,6 +59,24 @@ m5_pipeline:
   min_nonzero_observations: 10
   safety_stock_multiplier: 0.5
 
+walmart_pipeline:
+  raw_data_dir: data/raw/walmart
+  quick_mode_max_series: 200
+  medium_mode_max_series: 750
+  full_mode_max_series: null
+  enable_full_mode: false
+  validation_horizon: 13
+  test_horizon: 13
+  min_history_length: 80
+  min_nonzero_observations: 20
+  safety_stock_multiplier: 0.5
+  max_ml_training_rows: 150000
+  markdown_heavy_percentile: 0.75
+  weekly_cadence:
+    max_switches_per_quarter: 2
+    holiday_freeze_weeks: 1
+    max_weekly_plan_change_rate: 0.20
+
 feasibility_analysis:
   execution_capacity_scenarios:
     high_capacity: 0.40

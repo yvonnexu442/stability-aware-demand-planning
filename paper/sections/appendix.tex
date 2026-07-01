@@ -2,7 +2,43 @@
 
 \section{Additional Robustness Assets}
 
-This appendix is reserved for supplementary tables and figures that may be moved out of the main text during a later submission-preparation pass. Candidate appendix materials include full weight-sensitivity grids, execution-capacity stress tests, Pareto summaries, Favorita sample-size robustness outputs, and additional Walmart or Rossmann robustness experiments if those analyses are completed.
+This appendix is reserved for supplementary tables and figures that may be moved out of the main text during a later submission-preparation pass. Candidate appendix materials include full weight-sensitivity grids, execution-capacity stress tests, Pareto summaries, Favorita sample-size robustness outputs, Walmart stress-window outputs, Walmart weekly-cadence outputs, and additional Rossmann robustness experiments if those analyses are completed.
+
+\subsection{Walmart Supplementary Robustness Assets}
+
+The Walmart supplementary assets report holiday and markdown stress windows, weekly cadence constraints, and the full Walmart robustness summary. These tables are included for review and should not be interpreted as final conclusions before the result patterns are audited.
+
+\input{tables/walmart_holiday_markdown_stress_by_window_table.tex}
+\input{tables/walmart_weekly_cadence_constraints_table.tex}
+\input{tables/walmart_robustness_summary_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/walmart_window_type_normalized_loss.pdf}
+\caption{Walmart normalized planning loss by holiday and markdown stress window.}
+\label{fig:walmart-window-normalized-loss}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/walmart_window_type_execution_penalty.pdf}
+\caption{Walmart execution penalty by holiday and markdown stress window.}
+\label{fig:walmart-window-execution-penalty}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/walmart_weekly_cadence_constraints.pdf}
+\caption{Walmart weekly cadence constraint comparison.}
+\label{fig:walmart-weekly-cadence}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/walmart_budgeted_dp_switching_behavior.pdf}
+\caption{Walmart Budgeted-DP switching behavior under weekly cadence constraints.}
+\label{fig:walmart-budgeted-dp-switching}
+\end{figure}
 
 \section{Citation Completion TODOs}
 

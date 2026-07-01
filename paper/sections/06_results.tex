@@ -127,9 +127,28 @@ The M5 intermittent-demand stress test further supports controlled adaptation. A
 \label{fig:m5-intermittent-demand-stress}
 \end{figure}
 
-\subsection{Result 8: Additional Business-Context Robustness}
+\subsection{Result 8: Walmart Business-Context Robustness}
 
-The current manuscript treats Walmart and Rossmann as future robustness extensions. They are useful candidates because they contain different retail and business-context structures, but no empirical claims are made from them in this drafting pass. The paper is structured so that additional robustness tables and figures can be inserted without rewriting the core problem formulation or method taxonomy.
+Walmart is used to test whether weekly business-context signals alter deployable strategy rankings. The current outputs compare history-only candidate forecasts with history-plus-context candidate forecasts, then evaluate the same decision-layer strategies under DataCo-informed execution scenarios. Final interpretation will be written after reviewing the generated robustness results. The current tables and figures are included as paper-ready assets so that the manuscript can distinguish context effects from the main Favorita and M5 claims.
+
+\input{tables/walmart_context_robustness_summary_table.tex}
+\input{tables/walmart_context_aware_vs_context_free_comparison_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/walmart_context_aware_vs_context_free_tradeoff.pdf}
+\caption{Walmart context-aware versus context-free accuracy and execution-penalty tradeoff.}
+\label{fig:walmart-context-tradeoff}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/walmart_context_ranking_shift.pdf}
+\caption{Walmart normalized-loss rank changes between history-only and history-plus-context feature sets.}
+\label{fig:walmart-context-ranking-shift}
+\end{figure}
+
+Holiday, markdown, and weekly-cadence stress outputs are retained as supplementary robustness assets. These outputs should be interpreted cautiously until the table-level patterns are reviewed.
 
 \subsection{Supplementary Sensitivity Outputs}
 
