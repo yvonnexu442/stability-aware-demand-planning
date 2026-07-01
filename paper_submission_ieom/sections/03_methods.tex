@@ -1,11 +1,11 @@
 \section{Methods}
 
-The proposed method follows the IEOM sample-paper pattern of a visual workflow followed by stepwise algorithmic logic. Figure~\ref{fig:framework} gives the framework overview. Candidate forecasts are generated first, but the decision layer evaluates their implied planning signals before choosing a deployable planning strategy. This framing follows the forecast-to-decision logic that downstream objectives may differ from forecast-error objectives (Elmachtoub and Grigas 2022; Mandi et al. 2024).
+The proposed method follows the IEOM sample-paper pattern of a framework architecture followed by compact stepwise logic. Figure~\ref{fig:framework} presents the full decision architecture. Candidate forecasts or planning policies enter the system first, but the decision layer evaluates their implied planning signals before choosing a deployable planning strategy. This framing follows the forecast-to-decision logic that downstream objectives may differ from forecast-error objectives (Elmachtoub and Grigas 2022; Mandi et al. 2024).
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.76\linewidth]{figures/ieom_framework_flowchart.png}
-\caption{Feasibility-constrained planning framework.}
+\includegraphics[width=0.96\linewidth]{figures/ieom_framework_flowchart.pdf}
+\caption{Framework architecture for feasibility-constrained demand-planning selection.}
 \label{fig:framework}
 \end{figure}
 
@@ -48,27 +48,25 @@ where NIC, NVC, NEC, and NSC denote normalized inventory, volatility, execution,
 
 \subsection{Feasibility-constrained Selection Procedure}
 
-The selection procedure has ten steps.
+\textbf{Algorithm 1. Feasibility-constrained selection procedure.}
 
-\textbf{Step 1. Define planning units and candidate forecasting models.} The planning units are store-family or item-store style series, and candidate models include transparent baselines, machine-learning candidates where available, ensembles, smoothing policies, and decision-layer selectors.
+\begin{enumerate}
+\item Generate candidate forecasts or planning policies for each planning unit and period.
+\item Convert each candidate forecast into a planning signal.
+\item Compute inventory exposure relative to realized demand.
+\item Compute planning volatility and switching burden relative to the previous executed plan.
+\item Compute execution violation under the available execution capacity.
+\item Aggregate the normalized planning loss.
+\item Select the deployable planning action using one of the decision policies.
+\item Validate the selected strategy against scenario and oracle benchmarks.
+\end{enumerate}
 
-\textbf{Step 2. Generate candidate forecasts.} Each candidate model produces a forecast for each planning unit and period using only information available before the forecast timestamp.
+The procedure is modular. Accuracy-first baselines, ensembles, smoothing rules, greedy selectors, DP selectors, and budgeted-DP selectors all pass through the same feasibility layer. This makes their outputs comparable as planning actions, not merely as forecast-error scores.
 
-\textbf{Step 3. Convert each forecast into a planning signal.} The forecast is translated into an inventory planning signal using the policy function $g(\cdot)$.
+Forecast-to-plan conversion matters because operations execute inventory targets, staffing signals, replenishment quantities, or other planning actions rather than WAPE values. Planning-execution gap rate is therefore a key metric: it measures how often the selected plan exceeds the adjustment capacity of the operating system. The feasibility layer is the core contribution because it translates model outputs into inventory exposure, volatility, switching burden, and execution violations before ranking strategies. The decision layer is consequently selecting the most deployable planning action under stated constraints, not simply the most accurate forecast.
 
-\textbf{Step 4. Compute inventory exposure.} Holding and shortage terms are computed from the candidate planning signal and realized demand for evaluation.
-
-\textbf{Step 5. Compute planning volatility.} Each candidate signal is compared with the previous executed plan to measure plan movement.
-
-\textbf{Step 6. Compute execution violation.} The plan movement is compared with execution capacity $C_{i,t}$ to determine whether the period creates a planning-execution gap.
-
-\textbf{Step 7. Compute switching burden.} For hard model selection, a switching indicator is recorded when the selected model differs from the previous period's model.
-
-\textbf{Step 8. Compute normalized operational loss.} Inventory, volatility, execution, and switching components are normalized within the relevant evaluation group and combined using the stated planning weights.
-
-\textbf{Step 9. Select the deployable planning action.} The decision layer selects a candidate plan using an accuracy-first, ensemble, smoothing, greedy, DP, or budgeted-DP policy.
-
-\textbf{Step 10. Validate against oracle benchmarks.} Deployable strategies are compared with non-deployable oracle diagnostics to separate selection suboptimality from forecast uncertainty.
+Table~\ref{tab:strategy-families} summarizes the decision-layer strategy families used in the empirical evaluation.
+\input{tables/strategy_families_table}
 
 \subsection{Greedy and Dynamic Programming Selectors}
 

@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\caption{Decision-layer strategy families and operational interpretation.}
+\label{tab:strategy-families}
+\small
+\begin{tabular}{@{}p{0.22\linewidth}p{0.36\linewidth}p{0.32\linewidth}@{}}
+\toprule
+\textbf{Strategy family} & \textbf{Main decision logic} & \textbf{Operational purpose} \\
+\midrule
+Accuracy-first & Selects the candidate with strongest validation or test-period forecast accuracy. & Conventional benchmark for WAPE-led deployment. \\
+Ensemble & Combines candidate forecasts using simple or operational-loss-based weights. & Reduces dependence on one model and can dampen abrupt plan movement. \\
+Smoothing & Blends the candidate plan with the previous executed plan. & Models gradual operational adaptation under execution limits. \\
+Greedy & Minimizes current-period operational cost. & Tests whether one-step feasibility selection is sufficient. \\
+DP & Minimizes cumulative finite-horizon operational cost. & Quantifies the value of planning ahead under transition effects. \\
+Budgeted DP & Applies DP while limiting total model switches. & Represents governance constraints on model changes. \\
+Oracle benchmarks & Use non-deployable realized inventory or realized demand information. & Provide diagnostic upper-bound references, not deployment policies. \\
+\bottomrule
+\end{tabular}
+\end{table}

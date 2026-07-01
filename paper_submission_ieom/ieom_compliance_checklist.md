@@ -9,6 +9,7 @@
 - [x] Objectives subsection is included.
 - [x] Literature review is organized by themes rather than paper-by-paper notes.
 - [x] Methods section includes equations and IEOM-style numbered steps.
+- [x] Methods section includes a framework architecture figure and compact Algorithm 1.
 - [x] Results and Discussion includes numerical results, graphical results, proposed improvements, and validation.
 - [x] Conclusion returns to the stated objectives.
 - [x] Acknowledgement and biography placeholders are included.
@@ -30,6 +31,7 @@
 - [x] Figures are numbered as Figure 1, Figure 2, and so on.
 - [x] Figure captions appear below figures.
 - [x] Every included table and figure is mentioned and interpreted in the text.
+- [x] Figure 1 presents the full framework architecture rather than a simple flowchart.
 - [x] The main paper uses a compact set of tables and figures instead of all generated artifacts.
 
 ## References

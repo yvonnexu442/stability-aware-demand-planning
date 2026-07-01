@@ -53,3 +53,9 @@ The draft was compiled successfully with `pdflatex` on July 1, 2026. The current
 - `figures/`: compact IEOM-facing figures.
 - `references.tex`: alphabetized author-year reference list.
 - `ieom_compliance_checklist.md`: submission-readiness checklist.
+
+## Revision Notes
+
+- Figure 1 is a framework architecture diagram covering inputs, forecast-to-plan conversion, feasibility evaluation, decision ranking, validation, and outputs.
+- Algorithm 1 summarizes the feasibility-constrained selection procedure in compact IEOM-style steps.
+- Section 5.4 separates baseline, scenario, algorithmic, and robustness validation.
