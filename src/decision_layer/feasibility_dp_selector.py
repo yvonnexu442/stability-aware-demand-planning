@@ -460,7 +460,14 @@ def _transition_burden(
     previous_plan: Optional[float],
     max_plan_change_rate: float,
 ) -> Tuple[float, float]:
-    """Return normalized plan volatility and execution violation burden."""
+    """Return plan-change rate and absolute execution violation burden.
+
+    Both terms use the same denominator convention as _expected_plan_burden in
+    the pipeline scripts: plan_change_pct is normalized (plan_change_abs / scale)
+    and execution_violation is the absolute overshoot of the capacity threshold.
+    This keeps lambda_execution in _stage_cost operating on the same quantity
+    as execution_adaptation_penalty_total in the evaluation layer.
+    """
     if previous_plan is None:
         return 0.0, 0.0
     previous_value = float(previous_plan)
@@ -468,7 +475,7 @@ def _transition_burden(
     scale = max(abs(previous_value), 1e-8)
     plan_change_pct = plan_change_abs / scale
     execution_capacity = abs(previous_value) * float(max_plan_change_rate)
-    execution_violation = max(plan_change_abs - execution_capacity, 0.0) / scale
+    execution_violation = max(plan_change_abs - execution_capacity, 0.0)
     return float(plan_change_pct), float(execution_violation)
 
 

@@ -200,7 +200,8 @@ def add_normalized_planning_loss(
     fallback_flags: Dict[str, bool] = {}
     fallback_reasons: Dict[str, str] = {}
     audit_records = []
-    reference_rows = frame[frame["strategy"] == reference_strategy]
+    split_mask = (frame["split_name"] == split_name) if "split_name" in frame.columns else pd.Series(True, index=frame.index)
+    reference_rows = frame[split_mask & (frame["strategy"] == reference_strategy)]
 
     for component_name, source_column, reference_column, weight_name, output_column in component_specs:
         raw_values = pd.to_numeric(frame[source_column], errors="coerce")
