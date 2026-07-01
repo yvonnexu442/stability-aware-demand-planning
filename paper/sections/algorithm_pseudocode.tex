@@ -1,0 +1,167 @@
+% Algorithm pseudocode section for feasibility-aware model selection
+% To include in main paper, add: \input{sections/algorithm_pseudocode}
+
+\subsection{Algorithm 1: Greedy Feasibility Selector}
+\label{algo:greedy-selector}
+
+\begin{algorithm}[H]
+\caption{Greedy One-Step Feasibility-Aware Selection}
+\label{algo:greedy}
+\begin{algorithmic}[1]
+\Input{Candidate forecasts $\{\hat{y}_{i,t}^{m}\}_{m \in \mathcal{M}, t \in \mathcal{T}}$, expected losses per model}
+\Input{Planning weights $\lambda_{\text{inventory}}, \lambda_{\text{volatility}}, \lambda_{\text{switch}}, \lambda_{\text{execution}}$}
+\Input{Max plan-change rate $c_{\max}$ (e.g., 0.20)}
+\Output{Selected forecasts and plans for each series and period}
+
+\For{each series $i$}
+    \State $z^{prev} \leftarrow \text{None}$, $x^{prev} \leftarrow 0$
+    \For{each period $t$ in order}
+        \State $\text{candidates} \leftarrow$ all models with available forecasts at $(i, t)$
+        \State $\text{best\_score} \leftarrow +\infty$, $\text{best\_model} \leftarrow \text{None}$
+        \For{each model $m \in \text{candidates}$}
+            \State $\hat{x}_{i,t}^{m} \leftarrow$ forecast-to-plan conversion (e.g., inventory target)
+            \State $\Delta x \leftarrow |\hat{x}_{i,t}^{m} - x^{prev}|$
+            \State $\text{plan\_change\_pct} \leftarrow \Delta x / \max(|x^{prev}|, \epsilon)$
+            \State $C_{i,t} \leftarrow c_{\max} \cdot |x^{prev}|$ \quad $\triangleright$ execution capacity
+            \State $\text{exec\_violation} \leftarrow \max(\Delta x - C_{i,t}, 0)$
+            \State $\text{base\_cost} \leftarrow$ validation-calibrated expected loss for $(i, m)$
+            \State $\text{switch\_cost} \leftarrow \lambda_{\text{switch}} \cdot \mathbb{I}[m \neq z^{prev}]$
+            \State $\text{score} \leftarrow \text{base\_cost} + \lambda_{\text{volatility}} \cdot \text{plan\_change\_pct}$
+            \State \hspace{1.5em} $+ \lambda_{\text{execution}} \cdot \text{exec\_violation} + \text{switch\_cost}$
+            \If{$\text{score} < \text{best\_score}$}
+                \State $\text{best\_score} \leftarrow \text{score}$
+                \State $\text{best\_model} \leftarrow m$
+                \State $\text{best\_plan} \leftarrow \hat{x}_{i,t}^{m}$
+            \EndIf
+        \EndFor
+        \State Record: $z_{i,t}^{s} \leftarrow \text{best\_model}$, $x_{i,t}^{s} \leftarrow \text{best\_plan}$
+        \State $z^{prev} \leftarrow \text{best\_model}$, $x^{prev} \leftarrow \text{best\_plan}$
+    \EndFor
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Algorithm 2: Finite-Horizon DP Feasibility Selector}
+\label{algo:dp-selector}
+
+\begin{algorithm}[H]
+\caption{Deterministic Finite-Horizon DP for Cumulative Loss Minimization}
+\label{algo:dp}
+\begin{algorithmic}[1]
+\Input{Candidate forecasts $\{\hat{y}_{i,t}^{m}\}_{m \in \mathcal{M}, t \in \mathcal{T}}$, expected losses, planning weights}
+\Input{Planning horizon $T$, max plan-change rate $c_{\max}$}
+\Output{Optimal selected model sequence and plans for each series}
+
+\Function{ComputeDP}{series $i$, period list $1 \ldots T$}
+    \State $\text{DP}[\text{None}] \leftarrow (0.0, \text{path}=(), \text{rows}=(), \text{prev\_plan}=0)$ \quad $\triangleright$ Base case
+    \For{each period $t = 1, \ldots, T$}
+        \State $\text{NextDP} \leftarrow \{\}$
+        \State $\text{candidates} \leftarrow$ all models at period $t$
+        \For{each model $m \in \text{candidates}$}
+            \State $\text{best\_prev\_state} \leftarrow \text{None}$
+            \For{each $(z^{\text{prev}}, \text{state}) \in \text{DP}$}
+                \State $\hat{x}_{i,t}^{m} \leftarrow$ forecast-to-plan conversion
+                \State $\Delta x \leftarrow |\hat{x}_{i,t}^{m} - \text{state.prev\_plan}|$
+                \State $\text{plan\_change\_pct} \leftarrow \Delta x / \max(|\text{state.prev\_plan}|, \epsilon)$
+                \State $C_{i,t} \leftarrow c_{\max} \cdot |\text{state.prev\_plan}|$
+                \State $\text{exec\_violation} \leftarrow \max(\Delta x - C_{i,t}, 0)$
+                \State $\text{base\_cost} \leftarrow$ expected loss for $(i, m)$ at $t$
+                \State $\text{stage\_cost} \leftarrow$ base\_cost + volatility + execution + switch terms
+                \State $\text{new\_cost} \leftarrow \text{state.cost} + \text{stage\_cost}$
+                \State $\text{candidate\_state} \leftarrow (\text{new\_cost}, \text{path}+m, \text{new\_plan})$
+                \If{$\text{candidate\_state}$ dominates $\text{best\_prev\_state}$}
+                    \State $\text{best\_prev\_state} \leftarrow \text{candidate\_state}$
+                \EndIf
+            \EndFor
+            \If{$\text{best\_prev\_state} \neq \text{None}$}
+                \State $\text{NextDP}[m] \leftarrow \text{best\_prev\_state}$
+            \EndIf
+        \EndFor
+        \State $\text{DP} \leftarrow \text{NextDP}$
+    \EndFor
+    \State $\text{final\_state} \leftarrow \arg\min_{m} \text{DP}[m].\text{cost}$
+    \State \Return paths and plans from $\text{final\_state}$
+\EndFunction
+
+\For{each series $i$}
+    \State $\text{selected\_rows} \leftarrow \text{ComputeDP}(i, \text{periods})$
+    \State Record selected rows with strategy label
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Algorithm 3: Budgeted DP with Fallback}
+\label{algo:budgeted-dp-selector}
+
+\begin{algorithm}[H]
+\caption{Finite-Horizon DP with Hard Switch Budget and Fallback}
+\label{algo:budgeted-dp}
+\begin{algorithmic}[1]
+\Input{Candidate forecasts, expected losses, planning weights, max-switch budget $K$}
+\Output{Selected model sequence respecting switch budget, or fallback selection}
+
+\Function{ComputeBudgetedDP}{series $i$, period list $1 \ldots T$, budget $K$}
+    \State $\text{DP}[(m, k)] \leftarrow$ state for model $m$ using $k$ switches
+    \For{each period $t = 1, \ldots, T$}
+        \State $\text{NextDP} \leftarrow \{\}$
+        \State $\text{candidates} \leftarrow$ all models at period $t$
+        \For{each model $m \in \text{candidates}$}
+            \For{each $(z^{\text{prev}}, k), \text{state}) \in \text{DP}$}
+                \State $k_{\text{new}} \leftarrow k + \mathbb{I}[m \neq z^{\text{prev}}]$
+                \If{$k_{\text{new}} \leq K$}
+                    \State Compute stage\_cost as in Algorithm \ref{algo:dp}
+                    \State $\text{candidate\_state} \leftarrow$ updated DP state
+                    \State $\text{NextDP}[(m, k_{\text{new}})] \leftarrow$ best state for this key
+                \EndIf
+            \EndFor
+        \EndFor
+        \State $\text{DP} \leftarrow \text{NextDP}$
+        \If{$\text{DP} = \emptyset$}
+            \State \textbf{break} \quad $\triangleright$ No feasible path under budget
+        \EndIf
+    \EndFor
+    \If{$\text{DP} \neq \emptyset$}
+        \State $\text{final\_state} \leftarrow \arg\min \text{DP}[*].\text{cost}$
+        \State \Return paths and plans from $\text{final\_state}$
+    \Else
+        \State \Return $\text{IncumbentStaysFallback}(i)$ \quad $\triangleright$ Fallback policy
+    \EndIf
+\EndFunction
+
+\Function{IncumbentStaysFallback}{series $i$}
+    \State Select first period's lowest-cost model as incumbent $z_{\text{incumbent}}$
+    \For{each period $t = 1, \ldots, T$}
+        \If{$z_{\text{incumbent}}$ available at $(i, t)$}
+            \State Select $z_{\text{incumbent}}$ for period $t$
+        \Else
+            \State Select lowest-cost available model at $(i, t)$
+            \State Mark as fallback with reason: ``incumbent missing''
+        \EndIf
+    \EndFor
+    \State \Return selected sequence with fallback annotations
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Methodology Notes}
+
+The three algorithms above formalize the decision layer as follows:
+
+\begin{itemize}
+    \item \textbf{Greedy Feasibility Selector} (Algorithm \ref{algo:greedy}) makes independent one-step decisions per period. It is fast and transparent but lacks global horizon optimization.
+
+    \item \textbf{DP Feasibility Selector} (Algorithm \ref{algo:dp}) solves the finite-horizon deterministic cumulative loss problem. State is $(z_{t-1}, \text{cost\_so\_far})$. It selects the globally optimal model sequence under the planning objective.
+
+    \item \textbf{Budgeted DP} (Algorithm \ref{algo:budgeted-dp}) adds a hard constraint on the maximum number of model switches, useful in governance-constrained environments. If no budget-feasible path exists, the incumbent-stays fallback ensures the pipeline remains evaluable while marking the affected periods as potentially non-strict.
+\end{itemize}
+
+Key features shared across all three:
+\begin{enumerate}
+    \item \textbf{Deployable scoring}: Uses only validation-calibrated expected costs and forecast-implied planning signals. Test-period outcomes are never used for selection.
+
+    \item \textbf{Consistent loss calculation}: Combines execution\_violation (absolute value, in same units as plan changes) with inventory, volatility, and switching terms using planning weights.
+
+    \item \textbf{Execution constraint awareness}: Execution capacity $C_{i,t} = c_{\max} \cdot |x^{\text{prev}}|$ models the maximum absolute plan change the operation can absorb. Violations are penalized linearly.
+
+    \item \textbf{Fallback safety}: The budgeted variant includes a well-defined fallback to keep pipelines evaluable even under strict switch budgets.
+\end{enumerate}
