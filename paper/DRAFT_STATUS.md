@@ -34,7 +34,8 @@ submission-ready.
 
 - M5 quick-mode robustness outputs have been generated.
 - The active paper draft includes M5 large-scale replication, hierarchy
-  sensitivity, intermittency stress, and DataCo-scenario robustness assets.
+  sensitivity, intermittency stress, DataCo-scenario robustness, and
+  switch-budget sensitivity assets.
 - Medium and full M5 runs remain optional future extensions.
 
 ### Walmart
@@ -43,6 +44,8 @@ submission-ready.
 - The active paper draft includes Walmart context-aware versus context-free
   comparison assets and keeps holiday, markdown, and weekly-cadence outputs as
   supplementary robustness material.
+- Walmart switch-budget sensitivity outputs have been generated with
+  `K = 0, 1, 2, 4, 8`.
 - Walmart is treated as a narrow business-context robustness check, not as a new
   forecasting leaderboard.
 
@@ -52,7 +55,8 @@ submission-ready.
   diagnostic in addition to the Realized-Inventory Oracle DP and Realized Demand
   Oracle.
 - A switch-budget sensitivity runner is available for studying how the hard
-  budget `K` changes Budgeted-DP behavior.
+  budget `K` changes Budgeted-DP behavior. Walmart and M5 quick-mode sweeps
+  have been generated as paper-facing tables and figures.
 - The generic `run_single_experiment.py` and `run_all_experiments.py` entry
   points now route to current pipeline modules rather than placeholder logs.
 - A thesis-quantification pass now exports paper-ready summaries for accuracy

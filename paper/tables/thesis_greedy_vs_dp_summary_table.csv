@@ -1,6 +1,8 @@
 source_table,dataset_name,evaluation_group_count,greedy_to_dp_gap,median_greedy_to_dp_gap,greedy_to_dp_execution_penalty_gap,greedy_to_dp_switch_count_gap,greedy_to_dp_violation_rate_gap
-overall,all,40,0.035,0.037,2781.544,-16.55,0.001
+overall,all,50,0.044,0.045,2480.878,-11.64,0.003
+m5_switch_budget_sensitivity,m5,5,0.129,0.129,607.575,35.0,0.023
 walmart_context_robustness_summary,walmart,10,0.044,0.043,2213.752,-25.0,0.002
 walmart_holiday_markdown_stress_by_window,walmart,8,0.019,0.022,552.402,-8.0,0.0
 walmart_robustness_summary,walmart,20,0.035,0.038,2781.544,-16.55,0.001
+walmart_switch_budget_sensitivity,walmart,5,0.029,0.029,1948.859,-19.0,0.002
 walmart_weekly_cadence_constraints,walmart,2,0.053,0.053,14537.069,-8.5,0.001

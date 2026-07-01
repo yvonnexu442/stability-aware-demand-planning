@@ -191,6 +191,8 @@ Walmart results are reported as business-context robustness evidence. Final inte
 
 The hard switch budget $K$ is configurable and can be swept using the switch-budget sensitivity runner. This analysis reruns Budgeted DP under multiple values of $K$ while keeping the remaining planning objective fixed. The purpose is to test whether the allowed number of model switches controls the accuracy-feasibility tradeoff smoothly, not to choose $K$ after seeing test outcomes.
 
+The current paper-facing switch-budget sweep is generated for Walmart and M5 quick-mode outputs using $K \in \{0,1,2,4,8\}$. The sweep reports Budgeted DP alongside Greedy, unrestricted DP, Global Best, ensemble references, and Oracle diagnostics so that strict-switch-budget behavior can be compared with both one-step and unconstrained finite-horizon policies.
+
 \subsection{Validation and Cross-Validation Design}
 
 \subsubsection{Blocked Validation}

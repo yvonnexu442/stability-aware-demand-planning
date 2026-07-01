@@ -161,6 +161,41 @@ Walmart is used to test whether weekly business-context signals alter deployable
 
 Holiday, markdown, and weekly-cadence stress outputs are retained as supplementary robustness assets. These outputs should be interpreted cautiously until the table-level patterns are reviewed.
 
+\subsection{Result 9: Switch-Budget Sensitivity Quantifies the Cost of Strict Model Governance}
+
+The switch-budget sensitivity sweep evaluates Budgeted DP under $K \in \{0,1,2,4,8\}$ for Walmart and M5 quick-mode settings. The generated results show that increasing the switch budget does not mechanically improve normalized operational loss. In Walmart, Budgeted DP has normalized total loss 1.206 at $K=0$, 1.199 at $K=1$, and 1.229 at $K=8$, while model-switch count rises from 0 to 241. In M5, Budgeted DP improves WAPE from 0.369 at $K=0$ to 0.353 at $K=8$, but model-switch count rises from 0 to 590 and the lowest Budgeted-DP normalized loss in the sweep occurs at $K=2$. This pattern supports the interpretation that $K$ controls a governance and execution-feasibility tradeoff rather than serving as a monotone performance knob.
+
+\input{tables/walmart_switch_budget_sensitivity_table.tex}
+\input{tables/m5_switch_budget_sensitivity_table.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/walmart_switch_budget_sensitivity_normalized_loss.pdf}
+\caption{Walmart switch-budget sensitivity for normalized planning loss.}
+\label{fig:walmart-switch-budget-normalized-loss}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_switch_budget_sensitivity_normalized_loss.pdf}
+\caption{M5 switch-budget sensitivity for normalized planning loss.}
+\label{fig:m5-switch-budget-normalized-loss}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/walmart_switch_budget_sensitivity_switch_count.pdf}
+\caption{Walmart switch-budget sensitivity for model-switch count.}
+\label{fig:walmart-switch-budget-switch-count}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/m5_switch_budget_sensitivity_switch_count.pdf}
+\caption{M5 switch-budget sensitivity for model-switch count.}
+\label{fig:m5-switch-budget-switch-count}
+\end{figure}
+
 \subsection{Supplementary Sensitivity Outputs}
 
 Several supplementary outputs remain useful for robustness review. The execution-capacity stress test, weight-sensitivity analysis, Pareto analysis, sample-size reproducibility outputs, M5 DataCo-scenario robustness table, and Walmart stress-window assets are retained as paper-ready outputs. The final manuscript may move some of these tables to an appendix after the empirical scope is narrowed for submission.

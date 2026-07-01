@@ -69,12 +69,13 @@ PYTHONPATH=src python3 -m unittest discover -s tests
 
 The repository separates forecast quality from operational planning utility:
 
-- Forecast metrics measure prediction error.
+- Forecast metrics measure prediction error and are reported as diagnostics.
 - Inventory metrics measure holding, shortage, and service outcomes.
 - Stability metrics measure planning signal volatility and model switching.
-- Planning utility combines forecast, inventory, stability, switching, and execution adaptation terms.
+- Execution metrics measure whether plan changes exceed modeled execution capacity.
+- The default operational planning objective excludes direct forecast-error terms and combines inventory exposure, planning volatility, execution burden, and model-switching burden.
 
-The paper should report both a weighted scalar planning loss and Pareto-style multi-objective outputs. A single score is useful for optimization, but the tradeoff surface is essential for explaining the planning-infrastructure gap.
+The paper reports both normalized scalar planning loss and Pareto-style multi-objective outputs. A single score is useful for optimization, but the tradeoff surface is essential for explaining the planning-infrastructure gap.
 
 ## LaTeX Paper Workflow
 
@@ -88,136 +89,37 @@ Major result tables should be saved as both `.csv` and `.tex`. Research figures 
 
 Paper-ready figure and table conventions are documented in `docs/figure_style_guide.md`.
 
-## Research Progress Log
+## Current Research Layers
 
-### Favorita Feasibility Stress Tests and Pareto Analysis
+The repository now has four empirical roles:
 
-The Favorita feasibility analysis added weight-sensitivity analysis,
-execution-capacity stress tests, Pareto summaries, and a more interpretable
-feasibility-aware selector for the quick-mode proof of concept. The current
-results support a tradeoff interpretation: accuracy-only LightGBM/global-best
-remains strong under the baseline scalar loss, while feasibility-aware and
-stability-aware strategies reduce planning volatility and execution burden under
-more constrained or more execution-sensitive settings. The main takeaway is
-documented in `docs/favorita_feasibility_tradeoff_takeaways.md`.
+- `DataCo`: execution-risk profiling. Late-delivery behavior is used as an empirical anchor for relative execution-risk scenarios, not as exact cost calibration for retail demand datasets.
+- `Favorita`: main daily store-family proof of concept. It supports forecast metrics, inventory metrics, execution-capacity stress tests, DataCo-informed scenario analysis, smoothing/ensemble method comparisons, and sample-size robustness outputs.
+- `M5`: hierarchical retail robustness. It supports item-store, department-store, and category-store views, intermittency stress, DataCo-informed scenario robustness, and switch-budget sensitivity.
+- `Walmart`: weekly business-context robustness. It compares history-only and history-plus-context candidate forecasts, holiday/markdown stress windows, weekly cadence constraints, and switch-budget sensitivity.
 
-### Favorita Sample-Size Reproducibility
+The decision layer includes accuracy-first baselines, simple and operational-loss-weighted ensembles, stability-first references, feasibility-aware selectors, smoothed planning strategies, Greedy finite-horizon selection, unrestricted DP selection, Budgeted DP selection with hard switch budget `K`, and explicitly non-deployable Oracle diagnostics.
 
-The Favorita reproducibility layer runs the same pipeline across larger sample
-sizes and exports sample-size comparison tables and figures. In the current
-local environment, quick mode and medium mode completed successfully, while
-larger full-mode attempts loaded data but failed during native ML fitting. The
-completed runs show that the accuracy-first winner can change with sample size,
-but the execution-feasibility tradeoff remains visible. The detailed findings
-are documented in `docs/favorita_reproducibility_findings.md`.
+## Paper-Facing Outputs
 
-### Thesis Wording Update
+The manuscript imports LaTeX-ready tables from `paper/tables/` and PDF figures from `paper/figures/`. Current paper-facing outputs include:
 
-The repository now includes a concise thesis statement that frames
-forecast-driven demand planning as feasibility-constrained model selection. The
-wording is stored in `docs/research_thesis.md` and reflected in the manuscript
-abstract and introduction placeholders.
+- Thesis quantification summaries: accuracy-ranking mismatch, planning-execution gap rate, Greedy-vs-DP value, and split Oracle gaps.
+- DataCo execution-risk calibration and generated scenario tables.
+- Favorita forecast, method-family, smoothing, ensemble, Pareto, weight-sensitivity, execution-capacity, and sample-size robustness outputs.
+- M5 hierarchy, intermittency, DataCo-scenario, and switch-budget sensitivity outputs.
+- Walmart context robustness, holiday/markdown stress, weekly cadence, and switch-budget sensitivity outputs.
 
-### Normalized Loss and DataCo-Informed Execution Risk
+The `paper/full_draft_snapshot.tex` file is a synchronized review build that imports the current manuscript sections. The main manuscript is `paper/main.tex`.
 
-The pipeline now exports a baseline strategy comparison, normalized planning-loss
-components, normalization reference audits, and DataCo-informed execution-risk
-scenario tables. DataCo late-delivery behavior is used as an empirical anchor
-for execution-risk sensitivity scenarios when local DataCo files are available;
-otherwise, the pipeline records a clear fallback to configured default scenario
-values. The scenario design is documented in `docs/dataco_execution_scenarios.md`.
+## Methodology Notes
 
-### Improved Feasibility-Aware Methods
-
-The method-improvement layer adds feasibility-aware smoothed planning and
-feasibility-aware ensembles to the DataCo-informed Favorita re-evaluation. The
-smoothed strategies use fixed, scenario-based, and validation-CV-selected
-adaptation rates. The ensemble strategies use inverse validation accuracy,
-inverse validation operational loss, and a transparent constrained validation
-grid with nonnegative weights that sum to one. The current quick-mode results
-show that smoothing can sharply reduce execution burden while increasing
-inventory cost, and that operational-loss-weighted ensembles can improve the
-baseline-scenario deployability tradeoff without changing the DataCo scenario
-mapping.
-
-### Favorita Method-Family Summary and M5 Robustness
-
-The paper-ready consolidation layer now exports a compact Favorita method-family
-summary that compares accuracy-first, reference ensemble, feasibility-aware
-selector, feasibility-aware smoothing, feasibility-aware ensemble,
-stability-first, and oracle reference strategies. It also exports frontier plots
-for accuracy versus execution burden, inventory cost versus execution burden,
-normalized loss across DataCo-informed scenarios, and switching versus execution
-penalty. The M5 robustness layer adds a real loader and transparent baseline
-pipeline for large-scale hierarchical retail demand checks, including hierarchy
-sensitivity, intermittent-demand stress, and DataCo scenario robustness. M5
-quick mode completed locally and writes LaTeX-ready tables and PDF figures for
-the manuscript workflow.
-
-### LaTeX Paper Drafting Mode
-
-The manuscript has moved from placeholder structure to an integrated LaTeX draft
-using the current DataCo, Favorita, M5, and Walmart outputs. The draft frames operational
-demand planning as feasibility-constrained model selection, includes an initial
-verified Related Work citation set, uses generated tables and figures where
-available, and preserves Rossmann as a future robustness extension.
-The `paper/full_draft_snapshot.tex` file is a synchronized review build that
-imports the current manuscript sections.
-
-### Finite-Horizon Decision Layer
-
-The decision layer now includes explicit deployable finite-horizon selectors:
-GreedyFeasibilitySelector, DPFeasibilitySelector, and
-BudgetedDPFeasibilitySelector. Greedy selection minimizes one-step expected
-operational cost, DP selection minimizes cumulative expected operational loss
-over the available horizon, and Budgeted DP adds a hard switch budget. These
-selectors use validation-derived expected costs and forecast-implied planning
-signals; realized test demand remains reserved for Oracle-labeled diagnostics.
-The Realized-Inventory Oracle DP is non-deployable and uses period-specific
-realized test inventory outcomes as an information-access upper bound, not as a
-perfect-forecast oracle. The Full-Outcome Oracle DP adds a stronger
-non-deployable benchmark that uses realized test forecast error and realized
-inventory outcomes over the same forecast candidates. Budgeted DP keeps an
-incumbent-stays fallback for pipeline safety when no budget-feasible path
-remains; fallback rows are diagnostic and are explicitly marked in output
-metadata.
-
-### Decision-Layer Audit and Oracle Semantics
-
-The decision-layer audit now distinguishes deployable strategies from
-non-deployable Oracle diagnostics. Oracle DP is documented as a
-Realized-Inventory Oracle DP: it uses period-specific realized test inventory
-outcomes keyed by series, candidate model, and date, while direct forecast loss
-remains diagnostic unless explicitly weighted in a sensitivity setting. It is
-not a perfect-forecast oracle. The Budgeted DP fallback
-is also explicit in outputs through fallback metadata. The fallback freezes the
-first-period lowest-cost incumbent model when that model remains available, and
-it marks later missing-incumbent cases as potentially non-strict diagnostics.
-The audit table is exported to `outputs/tables/decision_layer_audit.csv` and
-`paper/tables/decision_layer_audit_table.tex`.
-
-### Operational-Loss Objective and Oracle Gap Split
-
-The default planning objective now treats forecast accuracy as a diagnostic
-metric rather than as a direct term in normalized operational loss.
-`planning_loss_weights.alpha_forecast` defaults to `0.0`, while inventory,
-volatility, execution, and switching terms define the main planning objective.
-Paper-facing outputs now split Oracle gaps into `gap_to_dp_oracle` and
-`gap_to_perfect_oracle` so model-selection suboptimality and realized-demand
-uncertainty are reported separately.
-
-### Walmart Business-Context Robustness
-
-The Walmart module now implements a weekly store-department robustness check for
-business-context planning signals. It loads `train.csv`, `features.csv`, and
-`stores.csv` from `data/raw/walmart/`, builds history-only and
-history-plus-context forecast candidate sets, and reuses the existing
-Global Best, Simple Ensemble, Operational Ensemble, Greedy Feasibility, DP
-Feasibility, Budgeted DP, and Oracle diagnostic strategies. Quick mode completed
-locally and exports context comparison, holiday/markdown stress-window, weekly
-cadence constraint, and overall robustness tables and figures for the LaTeX
-paper workflow. Walmart is treated as a narrow robustness check, not as a new
-forecasting leaderboard.
+- Forecast accuracy is reported separately as WAPE and is not part of the default normalized operational objective.
+- `planning_loss_weights.alpha_forecast` defaults to `0.0`; inventory, volatility, execution, and switching terms define the main objective.
+- Paper-facing Oracle gaps are split into `gap_to_dp_oracle` and `gap_to_perfect_oracle`.
+- Realized-Inventory Oracle DP and Full-Outcome Oracle DP are non-deployable diagnostics. They are not perfect-forecast deployment strategies.
+- DataCo transfers empirical heterogeneity in execution risk into sensitivity scenarios. It does not estimate exact dollar costs for Favorita, M5, or Walmart execution violations.
+- Budgeted DP uses an incumbent-stays fallback when no strict budget-feasible path remains; fallback rows are diagnostic and explicitly marked.
 
 ## Raw Data Workflow
 
@@ -347,7 +249,11 @@ PYTHONPATH=src:scripts python3 scripts/run_all_experiments.py --dry-run
 Run quick-mode modules in sequence:
 
 ```bash
-PYTHONPATH=src:scripts python3 scripts/run_all_experiments.py --run-mode quick --continue-on-error
+PYTHONPATH=src:scripts python3 scripts/run_all_experiments.py \
+  --run-mode quick \
+  --include-switch-budget \
+  --include-thesis-quantification \
+  --continue-on-error
 ```
 
 Switch-budget sensitivity can also be run directly:
@@ -355,6 +261,11 @@ Switch-budget sensitivity can also be run directly:
 ```bash
 PYTHONPATH=src:scripts python3 scripts/run_switch_budget_sensitivity.py \
   --dataset walmart \
+  --run-mode quick \
+  --k-values 0 1 2 4 8
+
+PYTHONPATH=src:scripts python3 scripts/run_switch_budget_sensitivity.py \
+  --dataset m5 \
   --run-mode quick \
   --k-values 0 1 2 4 8
 ```
@@ -372,4 +283,5 @@ LaTeX paper workflow, DataCo execution-risk calibration, Favorita proof-of-
 concept and method-improvement pipelines, M5 hierarchy/intermittency
 robustness, Walmart business-context robustness, and a thesis-quantification
 layer that summarizes accuracy-ranking mismatch, planning-execution gap rate,
-Greedy-vs-DP value, and split Oracle gaps. Rossmann remains a future extension.
+Greedy-vs-DP value, switch-budget sensitivity, and split Oracle gaps. Rossmann
+remains a future extension.
