@@ -12,7 +12,7 @@
 - [x] Methods section includes a feasibility-constrained decision-layer figure.
 - [x] Results and Discussion includes numerical results, graphical results, proposed improvements, and validation.
 - [x] Conclusion returns to the stated objectives.
-- [x] Acknowledgement and biography placeholders are included.
+- [x] Acknowledgements are omitted; biography text is included.
 
 ## Evidence and Claims
 
@@ -56,7 +56,7 @@
 - [x] Repository artifacts in this folder are written in English.
 - [x] Local `pdflatex` build completed successfully.
 - [x] Author names, affiliations, and email addresses have been drafted.
-- [ ] Acknowledgement text has been finalized or removed.
+- [x] Acknowledgements have been removed.
 - [x] Biography text has been drafted.
 - [ ] Final IEOM page limit and formatting rules have been checked against the official portal.
 - [ ] Final PDF or Word submission file has been visually reviewed before upload.

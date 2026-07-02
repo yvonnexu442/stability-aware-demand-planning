@@ -42,7 +42,7 @@ The draft was compiled successfully with `pdflatex` on July 2, 2026. The current
 
 ## Open Items Before Submission
 
-- Confirm author, affiliation, email, acknowledgement, and biography text.
+- Confirm author, affiliation, email, and biography text.
 - Confirm final IEOM formatting against the official template.
 - Re-check all table and figure numbering after any future additions.
 - Convert to the final submission format required by IEOM if the portal requires a Word document.
