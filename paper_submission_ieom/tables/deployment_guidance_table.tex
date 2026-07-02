@@ -1,17 +1,18 @@
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
-\caption{Deployment strategy families and rollout conditions.}
+\caption{Strategy families and operating conditions.}
 \label{tab:deployment-guidance}
 \scriptsize
-\begin{tabular}{@{}p{0.29\linewidth}p{0.30\linewidth}p{0.31\linewidth}@{}}
+\renewcommand{\arraystretch}{0.85}
+\begin{tabular}{@{}p{0.27\linewidth}p{0.24\linewidth}p{0.39\linewidth}@{}}
 \toprule
-\textbf{Operating condition} & \textbf{Recommended deployment policy} & \textbf{Reason} \\
+\textbf{Operating condition} & \textbf{Policy} & \textbf{Reason} \\
 \midrule
-Flexible execution capacity & Accuracy-first or ensemble & WAPE gains can be useful when plan movement is absorbable, but feasibility screening remains required. \\
-Moderate execution constraint & Ensemble & Averaging can dampen model-specific swings while retaining adaptation. \\
-Severe execution constraint & Smoothing & Gradual adaptation can reduce execution burden when abrupt plan movement is costly. \\
+Flexible execution capacity & Accuracy-first or ensemble & WAPE gains are useful when plan movement is absorbable, but feasibility screening is still required. \\
+Moderate execution constraint & Ensemble & Averaging dampens model-specific swings while retaining adaptation. \\
+Severe execution constraint & Smoothing & Gradual adaptation reduces execution burden when abrupt movement is costly. \\
 High switching governance & DP or budgeted DP & Horizon-aware selection accounts for future switching and coordination burden. \\
-Multi-level hierarchy & Choose by planning grain & Item, department, and category planning can favor different deployment mechanisms. \\
+Multi-level hierarchy & Choose by planning grain & Item, department, and category planning favor different mechanisms. \\
 \bottomrule
 \end{tabular}
 \end{table}

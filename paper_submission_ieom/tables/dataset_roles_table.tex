@@ -1,16 +1,19 @@
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
-\caption{Dataset roles and experimental purpose.}
+\caption{Empirical validation design for feasibility-constrained model selection.}
 \label{tab:dataset-roles}
-\small
-\begin{tabular}{@{}p{0.14\linewidth}p{0.20\linewidth}p{0.24\linewidth}p{0.28\linewidth}@{}}
+\scriptsize
+\renewcommand{\arraystretch}{0.85}
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{@{}p{0.17\linewidth}p{0.21\linewidth}p{0.20\linewidth}p{0.12\linewidth}p{0.18\linewidth}@{}}
 \toprule
-\textbf{Dataset} & \textbf{Role} & \textbf{Data used} & \textbf{Purpose} \\
+\textbf{Evidence block} & \textbf{Research question} & \textbf{Technical test} & \textbf{Data source} & \textbf{Thesis role} \\
 \midrule
-DataCo & Execution-risk anchor & Late-delivery outcomes by operational context & Defines data-informed execution-risk scenarios; not treated as an inventory-control dataset. \\
-Favorita & Main proof of concept & Daily store-family retail demand panel & Tests forecast-to-plan conversion and deployable strategy ranking under execution-risk scenarios. \\
-M5 & Robustness analysis & Hierarchical and intermittent retail demand & Tests whether the planning-execution gap persists across planning grain and demand sparsity. \\
-Walmart & Business-context robustness & Weekly store-department sales with holiday and markdown context & Tests context-aware forecasting, holiday and markdown windows, weekly cadence constraints, and switch-budget sensitivity. \\
+Execution-risk anchoring & Is execution risk measurable from real operations data? & Late-delivery percentile scenarios and execution-weight mapping. & DataCo & Calibrates scenario severity; not a demand dataset. \\
+Forecast-to-plan proof of concept & Does WAPE-best differ from feasibility-best? & Forecast-to-plan conversion and normalized planning loss comparison. & Favorita & Main empirical proof of the planning-execution gap. \\
+Strategy-family mechanism & Why do ensemble, smoothing, and DP differ? & Shared operational scoring for deployable strategy families. & Favorita & Explains mechanism-level tradeoffs. \\
+Hierarchy and intermittency robustness & Does planning grain change strategy choice? & Item-store, department-store, category-store, and intermittency checks. & M5 & Tests planning-grain robustness. \\
+Business-context robustness & Does weekly cadence and context alter deployment choice? & History-only vs. context-aware forecasts, cadence, and switch-budget tests. & Walmart & Secondary robustness for operating context. \\
 \bottomrule
 \end{tabular}
 \end{table}

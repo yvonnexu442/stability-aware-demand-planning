@@ -42,7 +42,7 @@ The draft was compiled successfully with `pdflatex` on July 2, 2026. The current
 
 ## Open Items Before Submission
 
-- Replace author, affiliation, email, acknowledgement, and biography placeholders.
+- Confirm author, affiliation, email, acknowledgement, and biography text.
 - Confirm final IEOM formatting against the official template.
 - Re-check all table and figure numbering after any future additions.
 - Convert to the final submission format required by IEOM if the portal requires a Word document.
@@ -57,18 +57,18 @@ The draft was compiled successfully with `pdflatex` on July 2, 2026. The current
 - `ieom_compliance_checklist.md`: submission-readiness checklist.
 - `ieom_artifact_consistency_audit.md`: artifact-level consistency audit.
 - `ieom_claim_number_audit.md`: manuscript number traceability audit.
+- `ieom_role_and_metric_audit.md`: dataset-role and key-metric audit for the tightened draft.
 - `ieom_table_figure_audit.md`: table and figure consistency audit.
 - `walmart_completion_audit.md`: Walmart completion audit.
 - `walmart_ieom_inclusion_decision.md`: Walmart IEOM inclusion decision.
 
 ## Revision Notes
 
-- Figure 1 is a four-block forecast-to-plan feasibility gate covering candidate forecasts and policies, forecast-to-plan conversion, feasibility scoring, and deployment decision/validation.
-- Algorithm 1 summarizes the feasibility-constrained selection procedure in compact IEOM-style steps.
-- Section 5 is organized around exactly four mechanism-level findings rather than dataset chronology.
-- Section 5.3 is a proposed model-rollout protocol rather than a generic improvement list.
-- Section 5.4 uses formal baseline, scenario, algorithmic, and robustness validation paragraphs.
-- Walmart is included as secondary robustness evidence, not as an abstract-level result.
-- The main manuscript uses three tables and three figures after the surgical tightening pass.
+- Figure 1 is now a feasibility-constrained decision layer rather than a source-list workflow.
+- Table 1 is a validation-design table: one execution-risk anchor and three demand-planning datasets.
+- Section 5 is organized around core findings, strategy-family interpretation, and robustness validation rather than dataset chronology.
+- Section 5 includes the implementation agenda; the conclusion is kept shorter and objective-facing.
+- Walmart is included as secondary business-context and weekly-cadence robustness evidence, not as the main proof of concept.
+- The main manuscript uses three tables and four figures after the role-and-metric tightening pass.
 - Phase 0 audit deliverables were added before the manuscript rewrite.
 - Output CSV audits are saved under `outputs/tables/`.

@@ -1,30 +1,42 @@
 \section{Introduction}
 
-Demand planning is an operational deployment problem, not only a forecasting problem. Forecast-driven decisions influence inventory targets, replenishment orders, supplier coordination, warehouse labor, transportation commitments, and planning-system governance. A model rollout that improves WAPE can still create abrupt plan changes, new approval requirements, or execution workloads that the operating system cannot absorb.
+\subsection{The Planning-Execution Gap}
+\label{sec:gap}
 
-Operations teams execute planning signals, not forecast error metrics. A planner cannot execute WAPE or RMSE; the organization executes an inventory target, a staffing plan, a shipment commitment, or a replenishment quantity. When the planning signal changes faster than supplier, warehouse, transportation, or enterprise-system workflows can adapt, the forecast layer and execution layer become misaligned. This paper calls that misalignment the planning-execution gap.
+Demand planning is an operational deployment problem, not only a forecasting problem: forecast-driven decisions influence inventory targets, replenishment orders, supplier coordination, warehouse labor, transportation commitments, and planning-system governance. Recent advances in AI-enabled forecasting and time-series foundation models have made more accurate predictions available (Walter et al. 2025; Culot et al. 2024; Makridakis et al. 2022), but prediction accuracy alone does not guarantee deployment success, because operations execute planning signals, not forecast error metrics. A planner cannot execute WAPE or RMSE; the organization executes an inventory target, a staffing plan, or a replenishment quantity. When forecast-driven plans change faster than supplier lead times, labor cycles, or system change windows can absorb, the forecast and execution layers become misaligned, creating a planning-execution gap in which the operation cannot execute the plan despite its accuracy.
 
-Forecasting teams optimize error metrics, but operations teams absorb plan changes. Recent work shows rapid progress in AI-enabled supply-chain planning and forecasting benchmarks (Walter et al. 2025; Culot et al. 2024; Vlachos and Reddy 2025; Makridakis et al. 2022). These advances make deployment evaluation more important. More accurate forecasts can be valuable, but forecast accuracy alone does not show whether the resulting plans are stable, feasible, and governable.
-
-This paper studies feasibility-constrained model selection for operational demand planning. Candidate forecasts and planning policies are converted into executable planning signals, evaluated by a forecast-to-plan feasibility gate, and ranked through deployable decision-layer strategies. The empirical contribution is not only that forecast accuracy is incomplete, but that the planning-execution gap can be measured and used as a deployment gate for forecast-driven planning strategies.
-
-The study uses public data in distinct operational roles. DataCo supply-chain execution records anchor execution-risk scenarios from observed late-delivery heterogeneity. Favorita daily retail demand data provide the main forecast-to-plan proof of concept. M5 retail data test hierarchy and intermittent-demand robustness. Walmart weekly sales data provide secondary business-context and cadence robustness. Rossmann is reserved for future work because completed Rossmann experiment outputs were not found in the audit.
-
-The paper makes four IEOM-oriented contributions:
+The gap manifests in four operational symptoms:
 \begin{enumerate}
-    \item Define planning-execution gap rate as a measurable deployment-feasibility metric.
-    \item Propose a forecast-to-plan feasibility gate that separates WAPE diagnostics from operational planning utility.
-    \item Compare deployable strategy families, including ensemble, smoothing, greedy, DP, and budgeted-DP policies.
-    \item Validate that deployable ranking changes across execution-risk scenarios, planning hierarchy, intermittency, and verified Walmart business-context and cadence settings.
+\item \textbf{Execution violations}: Plans change faster than downstream systems can absorb (e.g., warehouse rescheduling, supplier coordination, system updates)
+\item \textbf{Governance burden}: Each model change requires validation, approval, and monitoring cycles, delaying adoption
+\item \textbf{Supplier disruption}: Frequent plan changes force suppliers to expedite orders or renegotiate, increasing costs
+\item \textbf{Operational gridlock}: Operations teams spend effort coordinating plan changes rather than executing the plan
 \end{enumerate}
+
+These symptoms are invisible in accuracy metrics but visible in execution logs, planner workload, and supplier relationships. The operational reality is that forecast accuracy and plan executability are distinct objectives.
+
+\subsection{From Forecasting Optimization to Feasibility-Constrained Selection}
+
+Forecasting research traditionally optimizes for accuracy, including lower WAPE, lower MAE, and better leaderboard scores. This is valuable, but a more accurate forecast that creates execution gridlock is operationally worse than a slightly less accurate forecast that executes smoothly.
+
+The solution is to shift the optimization target from \textit{forecast generation} to \textit{forecast deployment}: ask which deployable planning strategy minimizes operational cost under execution constraints, not which model minimizes WAPE. This paper operationalizes that shift as a model-agnostic forecast-to-plan feasibility gate: it converts each candidate forecast into an executable planning signal, scores its operational consequence on four metrics (inventory exposure, plan stability, execution violations, governance burden), ranks strategies by feasibility-adjusted utility rather than accuracy alone, and validates ranking stability across execution-risk scenarios and planning contexts.
+
+\subsection{Empirical Evidence and Scope}
+
+The empirical design uses one execution-risk anchor and three demand-planning datasets. \textbf{DataCo} anchors execution-risk scenarios from observed late-delivery heterogeneity; it is not treated as a demand-planning or inventory-control dataset. \textbf{Favorita} (main proof of concept) is daily retail demand from 54 stores and 33 product families (1,782 planning units) over 4+ years, testing whether the accuracy-feasibility tradeoff appears in richly-contexted, fine-grained planning. \textbf{M5} (hierarchy and intermittency robustness) is daily retail demand from 3,049 items across 10 stores with item-store, department-store, and category-store aggregation, testing whether strategy preferences change with granularity and demand sparsity. \textbf{Walmart} (secondary business-context and cadence robustness) is weekly store-department sales with markdown, holiday, and macro signals, testing whether weekly cadence and rich context change the tradeoff. Across these evidence blocks, 91.1\% of evaluation groups show that the WAPE-best strategy differs from the operational-loss-optimal strategy, indicating a structural result rather than a data artifact.
 
 \subsection{Objectives}
 
-The specific objectives of this study are:
-\begin{enumerate}
-    \item Define a forecast-to-plan feasibility gate that measures operational feasibility in addition to WAPE.
-    \item Measure the planning-execution gap using execution violation rate and planning-execution gap rate.
-    \item Construct DataCo-informed execution-risk scenarios for deployment stress testing.
-    \item Compare accuracy-first, ensemble, smoothing, greedy, DP, and budgeted-DP deployable planning strategies.
-    \item Validate ranking shifts across Favorita, M5, and Walmart, and translate the findings into practical planning recommendations.
-\end{enumerate}
+This paper pursues five objectives, each also a research contribution:
+\begin{itemize}
+\setlength{\itemsep}{0pt}
+\setlength{\parsep}{0pt}
+\setlength{\parskip}{0pt}
+\item Define a forecast-to-plan feasibility gate separating diagnostic accuracy from operational utility.
+\item Quantify the planning-execution gap using execution violation rate and normalized planning loss.
+\item Compare six strategy families under the same feasibility evaluation across data-informed execution-risk scenarios.
+\item Validate, across Favorita, M5, and secondary Walmart evidence, that strategy rankings shift with scenario, hierarchy, and context.
+\item Translate the findings into a five-step strategy-selection procedure operations teams can apply directly.
+\end{itemize}
+
+The remaining sections follow the same arc as the four symptoms in Section~\ref{sec:gap}: Section~\ref{sec:methods} turns the feasibility gate into a mechanism, Section~\ref{sec:results} reports how often and why accuracy-first and deployment-best selection diverge, Section~\ref{sec:protocol} organizes that evidence into a five-step strategy-selection procedure, and Section~\ref{sec:validation} closes the loop by testing whether the procedure holds under tighter execution risk, coarser and finer planning grains, and a second dataset with a different cadence and business context.

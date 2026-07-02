@@ -8,8 +8,8 @@
 - [x] Introduction starts from industrial motivation.
 - [x] Objectives subsection is included.
 - [x] Literature review is organized by themes rather than paper-by-paper notes.
-- [x] Methods section includes equations and IEOM-style numbered steps.
-- [x] Methods section includes a four-block forecast-to-plan feasibility gate figure and compact Algorithm 1.
+- [x] Methods section includes equations and decision-layer logic.
+- [x] Methods section includes a feasibility-constrained decision-layer figure.
 - [x] Results and Discussion includes numerical results, graphical results, proposed improvements, and validation.
 - [x] Conclusion returns to the stated objectives.
 - [x] Acknowledgement and biography placeholders are included.
@@ -24,6 +24,7 @@
 - [x] A claim-number audit is included for manuscript numerical values.
 - [x] An artifact consistency audit is included for completed dataset scope.
 - [x] A table and figure audit is included for manuscript visuals.
+- [x] A role and metric audit is included for DataCo, Favorita, M5, and Walmart scope.
 - [x] Walmart completion was audited before inclusion.
 - [x] The paper does not claim that feasibility-aware methods always dominate.
 - [x] Oracle DP and Perfect-Demand Oracle are described as non-deployable benchmarks.
@@ -36,8 +37,8 @@
 - [x] Figures are numbered as Figure 1, Figure 2, and so on.
 - [x] Figure captions appear below figures.
 - [x] Every included table and figure is mentioned and interpreted in the text.
-- [x] Figure 1 presents a readable four-block deployment gate rather than a metric-heavy workflow.
-- [x] The main paper uses three tables and three figures instead of all generated artifacts.
+- [x] Figure 1 presents a readable feasibility-constrained decision layer rather than a metric-heavy workflow.
+- [x] The main paper uses a compact set of three tables and four figures instead of all generated artifacts.
 
 ## References
 
@@ -54,8 +55,8 @@
 
 - [x] Repository artifacts in this folder are written in English.
 - [x] Local `pdflatex` build completed successfully.
-- [ ] Author names, affiliations, and email addresses have been finalized.
+- [x] Author names, affiliations, and email addresses have been drafted.
 - [ ] Acknowledgement text has been finalized or removed.
-- [ ] Biography text has been finalized.
+- [x] Biography text has been drafted.
 - [ ] Final IEOM page limit and formatting rules have been checked against the official portal.
 - [ ] Final PDF or Word submission file has been visually reviewed before upload.

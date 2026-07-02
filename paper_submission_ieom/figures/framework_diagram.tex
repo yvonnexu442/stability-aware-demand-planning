@@ -1,0 +1,72 @@
+% Forecast-to-Plan Feasibility Gate: framework architecture.
+% Included via \input in sections/03_methods.tex (Figure 1).
+% No formulas here by design -- all equations live in the body text (Section 3);
+% this figure's job is to make the decision architecture readable at a glance.
+\begin{tikzpicture}[
+  font=\sffamily,
+  >=Latex,
+  every node/.style={align=center},
+  stratbox/.style={draw=gray!60, fill=gray!10, rounded corners=1.5pt, minimum height=0.62cm, minimum width=2.15cm, font=\sffamily\footnotesize, inner sep=1pt},
+  stagebox/.style={draw=black!75, rounded corners=2.5pt, thick, minimum height=0.85cm, font=\sffamily\bfseries\small},
+  metricchip/.style={draw=black!55, fill=white, rounded corners=1.5pt, minimum height=0.68cm, minimum width=2.85cm, font=\sffamily\footnotesize, inner sep=1pt},
+  valchip/.style={draw=violet!55, fill=violet!7, rounded corners=1.5pt, minimum height=0.55cm, minimum width=3.2cm, font=\sffamily\footnotesize, inner sep=1pt},
+  wapebox/.style={draw=gray!55, fill=gray!5, rounded corners=1.5pt, dashed, minimum height=0.75cm, minimum width=2.6cm, font=\sffamily\footnotesize},
+  lbl/.style={font=\sffamily\bfseries\small, text=black!55},
+]
+
+% ===== Row 1: Strategy families (inputs) =====
+\node[stratbox] (s1) at (1.3,7.7)  {Accuracy-\\First};
+\node[stratbox] (s2) at (3.6,7.7)  {Ensemble};
+\node[stratbox] (s3) at (5.9,7.7)  {Smoothing};
+\node[stratbox] (s4) at (8.2,7.7)  {Greedy};
+\node[stratbox] (s5) at (10.5,7.7) {DP};
+\node[stratbox] (s6) at (12.8,7.7) {Budgeted\\DP};
+
+% background box around strategy row
+\begin{scope}[on background layer]
+\node[draw=gray!40, dashed, rounded corners=3pt, fit=(s1)(s6), inner sep=7pt] (stratfit) {};
+\end{scope}
+\node[lbl, anchor=south west] at (stratfit.north west) {\textsc{Candidate deployable strategy families}};
+
+% ===== Converging arrows into conversion stage =====
+\node[stagebox, fill=blue!6, minimum width=6.4cm] (convert) at (7.05,6.05) {Forecast-to-Plan Conversion\\ \normalfont\footnotesize\sffamily (forecast $\to$ inventory target)};
+
+\foreach \s in {s1,s2,s3,s4,s5,s6} {
+  \draw[->, gray!70] (\s.south) -- ++(0,-0.28) -| (convert.north);
+}
+
+% ===== Feasibility Scoring Layer (the core innovation, emphasized) =====
+\begin{scope}[on background layer]
+\node[draw=orange!80!black, thick, fill=orange!8, rounded corners=4pt, minimum width=13.6cm, minimum height=2.35cm] (feasbox) at (7.05,4.05) {};
+\end{scope}
+\node[lbl, text=orange!70!black] at (7.05,5.00) {\textsc{Feasibility scoring layer: same four metrics applied to every candidate}};
+
+\node[metricchip] (m1) at (2.35,3.85) {Inventory\\ Exposure};
+\node[metricchip] (m2) at (5.35,3.85) {Planning\\ Volatility};
+\node[metricchip] (m3) at (8.75,3.85) {Execution\\ Violation};
+\node[metricchip] (m4) at (11.75,3.85) {Switching\\ Burden};
+
+\draw[->] (convert.south) -- (7.05,5.225);
+
+% WAPE diagnostic side branch (visually demoted, dashed, off main path)
+\node[wapebox] (wape) at (14.9,6.05) {WAPE\\ \normalfont\footnotesize (diagnostic\\ only)};
+\draw[->, dashed, gray!60] (convert.east) -- (wape.west);
+\draw[->, dashed, gray!60] (wape.south) |- (16.3,3.3) node[wapebox, minimum width=2.4cm, minimum height=0.7cm, pos=1] (report) {Diagnostic\\report};
+
+% ===== Normalized planning loss / ranking stage =====
+\node[stagebox, fill=teal!8, minimum width=8.6cm] (rank) at (7.05,2.15) {Rank \& select deployable strategy\\ \normalfont\footnotesize by normalized planning loss};
+\draw[->] (feasbox.south) -- (rank.north);
+
+% ===== Validation band =====
+\node[valchip] (v1) at (1.9,0.45)  {DataCo Execution-\\Risk Scenarios};
+\node[valchip] (v2) at (5.5,0.45)  {Greedy $\leftrightarrow$ DP\\ Planning-Ahead Gap};
+\node[valchip] (v3) at (9.1,0.45)  {M5 Hierarchy \&\\ Intermittency};
+\node[valchip] (v4) at (12.7,0.45) {Walmart Context \&\\ Weekly Cadence};
+
+\node[lbl] at (7.3,1.2) {\textsc{Validation: confirms ranking stability across scenarios and contexts}};
+
+\foreach \v in {v1,v2,v3,v4} {
+  \draw[->, violet!55] (\v.north) -- ++(0,0.2) -| (rank.south);
+}
+
+\end{tikzpicture}

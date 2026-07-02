@@ -1,96 +1,108 @@
 \section{Methods}
+\label{sec:methods}
 
-The proposed method is a deployment gate for selecting demand-planning strategies. Figure~\ref{fig:framework} shows the gate: candidate forecasts and policies are converted into planning signals, scored for feasibility, and then approved or rejected for deployment. This design follows forecast-to-decision research showing that downstream operational quality can differ from forecast-error quality (Elmachtoub and Grigas 2022; Mandi et al. 2024).
+\subsection{The Planning-Execution Gap: Problem and Design Rationale}
 
-\begin{figure}[htbp]
+Forecasting teams optimize forecast accuracy (WAPE); operations teams execute plans. These objectives often diverge when an improved forecast requires abrupt plan changes that exceed operational capacity, including supplier lead times, warehouse labor constraints, and system change cycles. The paper's solution is to convert all candidate forecasts into a common planning-signal form, apply the same operational metrics to every candidate, and rank strategies by those metrics rather than by WAPE. This ensures fair comparison across strategy families (accuracy-first, ensemble, smoothing, greedy, DP, budgeted-DP) and reveals when accuracy-first selection diverges from operationally-optimal selection.
+
+Figure~\ref{fig:framework} shows this as a deployment gate. Unlike a standard forecasting pipeline (generate forecast $\to$ report WAPE $\to$ approve), the gate adds an operational evaluation step: convert forecast to plan, measure feasibility, then approve only if feasible. This figure is \emph{how} the paper measures feasibility; Figure~\ref{fig:protocol} in Section~\ref{sec:protocol} is the complementary \emph{strategy-selection} procedure built on those measurements.
+
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.96\linewidth]{figures/ieom_framework_flowchart.pdf}
-\caption{Forecast-to-plan feasibility gate for demand-planning deployment.}
+\resizebox{\linewidth}{!}{\input{figures/framework_diagram}}
+\caption{Feasibility-constrained decision layer for forecast-driven demand planning.}
 \label{fig:framework}
 \end{figure}
 
-Figure~\ref{fig:framework} is a deployment gate, not only a workflow. WAPE remains visible as a diagnostic signal, but the approval decision is governed by whether the forecast-driven plan can be operationally executed.
+\subsection{Forecast-to-Plan Conversion: Why and How}
 
-\subsection{Forecast-to-plan Feasibility Model}
+The first step converts forecasts into operational plans. Let $i$ index a planning unit, $t$ a planning period, and $m$ a candidate model, so the candidate forecast is $\hat{y}_{i,t}^{m}$; the conversion is
+\begin{equation}
+p_{i,t}^{m} = \hat{y}_{i,t}^{m} + SS_i,
+\end{equation}
+where $SS_i$ is safety stock from demand volatility and service-level targets, and $p_{i,t}^{m}$ is the resulting inventory target, which is the operational plan.
 
-Let $i$ index a planning unit, $t$ index a planning period, and $m$ index a candidate forecasting model or planning policy. The candidate forecast is $\hat{y}_{i,t}^{m}$, and the executable planning signal is $p_{i,t}^{m}$. The forecast-to-plan conversion is:
-\begin{equation}
-p_{i,t}^{m}=g(\hat{y}_{i,t}^{m},\mathrm{policy}_{t}).
-\end{equation}
-In this study, the planning signal is an inventory target implied by the candidate forecast and planning policy.
+Different forecasts create different plans: Forecast A might suggest holding 100 units and Forecast B 150, and even if both have similar WAPE, Forecast B requires 50 additional units of inventory and a larger supply-chain adjustment. Inventory targets are the right common form because they are the primary planning signal in demand-driven supply chains, cascading to procurement orders, warehouse allocations, staffing, and transportation. Measuring changes in the target captures operational workload across all of these downstream functions at once.
 
-Inventory exposure is measured using holding and shortage terms:
-\begin{equation}
-IC_{i,t}^{m}=h[p_{i,t}^{m}-y_{i,t}]^{+}+b[y_{i,t}-p_{i,t}^{m}]^{+},
-\end{equation}
-where $h$ is holding cost, $b$ is shortage cost, $y_{i,t}$ is realized demand, and $[x]^+=\max(x,0)$.
+\subsection{Information Access and Leakage Prevention}
 
-Planning volatility and execution violation are:
+The evaluation uses three information layers. Calibration uses validation-period realized demand to estimate expected operational costs. Test-period selection does not observe $y_{i,t}$; deployable selectors use candidate forecasts, prior executed plans, execution-capacity scenarios, validation-derived expected costs, switching penalties, and policy rules. Realized test demand is used only after the horizon ends for ex-post scoring. This separation prevents look-ahead bias and distinguishes deployable selectors from the non-deployable oracle references in Section~\ref{sec:oracles}.
+
+\subsection{Feasibility Scoring: Four Operational Metrics}
+
+Once all candidates are converted to planning signals, we measure the operational consequence of each. In calibration, these metrics estimate validation-derived expected cost; in ex-post evaluation, they measure realized test-period performance. We use four metrics:
+
+\textbf{1. Inventory Exposure} (Equation 2)
 \begin{equation}
-PV_{i,t}^{m}=|p_{i,t}^{m}-p_{i,t-1}|,
+IC_{i,t}^{m}=h[p_{i,t}^{m}-y_{i,t}]^{+}+b[y_{i,t}-p_{i,t}^{m}]^{+}
 \end{equation}
+
+Supply chains balance holding cost $h$ and shortage cost $b$, revealing whether accuracy improvements hide inventory cost increases. For deployable strategies, this inventory exposure is estimated from validation-period realized demand and used to construct validation-derived expected costs. Test-period realized demand is withheld from selection and used only for ex-post evaluation after the test horizon is complete.
+
+\textbf{2. Planning Volatility} (Equation 3)
 \begin{equation}
-EV_{i,t}^{m}=[|p_{i,t}^{m}-p_{i,t-1}|-C_{i,t}]^{+},
+PV_{i,t}^{m}=|p_{i,t}^{m}-p_{i,t-1}|
 \end{equation}
-where $C_{i,t}$ is the execution capacity available to absorb plan movement. The planning-execution gap rate for strategy $s$ is:
+
+Operations cannot replan infinitely often: suppliers, warehouses, and systems need stable commitments, so sharp plan changes become coordination bottlenecks. We measure plan movement to quantify this burden.
+
+\textbf{3. Execution Violation} (Equation 4)
+\begin{equation}
+EV_{i,t}^{m}=[|p_{i,t}^{m}-p_{i,t-1}|-C_{i,t}]^{+}
+\end{equation}
+
+Operations have a maximum absorption rate $C_{i,t}$ per period, set by supplier lead times, labor rescheduling capacity, and system update cycles. When a plan change exceeds $C_{i,t}$, the operation cannot execute it; the excess $EV_{i,t}^{m}$ is the execution violation, and this is what ``planning-execution gap'' means operationally.
+
+\textbf{4. Model Switching Burden} (implicit in loss function): Each model change requires validation, approval, and monitoring. These governance processes take time and resources regardless of whether the new model is more accurate; we measure the number of model changes to quantify this burden. Aggregating execution violations over time gives the \textbf{planning-execution gap rate}, the fraction of periods where the operation cannot execute:
 \begin{equation}
 PEG(s)=\frac{1}{T}\sum_{t=1}^{T}\mathbb{I}\{EV_t(s)>0\}.
 \end{equation}
+A strategy with PEG rate 30\% requires emergency handling, expediting, or replanning in 30\% of periods; PEG 5\% is operationally far more feasible.
 
-The normalized planning loss is:
+\subsubsection{Why Exclude WAPE from the Objective?}
+
+We report WAPE separately as a diagnostic metric rather than folding it into the operational objective: it measures precision, not consequence, so a 10\% WAPE improvement that doubles execution violations is operationally worse despite looking better on paper, and it can mask trade-offs since a more accurate forecast often requires more frequent model changes that create governance burden invisible to accuracy metrics. Separating WAPE (diagnostic) from operational metrics (primary) lets planners see when an accuracy improvement is operationally worthless or even harmful.
+
+\subsection{Normalized Planning Loss: Combining Operational Metrics}
+
+We combine the four operational metrics into a single planning-loss objective:
 \begin{align}
 L(s)={}&
-\beta_{\mathrm{inventory}}\cdot \mathrm{NIC}(s)
+\lambda_{\mathrm{inventory}}\cdot \mathrm{NIC}(s)
 +\lambda_{\mathrm{volatility}}\cdot \mathrm{NVC}(s) \notag \\
 &+\lambda_{\mathrm{execution}}\cdot \mathrm{NEC}(s)
 +\lambda_{\mathrm{switch}}\cdot \mathrm{NSC}(s),
 \end{align}
-where NIC, NVC, NEC, and NSC are normalized inventory, volatility, execution, and switching components. WAPE is reported separately as diagnostic forecast accuracy. The main operational objective excludes direct forecast-error terms because realized inventory exposure and feasibility terms capture the deployable consequences of forecast-driven planning decisions.
 
-\subsection{Stepwise Feasibility-constrained Selection Algorithm}
+where NIC, NVC, NEC, NSC are normalized inventory, volatility, execution, and switching components, and $\lambda$ values are organizational weights.
 
-\textbf{Algorithm 1. Feasibility-constrained selection procedure.}
+\textbf{Normalization}: All components are divided by the accuracy-first baseline (Global Best), so a normalized loss of 0.9 means 10\% better than accuracy-first and 1.1 means 10\% worse, which remains meaningful even when absolute cost values differ across datasets.
 
-\begin{enumerate}
-\item Generate candidate forecasts or planning policies for each planning unit and period.
-\item Convert each candidate forecast into a planning signal.
-\item Compute inventory exposure relative to realized demand.
-\item Compute planning volatility and switching burden relative to the previous executed plan.
-\item Compute execution violation under the available execution capacity.
-\item Aggregate the normalized planning loss.
-\item Select the deployable planning action using one of the decision policies.
-\item Validate the selected strategy against scenario and oracle benchmarks.
-\end{enumerate}
+\textbf{Weight selection}: Current weights are $\lambda_{\mathrm{inventory}}=1.0, \lambda_{\mathrm{volatility}}=0.10, \lambda_{\mathrm{execution}}=0.10, \lambda_{\mathrm{switch}}=0.05$, reflecting a supply chain where inventory cost dominates but feasibility and governance still matter; organizations can adjust these by constraint, e.g., raising $\lambda_{\mathrm{execution}}$ under tight execution capacity or $\lambda_{\mathrm{switch}}$ under strict governance.
 
-Steps 1--3 create candidate planning signals. Steps 4--6 score those signals by feasibility. Step 7 selects a deployment action. Step 8 validates whether the action remains preferred under execution-risk scenarios and oracle benchmarks. The procedure is modular: accuracy-first baselines, ensembles, smoothing rules, greedy selectors, DP selectors, and budgeted-DP selectors all pass through the same forecast-to-plan feasibility gate.
+\subsection{From Metrics to a Selection Procedure}
 
-\subsection{Horizon-aware and Constrained Selection}
+Figure~\ref{fig:framework} assembles the equations above into one procedure. Candidate strategies generate forecasts, convert them into planning signals (Equation~1), and pass through the same feasibility-scoring layer. Validation-derived expected inventory exposure, planning volatility, execution violation, and switching burden are computed under one operational objective (Equations~2 to 5). These scores are aggregated into $L(s)$ (Equation~6), ranking strategies for deployment without test-period realized demand. Ex-post validation then checks realized test outcomes, execution-risk scenarios, oracle benchmarks, and cross-dataset robustness.
 
-The greedy selector minimizes the current-period operational cost. Let $c_t(m_{t-1},m)$ denote the validation-derived stage cost of choosing candidate $m$ after previous model $m_{t-1}$. The greedy selector chooses:
+The main methodological contribution is the shared feasibility-scoring layer and its integration with multiple deployable strategy families. By routing accuracy-first, ensemble, smoothing, greedy, DP, and budgeted-DP policies through the same operational objective, the framework makes strategy families comparable as planning decisions rather than as isolated forecasting methods. The gate is agnostic to strategy family; we evaluate six. \textbf{Accuracy-First} chooses the model with lowest validation WAPE (the conventional benchmark). \textbf{Ensemble} combines candidate forecasts by simple averaging or operational-loss weighting, dampening model-specific swings while retaining both models' information. \textbf{Smoothing} blends the new plan with the previous period's,
 \begin{equation}
-m_t^{G}=\arg\min_{m\in\mathcal{M}} c_t(m_{t-1},m).
+p_t=\alpha p_t^{\mathrm{candidate}}+(1-\alpha)p_{t-1},
 \end{equation}
-
-The finite-horizon DP selector accounts for future transition effects:
+where lower $\alpha$ slows adaptation and reduces execution burden, trading stability for responsiveness. \textbf{Greedy} selection minimizes only the current-period cost $c_t(m_{t-1},m)$ of switching from model $m_{t-1}$ to $m$,
 \begin{equation}
-V_t(m_{t-1})=\min_{m\in\mathcal{M}}\{c_t(m_{t-1},m)+V_{t+1}(m)\},
+m_t^{G}=\arg\min_{m\in\mathcal{M}} c_t(m_{t-1},m),
 \end{equation}
-with terminal condition $V_{T+1}(\cdot)=0$. The greedy-to-DP gap measures myopic selection suboptimality. When this gap is small, one-step selection may be adequate; when switching approval and coordination costs are material, DP provides a planning-ahead benchmark.
-
-The budgeted DP selector adds a governance constraint:
+ignoring future consequences. \textbf{Dynamic Programming} corrects this by accounting for future transitions,
 \begin{equation}
-\sum_{t=2}^{T}\mathbb{I}\{m_t\neq m_{t-1}\}\leq K.
+V_t(m_{t-1})=\min_{m\in\mathcal{M}}\{c_t(m_{t-1},m)+V_{t+1}(m)\}, \quad V_{T+1}(\cdot)=0;
 \end{equation}
-The state includes the previous model and the number of switches already used. Transitions exceeding the switch budget are discarded. If missing candidate availability leaves no feasible path, the implementation uses a flagged incumbent-stays fallback that is budget-compliant when the incumbent model remains available.
-
-Smoothing represents gradual operational adaptation:
+the greedy-to-DP gap measures the cost of this myopia, small when switching cost is low and material when approval or coordination costs are high. \textbf{Budgeted DP} adds a hard governance constraint on total switches,
 \begin{equation}
-p_t=\alpha p_t^{\mathrm{candidate}}+(1-\alpha)p_{t-1}.
+\sum_{t=2}^{T}\mathbb{I}\{m_t\neq m_{t-1}\}\leq K,
 \end{equation}
-Lower $\alpha$ values reduce execution burden but can delay response to demand changes. Ensemble policies combine candidate forecasts and are evaluated as low-disruption alternatives when accuracy remains comparable.
+relevant when an organization imposes a fixed annual limit on model changes.
 
-\subsection{Validation Benchmarks}
+\subsection{Validation Benchmarks: Non-Deployable Oracles}
+\label{sec:oracles}
 
-The Realized-Inventory Oracle DP is non-deployable. It uses realized test-period inventory outcomes over the same forecast candidates and measures the value of unavailable inventory-outcome information. The DP-oracle gap measures selection suboptimality relative to this non-deployable benchmark.
-
-The Perfect-Demand Oracle is also non-deployable. It uses realized demand as the planning signal and is a perfect-demand diagnostic reference, not a guaranteed lower bound. Exact demand tracking can increase planning volatility and execution violations when the operation cannot absorb rapid plan movement. The perfect-demand reference gap therefore measures a diagnostic total gap that includes both forecast uncertainty and feasibility effects.
+Two oracle benchmarks provide diagnostic references, neither deployable. Only the Realized-Inventory Oracle DP and Perfect-Demand Oracle use test-period realized outcomes during selection; both are explicitly non-deployable diagnostic references. The \textbf{Realized-Inventory Oracle DP} uses realized test-period inventory outcomes over the same forecast candidates, information no real planner has at decision time, and the DP-oracle gap (its normalized-loss distance from the best deployable strategy) shows how much planning value remains unavailable without that hindsight. The \textbf{Perfect-Demand Oracle} uses realized demand itself as the planning signal, yet is often not a lower bound: exact demand tracking can require plan changes faster than execution capacity allows, producing high execution violations. We call this the \emph{curse of accuracy}: a forecast that tracks demand perfectly can still yield an infeasible plan, and its reference gap is therefore diagnostic only, combining forecast uncertainty and feasibility effects to show that accuracy alone is insufficient.
