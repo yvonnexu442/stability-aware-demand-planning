@@ -1,16 +1,17 @@
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \caption{Dataset roles and experimental purpose.}
 \label{tab:dataset-roles}
 \small
-\begin{tabular}{@{}p{0.14\linewidth}p{0.20\linewidth}p{0.24\linewidth}p{0.28\linewidth}@{}}
+\renewcommand{\arraystretch}{0.85}
+\begin{tabular}{@{}p{0.13\linewidth}p{0.19\linewidth}p{0.24\linewidth}p{0.30\linewidth}@{}}
 \toprule
 \textbf{Dataset} & \textbf{Role} & \textbf{Data used} & \textbf{Purpose} \\
 \midrule
-DataCo & Execution-risk anchor & Late-delivery outcomes by operational context & Defines data-informed execution-risk scenarios; not treated as an inventory-control dataset. \\
-Favorita & Main proof of concept & Daily store-family retail demand panel & Tests forecast-to-plan conversion and deployable strategy ranking under execution-risk scenarios. \\
-M5 & Robustness analysis & Hierarchical and intermittent retail demand & Tests whether the planning-execution gap persists across planning grain and demand sparsity. \\
-Walmart & Business-context robustness & Weekly store-department sales with holiday and markdown context & Tests context-aware forecasting, holiday and markdown windows, weekly cadence constraints, and switch-budget sensitivity. \\
+DataCo & Execution-risk anchor & Late-delivery outcomes by context & Defines execution-risk scenarios; not an inventory-control dataset. \\
+Favorita & Main proof of concept & Daily store-family demand panel & Tests forecast-to-plan conversion and strategy ranking under execution risk. \\
+M5 & Robustness analysis & Hierarchical, intermittent demand & Tests whether the gap persists across grain and demand sparsity. \\
+Walmart & Business-context robustness & Weekly sales with holiday/markdown context & Tests context-aware forecasting, cadence, and switch-budget sensitivity. \\
 \bottomrule
 \end{tabular}
 \end{table}

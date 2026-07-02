@@ -2,10 +2,17 @@
 \textbf{Abstract}
 \end{center}
 
-Firms increasingly use predictive demand models to set inventory targets, replenishment plans, and execution commitments. However, operations execute planning signals rather than forecast accuracy metrics. A WAPE-improving model can still create plan movements that exceed the organization's ability to adapt. This paper proposes a forecast-to-plan feasibility gate for demand-planning deployment. The gate converts candidate forecasts into planning signals, measures planning-execution gap rate, and separates diagnostic forecast accuracy from operational planning utility. Across 123 paper-facing evaluation groups, the WAPE-best deployable strategy differs from the operational-loss-best deployable strategy in 91.1\% of cases. The accuracy-first planning-execution gap rate is 15.4\%, compared with 2.7\% for the best deployable operational-loss strategy. The results show that ensemble, smoothing, and DP-based policies occupy different deployment regimes: ensembles can dampen model-specific swings, smoothing slows adaptation when execution capacity is tight, and DP or budgeted DP supports governance when switching decisions have future consequences. The empirical contribution is not only that forecast accuracy is incomplete, but that the planning-execution gap can be measured and used as a deployment gate for forecast-driven planning strategies. WAPE should remain diagnostic; it should not be the sole deployment approval criterion.
+Demand planning teams optimize forecast accuracy; operations teams execute plans. These objectives diverge: a more accurate forecast often requires plan changes that exceed operational absorption capacity, creating coordination burden and execution gridlock. This paper reframes forecast-driven demand planning as feasibility-constrained model selection, evaluating forecast accuracy and execution feasibility as dual objectives.
+
+The core contribution is a forecast-to-plan feasibility gate: candidate forecasts are converted into executable planning signals, measured for operational consequence (inventory exposure, plan stability, execution violations, governance burden), and ranked by feasibility-adjusted planning utility rather than accuracy alone. The gate is model-agnostic, enabling fair comparison of accuracy-first, ensemble, smoothing, greedy, and dynamic programming policies.
+
+Empirically, the study draws on DataCo fulfillment records to calibrate data-informed execution-risk severity levels, alongside Favorita and M5 retail demand data. Across 123 evaluation groups, the accuracy-first deployable strategy differs from the operational-loss-optimal deployable strategy in 91.1\% of cases. The accuracy-first planning-execution gap rate is 15.4\% of periods, compared with 2.7\% for the best deployable operational-loss strategy. Ensemble methods offer low-disruption alternatives; dynamic programming and smoothing serve different governance and execution constraints, and strategy selection varies with planning hierarchy and demand sparsity.
+
+The practical implication is direct: deployment decisions should be made at the forecast-to-plan layer, not the forecasting layer. Forecast accuracy remains important but should be treated as a diagnostic metric, separate from operational planning utility. Organizations can improve plan feasibility while sacrificing only modest accuracy, enabling faster, more confident model rollouts.
 
 \begin{center}
 \textbf{Keywords}
 \end{center}
 
 Demand planning, Forecast-to-plan conversion, Operational feasibility, Planning stability, Execution risk.
+
