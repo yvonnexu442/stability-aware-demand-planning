@@ -1,37 +1,38 @@
 \section{Methods}
 
-The proposed method follows the IEOM sample-paper pattern of a framework architecture followed by compact stepwise logic. Figure~\ref{fig:framework} presents the full decision architecture. Candidate forecasts or planning policies enter the system first, but the decision layer evaluates their implied planning signals before choosing a deployable planning strategy. This framing follows the forecast-to-decision logic that downstream objectives may differ from forecast-error objectives (Elmachtoub and Grigas 2022; Mandi et al. 2024).
+The proposed method is an industrial decision framework for selecting deployable planning strategies. Figure~\ref{fig:framework} shows the four layers. Candidate forecasts and policies are first translated into planning signals. The same feasibility scoring layer then evaluates every candidate before the decision layer ranks deployable strategies. This design follows forecast-to-decision research showing that downstream operational quality can differ from forecast-error quality (Elmachtoub and Grigas 2022; Mandi et al. 2024).
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.96\linewidth]{figures/ieom_framework_flowchart.pdf}
-\caption{Framework architecture for feasibility-constrained demand-planning selection.}
+\caption{Four-layer framework for feasibility-constrained demand planning.}
 \label{fig:framework}
 \end{figure}
 
-\subsection{Feasibility-constrained Planning Model}
+Figure~\ref{fig:framework} separates diagnostic forecast accuracy from deployable planning utility. It also links method components to validation evidence: DataCo stress scenarios test execution pressure, DP and oracle benchmarks test decision-layer value, M5 tests hierarchy and intermittency, and Walmart tests business context and weekly planning cadence.
 
-Let $i$ index a planning unit, $t$ index a planning period, and $m$ index a candidate forecasting model. The candidate forecast is $\hat{y}_{i,t}^{m}$, and the executable planning signal is $p_{i,t}^{m}$. The planning signal is created through a forecast-to-plan conversion rule:
+\subsection{Forecast-to-plan Feasibility Model}
+
+Let $i$ index a planning unit, $t$ index a planning period, and $m$ index a candidate forecasting model or planning policy. The candidate forecast is $\hat{y}_{i,t}^{m}$, and the executable planning signal is $p_{i,t}^{m}$. The forecast-to-plan conversion is:
 \begin{equation}
 p_{i,t}^{m}=g(\hat{y}_{i,t}^{m},\mathrm{policy}_{t}).
 \end{equation}
-In the current implementation, $p_{i,t}^{m}$ is an inventory target implied by the forecast and safety-stock policy.
+In this study, the planning signal is an inventory target implied by the candidate forecast and planning policy.
 
-Inventory exposure is measured through holding and shortage terms:
+Inventory exposure is measured using holding and shortage terms:
 \begin{equation}
 IC_{i,t}^{m}=h[p_{i,t}^{m}-y_{i,t}]^{+}+b[y_{i,t}-p_{i,t}^{m}]^{+},
 \end{equation}
 where $h$ is holding cost, $b$ is shortage cost, $y_{i,t}$ is realized demand, and $[x]^+=\max(x,0)$.
 
-Planning volatility is the absolute movement in the planning signal:
+Planning volatility and execution violation are:
 \begin{equation}
-PV_{i,t}^{m}=|p_{i,t}^{m}-p_{i,t-1}|.
+PV_{i,t}^{m}=|p_{i,t}^{m}-p_{i,t-1}|,
 \end{equation}
-Execution capacity $C_{i,t}$ is the amount of plan movement the operation can absorb in period $t$. The execution violation is:
 \begin{equation}
-EV_{i,t}^{m}=[|p_{i,t}^{m}-p_{i,t-1}|-C_{i,t}]^{+}.
+EV_{i,t}^{m}=[|p_{i,t}^{m}-p_{i,t-1}|-C_{i,t}]^{+},
 \end{equation}
-The paper-facing planning-execution gap rate for strategy $s$ is:
+where $C_{i,t}$ is the execution capacity available to absorb plan movement. The planning-execution gap rate for strategy $s$ is:
 \begin{equation}
 PEG(s)=\frac{1}{T}\sum_{t=1}^{T}\mathbb{I}\{EV_t(s)>0\}.
 \end{equation}
@@ -44,9 +45,9 @@ L(s)={}&
 &+\lambda_{\mathrm{execution}}\cdot \mathrm{NEC}(s)
 +\lambda_{\mathrm{switch}}\cdot \mathrm{NSC}(s),
 \end{align}
-where NIC, NVC, NEC, and NSC denote normalized inventory, volatility, execution, and switching components. WAPE is reported as diagnostic forecast accuracy. The main operational objective excludes direct forecast-error terms because inventory exposure and feasibility terms capture the deployable consequences of forecast-driven planning decisions.
+where NIC, NVC, NEC, and NSC are normalized inventory, volatility, execution, and switching components. WAPE is reported separately as diagnostic forecast accuracy. The main operational objective excludes direct forecast-error terms because realized inventory exposure and feasibility terms capture the deployable consequences of forecast-driven planning decisions.
 
-\subsection{Feasibility-constrained Selection Procedure}
+\subsection{Stepwise Feasibility-constrained Selection Algorithm}
 
 \textbf{Algorithm 1. Feasibility-constrained selection procedure.}
 
@@ -61,54 +62,38 @@ where NIC, NVC, NEC, and NSC denote normalized inventory, volatility, execution,
 \item Validate the selected strategy against scenario and oracle benchmarks.
 \end{enumerate}
 
-The procedure is modular. Accuracy-first baselines, ensembles, smoothing rules, greedy selectors, DP selectors, and budgeted-DP selectors all pass through the same feasibility layer. This makes their outputs comparable as planning actions, not merely as forecast-error scores.
+Steps 1--3 generate candidate planning signals. Steps 4--6 compute inventory exposure, planning volatility, execution violation, and planning-execution gap rate. Step 7 produces deployable strategy rankings. Step 8 validates those rankings using DataCo scenarios, DP-oracle comparison, M5 hierarchy and intermittency robustness, and Walmart business-context and cadence robustness. The procedure is modular: accuracy-first baselines, ensembles, smoothing rules, greedy selectors, DP selectors, and budgeted-DP selectors all pass through the same feasibility layer.
 
-Forecast-to-plan conversion matters because operations execute inventory targets, staffing signals, replenishment quantities, or other planning actions rather than WAPE values. Planning-execution gap rate is therefore a key metric: it measures how often the selected plan exceeds the adjustment capacity of the operating system. The feasibility layer is the core contribution because it translates model outputs into inventory exposure, volatility, switching burden, and execution violations before ranking strategies. The decision layer is consequently selecting the most deployable planning action under stated constraints, not simply the most accurate forecast.
+Table~\ref{tab:method-alignment} links the framework components to the evidence used in this paper and to their operational use.
+\input{tables/method_alignment_table}
 
-Table~\ref{tab:strategy-families} summarizes the decision-layer strategy families used in the empirical evaluation.
-\input{tables/strategy_families_table}
+\subsection{Horizon-aware and Constrained Selection}
 
-\subsection{Greedy and Dynamic Programming Selectors}
-
-The greedy selector minimizes current-period operational cost only. Let $c_t(m_{t-1},m)$ denote the validation-derived stage cost of switching from previous model $m_{t-1}$ to candidate model $m$ at time $t$. The greedy selector chooses:
+The greedy selector minimizes the current-period operational cost. Let $c_t(m_{t-1},m)$ denote the validation-derived stage cost of choosing candidate $m$ after previous model $m_{t-1}$. The greedy selector chooses:
 \begin{equation}
 m_t^{G}=\arg\min_{m\in\mathcal{M}} c_t(m_{t-1},m).
 \end{equation}
-This policy is interpretable but myopic because it ignores future switching and execution consequences.
 
-The finite-horizon DP selector accounts for future operational costs:
+The finite-horizon DP selector accounts for future transition effects:
 \begin{equation}
 V_t(m_{t-1})=\min_{m\in\mathcal{M}}\{c_t(m_{t-1},m)+V_{t+1}(m)\},
 \end{equation}
-with terminal condition:
-\begin{equation}
-V_{T+1}(\cdot)=0.
-\end{equation}
-The greedy-to-DP gap measures myopic selection suboptimality. DP is included to quantify the value of planning ahead over one-step operational selection.
+with terminal condition $V_{T+1}(\cdot)=0$. The greedy-to-DP gap measures myopic selection suboptimality. When this gap is small, one-step selection may be adequate; when switching approval and coordination costs are material, DP provides a planning-ahead benchmark.
 
-\subsection{Budgeted DP Selector}
-
-Some planning organizations impose governance limits on model changes. The budgeted DP selector adds:
+The budgeted DP selector adds a governance constraint:
 \begin{equation}
 \sum_{t=2}^{T}\mathbb{I}\{m_t\neq m_{t-1}\}\leq K.
 \end{equation}
-The DP state includes the previous model and the number of switches already used. Transitions that exceed the switch budget are discarded. If missing candidate availability leaves no feasible path, the implementation uses a flagged incumbent-stays fallback: it chooses the first period's lowest-cost model and holds that incumbent when available. This fallback is budget-compliant when the incumbent model is available throughout the horizon and is marked diagnostically if availability fails.
+The state includes the previous model and the number of switches already used. Transitions exceeding the switch budget are discarded. If missing candidate availability leaves no feasible path, the implementation uses a flagged incumbent-stays fallback that is budget-compliant when the incumbent model remains available.
 
-\subsection{Ensemble and Smoothing Policies}
-
-The Simple Ensemble averages candidate forecasts without using operational-loss information. The Operational-Loss Ensemble uses validation normalized planning loss to assign nonnegative weights. These policies test whether soft forecast composition can reduce abrupt execution burden while retaining useful accuracy.
-
-The smoothing policy changes the executed planning signal, not the underlying forecast:
+Smoothing represents gradual operational adaptation:
 \begin{equation}
 p_t=\alpha p_t^{\mathrm{candidate}}+(1-\alpha)p_{t-1}.
 \end{equation}
-Lower $\alpha$ values reduce execution burden by adapting gradually, but they can increase inventory exposure if the plan responds too slowly to demand changes.
+Lower $\alpha$ values reduce execution burden but can delay response to demand changes. Ensemble policies combine candidate forecasts and are evaluated as low-disruption alternatives when accuracy remains comparable.
 
-\subsection{Oracle Benchmarks and Validation Gaps}
+\subsection{Validation Benchmarks}
 
-The Realized-Inventory Oracle DP is non-deployable. It uses realized test-period inventory outcomes over the same forecast candidates and is used only to quantify the value of unavailable inventory-outcome information. It is not a perfect-forecast oracle.
+The Realized-Inventory Oracle DP is non-deployable. It uses realized test-period inventory outcomes over the same forecast candidates and measures the value of unavailable inventory-outcome information. The DP-oracle gap measures selection suboptimality relative to this non-deployable benchmark.
 
-The Perfect-Demand Oracle uses realized demand as the forecast signal. It is also non-deployable and can still create volatility or execution penalties because perfect demand tracking may move faster than execution capacity. The metric \texttt{gap\_to\_dp\_oracle} measures selection suboptimality relative to the realized-inventory DP benchmark. The metric \texttt{gap\_to\_perfect\_oracle} measures the total gap to a realized-demand reference, including both forecast uncertainty and feasibility effects.
-
-Table~\ref{tab:method-alignment} links each method component to its evidence and operational implication.
-\input{tables/method_alignment_table}
+The Perfect-Demand Oracle is also non-deployable. It uses realized demand as the planning signal and is a diagnostic reference, not a guaranteed lower bound. Exact demand tracking can increase planning volatility and execution violations when the operation cannot absorb rapid plan movement. The perfect-demand reference gap therefore measures a diagnostic total gap that includes both forecast uncertainty and feasibility effects.

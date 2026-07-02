@@ -1,22 +1,17 @@
 \begin{table}[htbp]
 \centering
-\caption{Method components, validation evidence, and operational implication.}
+\caption{Framework components, evidence, and operational use.}
 \label{tab:method-alignment}
-\scriptsize
-\begin{tabular}{@{}p{0.19\linewidth}p{0.23\linewidth}p{0.25\linewidth}p{0.21\linewidth}@{}}
+\small
+\begin{tabular}{@{}p{0.22\linewidth}p{0.24\linewidth}p{0.24\linewidth}p{0.20\linewidth}@{}}
 \toprule
-\textbf{Method component} & \textbf{What it tests} & \textbf{Paper-facing evidence} & \textbf{Operational implication} \\
+\textbf{Framework component} & \textbf{Purpose} & \textbf{Evidence} & \textbf{Operational use} \\
 \midrule
-Forecast-to-plan conversion & Whether forecasts become materially different planning signals & Accuracy-first mismatch rate and Favorita frontier & Evaluate plans, not forecasts alone. \\
-Planning-execution gap rate & Whether plans exceed execution capacity & PEG rate: 15.4\% accuracy-first vs. 2.7\% best deployable & Monitor feasibility as a deployment metric. \\
-DataCo scenarios & Whether empirical execution-risk regimes reorder strategies & Baseline-to-severe Favorita ranking shifts & Use scenario tests before rollout. \\
-Greedy selector & Whether one-step selection is sufficient & Greedy-to-DP gap & Greedy policies can be myopic. \\
-Finite-horizon DP & Value of planning ahead under transition costs & Greedy-to-DP gap and DP oracle gap & Account for future switching and execution burden. \\
-Budgeted DP & Governance limit on model switching & Hard switch budget and flagged fallback semantics & Use when model changes require approval. \\
-Smoothing policy & Gradual operational adaptation & Lower execution burden with inventory tradeoff & Adapt slowly when infrastructure is constrained. \\
-Ensemble policy & Soft composition across models & Lower execution burden in Favorita severe scenario & Reduce model-specific plan jumps. \\
-Oracle benchmarks & Value of unavailable future information & gap\_to\_dp\_oracle and gap\_to\_perfect\_oracle & Separate selection suboptimality from forecast uncertainty. \\
-M5 robustness & Sensitivity to planning grain and intermittency & Best method changes across M5 slices & Avoid one-size-fits-all deployment rules. \\
+Forecast-to-plan and PEG rate & Convert forecasts into executable planning signals and measure infeasible movement. & 91.1\% mismatch rate; 15.4\% vs. 2.7\% PEG-rate contrast. & Monitor feasibility alongside WAPE. \\
+DataCo execution-risk scenarios & Stress-test strategy rankings as execution pressure changes. & Favorita baseline-to-severe ranking shifts. & Run scenario tests before rollout. \\
+Greedy and DP selection & Compare one-period selection with finite-horizon planning. & Greedy-to-DP gap and DP-oracle gap. & Use DP when switching coordination matters. \\
+Smoothing and ensemble policies & Test gradual adaptation and low-disruption forecast composition. & Favorita ensemble tradeoffs and M5 smoothing robustness. & Match policy to execution capacity. \\
+Oracle, M5, and Walmart validation & Separate deployable decisions from diagnostic benchmarks and test robustness. & M5 hierarchy/intermittency and Walmart business-context outputs. & Avoid one-size-fits-all deployment rules. \\
 \bottomrule
 \end{tabular}
 \end{table}

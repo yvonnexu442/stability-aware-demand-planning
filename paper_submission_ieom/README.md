@@ -2,7 +2,7 @@
 
 This folder contains the IEOM-focused manuscript draft for:
 
-**From Accurate Forecasts to Feasible Plans: Feasibility-Constrained Model Selection for Operational Demand Planning**
+**Beyond Forecast Accuracy: Feasibility-Constrained Demand Planning**
 
 The current source of truth is `main.tex`. The draft uses DataCo, Favorita, M5, and Walmart evidence that was already generated in the main project. No new experiments were run for this revision pass.
 
@@ -55,10 +55,18 @@ The draft was compiled successfully with `pdflatex` on July 2, 2026. The current
 - `figures/`: compact IEOM-facing figures.
 - `references.tex`: alphabetized author-year reference list.
 - `ieom_compliance_checklist.md`: submission-readiness checklist.
+- `ieom_artifact_consistency_audit.md`: artifact-level consistency audit.
+- `ieom_claim_number_audit.md`: manuscript number traceability audit.
+- `ieom_table_figure_audit.md`: table and figure consistency audit.
+- `walmart_completion_audit.md`: Walmart completion audit.
+- `walmart_ieom_inclusion_decision.md`: Walmart IEOM inclusion decision.
 
 ## Revision Notes
 
-- Figure 1 is a framework architecture diagram covering inputs, forecast-to-plan conversion, feasibility evaluation, decision ranking, validation, and outputs.
+- Figure 1 is a four-layer framework diagram covering candidate forecasts and policies, forecast-to-plan conversion, feasibility scoring, and decision/validation.
 - Algorithm 1 summarizes the feasibility-constrained selection procedure in compact IEOM-style steps.
-- Section 5.4 separates baseline, scenario, algorithmic, and robustness validation.
+- Section 5 is organized around six mechanism-level findings rather than dataset chronology.
+- Section 5.4 answers baseline, scenario, algorithmic, and robustness validation questions.
 - Walmart is now included as a completed robustness module, consistent with the generated Walmart tables and figures in the main paper asset folders.
+- Phase 0 audit deliverables were added before the manuscript rewrite.
+- Output CSV audits are saved under `outputs/tables/`.

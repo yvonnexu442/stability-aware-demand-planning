@@ -9,7 +9,7 @@
 - [x] Objectives subsection is included.
 - [x] Literature review is organized by themes rather than paper-by-paper notes.
 - [x] Methods section includes equations and IEOM-style numbered steps.
-- [x] Methods section includes a framework architecture figure and compact Algorithm 1.
+- [x] Methods section includes a four-layer framework figure and compact Algorithm 1.
 - [x] Results and Discussion includes numerical results, graphical results, proposed improvements, and validation.
 - [x] Conclusion returns to the stated objectives.
 - [x] Acknowledgement and biography placeholders are included.
@@ -21,6 +21,10 @@
 - [x] Walmart is presented as a completed business-context robustness module.
 - [x] Rossmann is not presented as a completed experiment.
 - [x] Numerical claims are tied to generated tables or summarized generated outputs.
+- [x] A claim-number audit is included for manuscript numerical values.
+- [x] An artifact consistency audit is included for completed dataset scope.
+- [x] A table and figure audit is included for manuscript visuals.
+- [x] Walmart completion was audited before inclusion.
 - [x] The paper does not claim that feasibility-aware methods always dominate.
 - [x] Oracle DP and Perfect-Demand Oracle are described as non-deployable benchmarks.
 - [x] Forecast accuracy is described as a diagnostic metric, not the main operational objective.
@@ -32,7 +36,7 @@
 - [x] Figures are numbered as Figure 1, Figure 2, and so on.
 - [x] Figure captions appear below figures.
 - [x] Every included table and figure is mentioned and interpreted in the text.
-- [x] Figure 1 presents the full framework architecture rather than a simple flowchart.
+- [x] Figure 1 presents a readable four-layer framework rather than a simple flowchart.
 - [x] The main paper uses a compact set of tables and figures instead of all generated artifacts.
 
 ## References
