@@ -3,7 +3,7 @@
 
 \subsection{Finding 1: The Planning-Execution Gap is Measurable and Structural}
 
-The analysis begins with a fundamental question: when accurate forecasts and operational feasibility diverge, how often does this matter? In 91.1\% of 123 paper-facing scenario and robustness evaluation groups, the strategy that minimizes WAPE is not the strategy that minimizes operational planning loss. Accuracy-first strategies have a PEG rate of 15.4\% of periods, compared with 2.7\% for the best deployable operational-loss strategy, an approximately 12.6-percentage-point gap. The planning-execution gap is therefore measurable and operationally consequential.
+The analysis begins with a fundamental question: when accurate forecasts and operational feasibility diverge, how often does this matter? In 91.1\% of 123 paper-facing scenario and robustness evaluation groups, the strategy that minimizes WAPE is not the strategy that minimizes operational planning loss. Accuracy-first strategies have a PEG rate of 15.4\% of periods, compared with 2.7\% for the best deployable operational-loss strategy, a 12.7-percentage-point gap. The planning-execution gap is therefore measurable and operationally consequential.
 
 When accuracy-best and operational-loss-best strategies diverge, no single method is universally optimal; different strategy families serve different operational constraints, starting with ensemble methods.
 
@@ -11,7 +11,7 @@ When accuracy-best and operational-loss-best strategies diverge, no single metho
 
 Ensemble averaging dampens abrupt plan movement while retaining information from multiple models. In the Favorita baseline evaluation, Global Best is the accuracy-first reference with WAPE 10.9\%, violation rate 28.4\%, and normalized loss 1.550. Operational Ensemble has WAPE 11.9\%, violation rate 13.3\%, and loss 1.422; Simple Ensemble has WAPE 12.9\%, violation rate 6.6\%, and loss 1.434. Ensemble is therefore practical when a one- to two-percentage-point WAPE loss is acceptable in exchange for lower execution burden.
 
-Figure~\ref{fig:frontier} places all nine baseline-scenario strategies on the same accuracy-execution plane. WAPE and execution penalty do not move together: Global Best and Family Best sit near the strongest WAPE region, while ensemble policies accept higher WAPE for much lower execution penalty. The perfect-demand diagnostic reference has zero forecast error but the highest execution penalty, illustrating the ``curse of accuracy'' introduced in Section~\ref{sec:methods}.
+Figure~\ref{fig:frontier} places all nine baseline-scenario strategies on the same accuracy-execution plane. WAPE and execution penalty do not move together: Global Best and Family Best sit near the strongest WAPE region, while ensemble policies accept higher WAPE for much lower execution penalty. The perfect-demand diagnostic reference has zero forecast error but the highest execution penalty, illustrating the accuracy-induced feasibility failure introduced in Section~\ref{sec:methods}.
 
 \begin{figure}[H]
 \centering
@@ -59,7 +59,7 @@ Four complementary checks examine whether the findings are structural rather tha
 
 \subsubsection{Baseline and External Validation: Is This a Real Problem?}
 
-The 91.1\% mismatch rate and approximately 12.6pp PEG-rate gap demonstrate that WAPE-best and operationally best strategies answer different questions. This divergence is consistent with predict-then-optimize research showing that prediction-loss-minimizing models need not minimize downstream decision loss (Elmachtoub and Grigas 2022; Jia et al. 2025). This paper contributes a feasibility-specific metric, PEG rate, and an evaluation layer for demand planning.
+The 91.1\% mismatch rate and 12.7pp PEG-rate gap demonstrate that WAPE-best and operationally best strategies answer different questions. This divergence is consistent with predict-then-optimize research showing that prediction-loss-minimizing models need not minimize downstream decision loss (Elmachtoub and Grigas 2022; Jia et al. 2025). This paper contributes a feasibility-specific metric, PEG rate, and an evaluation layer for demand planning.
 
 \subsubsection{Scenario Validation: Does Execution Pressure Change Rankings?}
 
@@ -78,7 +78,7 @@ Algorithmic validation asks whether planning ahead has value: the greedy-to-DP g
 
 \subsubsection{Cross-Dataset Robustness Validation}
 
-Favorita is the main proof of concept; M5 shows that hierarchy and sparsity change the optimal strategy; Walmart confirms an 80.0\% accuracy-first mismatch rate at a weekly cadence. Together, the checks support the thesis that feasibility-constrained planning is a multi-objective tradeoff surface, not a single-method leaderboard. Baseline validation establishes the gap, scenario and algorithmic validation support the execution-flexibility and governance lanes, and cross-dataset validation supports the planning-hierarchy lane.
+Favorita is the main proof of concept; M5 shows that hierarchy and sparsity change the optimal strategy; Walmart provides secondary evidence in a weekly-cadence setting, with an 80.0\% accuracy-first mismatch rate, suggesting that the gap is not limited to daily retail planning. Together, the checks support the thesis that feasibility-constrained planning is a multi-objective tradeoff surface, not a single-method leaderboard. Baseline validation establishes the gap, scenario and algorithmic validation support the execution-flexibility and governance lanes, and cross-dataset validation supports the planning-hierarchy lane.
 
 \subsection{Limitations and Future Work}
 

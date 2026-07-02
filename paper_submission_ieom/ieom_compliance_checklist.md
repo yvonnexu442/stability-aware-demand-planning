@@ -27,7 +27,7 @@
 - [x] A role and metric audit is included for DataCo, Favorita, M5, and Walmart scope.
 - [x] Walmart completion was audited before inclusion.
 - [x] The paper does not claim that feasibility-aware methods always dominate.
-- [x] Oracle DP and Perfect-Demand Oracle are described as non-deployable benchmarks.
+- [x] Realized-Inventory Oracle DP and the perfect-demand diagnostic reference are described as non-deployable benchmarks.
 - [x] Forecast accuracy is described as a diagnostic metric, not the main operational objective.
 
 ## Tables and Figures

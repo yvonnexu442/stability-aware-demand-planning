@@ -58,4 +58,4 @@ The tightened Methods section separates three information layers:
 - Deployable test-period selection does not use test-period realized demand. It uses candidate forecasts, previous executed plans, execution-capacity scenarios, validation-derived expected costs, switching penalties, and policy rules.
 - Ex-post evaluation uses realized test-period demand only after the horizon is complete.
 
-Only the Realized-Inventory Oracle DP and Perfect-Demand Oracle use test-period realized outcomes during selection, and both are labeled as non-deployable diagnostic references.
+Only the Realized-Inventory Oracle DP and the perfect-demand diagnostic reference use test-period realized outcomes during selection, and both are labeled as non-deployable diagnostic references.
