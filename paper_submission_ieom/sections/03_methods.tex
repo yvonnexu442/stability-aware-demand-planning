@@ -1,15 +1,15 @@
 \section{Methods}
 
-The proposed method is an industrial decision framework for selecting deployable planning strategies. Figure~\ref{fig:framework} shows the four layers. Candidate forecasts and policies are first translated into planning signals. The same feasibility scoring layer then evaluates every candidate before the decision layer ranks deployable strategies. This design follows forecast-to-decision research showing that downstream operational quality can differ from forecast-error quality (Elmachtoub and Grigas 2022; Mandi et al. 2024).
+The proposed method is a deployment gate for selecting demand-planning strategies. Figure~\ref{fig:framework} shows the gate: candidate forecasts and policies are converted into planning signals, scored for feasibility, and then approved or rejected for deployment. This design follows forecast-to-decision research showing that downstream operational quality can differ from forecast-error quality (Elmachtoub and Grigas 2022; Mandi et al. 2024).
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.96\linewidth]{figures/ieom_framework_flowchart.pdf}
-\caption{Four-layer framework for feasibility-constrained demand planning.}
+\caption{Forecast-to-plan feasibility gate for demand-planning deployment.}
 \label{fig:framework}
 \end{figure}
 
-Figure~\ref{fig:framework} separates diagnostic forecast accuracy from deployable planning utility. It also links method components to validation evidence: DataCo stress scenarios test execution pressure, DP and oracle benchmarks test decision-layer value, M5 tests hierarchy and intermittency, and Walmart tests business context and weekly planning cadence.
+Figure~\ref{fig:framework} is a deployment gate, not only a workflow. WAPE remains visible as a diagnostic signal, but the approval decision is governed by whether the forecast-driven plan can be operationally executed.
 
 \subsection{Forecast-to-plan Feasibility Model}
 
@@ -62,10 +62,7 @@ where NIC, NVC, NEC, and NSC are normalized inventory, volatility, execution, an
 \item Validate the selected strategy against scenario and oracle benchmarks.
 \end{enumerate}
 
-Steps 1--3 generate candidate planning signals. Steps 4--6 compute inventory exposure, planning volatility, execution violation, and planning-execution gap rate. Step 7 produces deployable strategy rankings. Step 8 validates those rankings using DataCo scenarios, DP-oracle comparison, M5 hierarchy and intermittency robustness, and Walmart business-context and cadence robustness. The procedure is modular: accuracy-first baselines, ensembles, smoothing rules, greedy selectors, DP selectors, and budgeted-DP selectors all pass through the same feasibility layer.
-
-Table~\ref{tab:method-alignment} links the framework components to the evidence used in this paper and to their operational use.
-\input{tables/method_alignment_table}
+Steps 1--3 create candidate planning signals. Steps 4--6 score those signals by feasibility. Step 7 selects a deployment action. Step 8 validates whether the action remains preferred under execution-risk scenarios and oracle benchmarks. The procedure is modular: accuracy-first baselines, ensembles, smoothing rules, greedy selectors, DP selectors, and budgeted-DP selectors all pass through the same forecast-to-plan feasibility gate.
 
 \subsection{Horizon-aware and Constrained Selection}
 
@@ -96,4 +93,4 @@ Lower $\alpha$ values reduce execution burden but can delay response to demand c
 
 The Realized-Inventory Oracle DP is non-deployable. It uses realized test-period inventory outcomes over the same forecast candidates and measures the value of unavailable inventory-outcome information. The DP-oracle gap measures selection suboptimality relative to this non-deployable benchmark.
 
-The Perfect-Demand Oracle is also non-deployable. It uses realized demand as the planning signal and is a diagnostic reference, not a guaranteed lower bound. Exact demand tracking can increase planning volatility and execution violations when the operation cannot absorb rapid plan movement. The perfect-demand reference gap therefore measures a diagnostic total gap that includes both forecast uncertainty and feasibility effects.
+The Perfect-Demand Oracle is also non-deployable. It uses realized demand as the planning signal and is a perfect-demand diagnostic reference, not a guaranteed lower bound. Exact demand tracking can increase planning volatility and execution violations when the operation cannot absorb rapid plan movement. The perfect-demand reference gap therefore measures a diagnostic total gap that includes both forecast uncertainty and feasibility effects.

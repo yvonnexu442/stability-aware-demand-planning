@@ -1,18 +1,17 @@
 \begin{table}[htbp]
 \centering
-\caption{Deployment guidance from empirical findings.}
+\caption{Deployment strategy families and rollout conditions.}
 \label{tab:deployment-guidance}
 \scriptsize
-\begin{tabular}{@{}p{0.26\linewidth}p{0.31\linewidth}p{0.33\linewidth}@{}}
+\begin{tabular}{@{}p{0.29\linewidth}p{0.30\linewidth}p{0.31\linewidth}@{}}
 \toprule
-\textbf{Operating condition} & \textbf{Deployment risk} & \textbf{Recommended planning practice} \\
+\textbf{Operating condition} & \textbf{Recommended deployment policy} & \textbf{Reason} \\
 \midrule
-Accuracy-only approval process & WAPE-best strategy may not be deployable-best. & Monitor PEG rate and normalized planning loss alongside WAPE. \\
-Moderate execution constraint & Forecast changes may create avoidable plan movement. & Use execution-risk scenario testing before rollout. \\
-Severe execution constraint & Fast adaptation may exceed operational capacity. & Consider smoothing when stability dominates speed. \\
-High switching governance & Frequent model changes require approval, monitoring, or system updates. & Use DP or budgeted DP to account for switching burden. \\
-Multi-level planning hierarchy & One deployment rule may not fit item, department, and category grains. & Choose strategy by planning grain and intermittency profile. \\
-Holiday, markdown, or weekly cadence context & Business context can change feasibility rankings. & Run context-aware and cadence-aware stress tests before deployment. \\
+Flexible execution capacity & Accuracy-first or ensemble & WAPE gains can be useful when plan movement is absorbable, but feasibility screening remains required. \\
+Moderate execution constraint & Ensemble & Averaging can dampen model-specific swings while retaining adaptation. \\
+Severe execution constraint & Smoothing & Gradual adaptation can reduce execution burden when abrupt plan movement is costly. \\
+High switching governance & DP or budgeted DP & Horizon-aware selection accounts for future switching and coordination burden. \\
+Multi-level hierarchy & Choose by planning grain & Item, department, and category planning can favor different deployment mechanisms. \\
 \bottomrule
 \end{tabular}
 \end{table}

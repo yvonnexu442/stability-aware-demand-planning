@@ -2,23 +2,15 @@
 
 \subsection{Numerical Results}
 
-\textbf{Finding 1. Accuracy-first and deployable-best are different decisions.} Baseline validation asks whether planners need to care about feasibility. Across 123 paper-facing evaluation groups, the WAPE-best deployable strategy differs from the operational-loss-best deployable strategy in 91.1\% of cases. The accuracy-first planning-execution gap rate is 15.4\%, compared with 2.7\% for the best deployable operational-loss strategy. These verified values show that the planning-execution gap is measurable, not only conceptual. Table~\ref{tab:core-results} summarizes the core numerical evidence.
+\textbf{Finding 1. WAPE-best is often not deployment-best.} Across 123 paper-facing evaluation groups, the WAPE-best deployable strategy differs from the operational-loss-best deployable strategy in 91.1\% of cases. The accuracy-first planning-execution gap rate is 15.4\%, compared with 2.7\% for the best deployable operational-loss strategy. These verified values show that the forecast-to-plan feasibility gate measures a deployment problem that WAPE alone does not capture. Table~\ref{tab:core-results} summarizes the core numerical evidence.
 
 \input{tables/core_numerical_summary_table}
 
-\textbf{Finding 2. Ensemble strategies can be low-disruption deployment options.} Favorita quick-mode results provide the main proof of concept. In the baseline scenario, Global Best has WAPE 0.109 and normalized planning loss 1.550, while Operational Ensemble has WAPE 0.119 and normalized planning loss 1.422. Under the severe DataCo-informed execution-risk scenario, Global Best remains accurate but has normalized planning loss 2.000. Simple Ensemble and Operational Ensemble have lower normalized losses of 1.473 and 1.496, respectively. This pattern does not imply a universal winner. It shows that ensembles can be low-disruption options when execution pressure makes plan movement costly.
+\textbf{Finding 2. Ensemble is a low-disruption first rollout candidate.} Favorita quick-mode results provide the main proof of concept. In the baseline scenario, Global Best has WAPE 0.109 and normalized planning loss 1.550, while Operational Ensemble has WAPE 0.119 and normalized planning loss 1.422. Under the severe DataCo-informed execution-risk scenario, Global Best remains accurate but has normalized planning loss 2.000. Simple Ensemble and Operational Ensemble have lower normalized losses of 1.473 and 1.496, respectively. Ensemble averaging dampens model-specific forecast swings while retaining adaptation, which makes it a practical low-disruption candidate when execution pressure makes plan movement costly.
 
-\textbf{Finding 3. DP quantifies the cost of myopic selection.} Greedy selection minimizes current-period operational cost, while DP minimizes finite-horizon operational cost. The mean greedy-to-DP gap is 0.044, and the mean DP-oracle gap is 0.198. These values are not large enough to claim that DP is always required. They support a more practical interpretation: one-step selection may be adequate in low-governance environments, while DP becomes more valuable when switching approval, coordination, or infrastructure-update costs are material.
+\textbf{Finding 3. Smoothing and DP serve different governance regimes.} Smoothing reduces execution burden by slowing adaptation, which is useful when execution capacity is tight. DP reduces myopic switching by planning over the horizon, which is useful when switching approval and coordination matter. The mean greedy-to-DP gap is 0.044, and the mean DP-oracle gap is 0.198. These values do not imply that DP is always required; they show where planning-ahead value becomes material relative to a one-period selector. M5 item-store results also illustrate the stability boundary: Smoothed Alpha 0.25 is the best deployable method at the item-store grain, with WAPE 0.368, PEG rate 0.010, and normalized planning loss 1.223.
 
-\textbf{Finding 4. Smoothing represents the stability boundary.} Smoothing changes the executed planning signal rather than the underlying forecast. It can reduce execution violations by adapting gradually, but excessive smoothing can increase inventory exposure or delayed adaptation. M5 item-store results illustrate this boundary: Smoothed Alpha 0.25 is the best deployable method at the item-store grain, with WAPE 0.368, PEG rate 0.010, and normalized planning loss 1.223. This supports smoothing when execution capacity constraints dominate fast adaptation.
-
-\textbf{Finding 5. M5 shows that planning aggregation changes deployment policy.} M5 reveals a critical operational principle: planning aggregation changes strategy optimality. Table~\ref{tab:m5-robustness} shows that Operational Ensemble is strongest at department-store and category-store grains, while Smoothed Alpha 0.25 is strongest at the item-store grain and across low-, medium-, and high-intermittency buckets. Low-level item-store planning is sparse and volatile, so smoothing can dampen noise. Department and category aggregation stabilize demand, allowing ensemble methods to perform better. This means one global deployment rule should not be applied uniformly across the supply-chain hierarchy.
-
-\input{tables/m5_robustness_table}
-
-\textbf{Finding 6. Walmart validates business-context and weekly-cadence robustness.} Walmart serves a different validation role from M5. M5 tests hierarchy and intermittency, while Walmart tests whether business context and weekly planning cadence alter deployable strategy ranking. Walmart robustness contributes 20 evaluation groups, with an 80.0\% accuracy-first mismatch rate in the main Walmart robustness summary. Table~\ref{tab:walmart-robustness} summarizes the compact Walmart evidence. The results show that context-aware features can reduce execution burden, holiday windows can make budgeted DP attractive, and switch-budget sensitivity controls an accuracy-feasibility tradeoff rather than giving a monotonic win.
-
-\input{tables/walmart_business_context_table}
+\textbf{Finding 4. Deployment policy depends on operating context.} M5 reveals that planning aggregation changes strategy optimality: Operational Ensemble is strongest at department-store and category-store grains, while Smoothed Alpha 0.25 is strongest at the item-store grain and across low-, medium-, and high-intermittency buckets. Low-level item-store planning is sparse and volatile, so smoothing can dampen noise; department and category aggregation stabilize demand, allowing ensemble methods to perform better. Walmart adds secondary business-context validation: the main Walmart robustness summary contributes 20 evaluation groups with an 80.0\% accuracy-first mismatch rate, and switch-budget sensitivity shows that larger switch budgets improve WAPE slightly while increasing normalized loss. The deployment implication is that one global model-approval rule should not be applied uniformly across planning grain, demand sparsity, cadence, and business-context regimes.
 
 \subsection{Graphical Results}
 
@@ -40,34 +32,30 @@ Figure~\ref{fig:scenario-loss} shows normalized planning loss across DataCo-info
 \label{fig:scenario-loss}
 \end{figure}
 
-\subsection{Proposed Improvements}
+\subsection{Proposed Model-Rollout Protocol}
 
-The empirical results translate into deployment practices rather than a single universal algorithm. Table~\ref{tab:deployment-guidance} summarizes the recommended use of the framework under common operating conditions.
+The empirical results translate into a five-step model-rollout protocol. First, screen candidate models by WAPE to remove clearly weak forecasts. Second, convert surviving forecasts into planning signals. Third, measure PEG rate and normalized planning loss. Fourth, stress-test the candidate under execution-risk scenarios. Fifth, select the deployment strategy by operating condition rather than by WAPE alone. Table~\ref{tab:deployment-guidance} summarizes the recommended policy choices.
 
 \input{tables/deployment_guidance_table}
 
-\textbf{Monitor planning-execution gap rate.} The accuracy-first planning-execution gap rate is 15.4\%, compared with 2.7\% for the best deployable operational-loss strategy. PEG rate should therefore be monitored alongside WAPE.
-
-\textbf{Avoid WAPE-only model approval.} The accuracy-first deployable method differs from the operational-loss-optimal deployable method in 91.1\% of paper-facing evaluation groups. Forecast accuracy remains important, but it should not be the sole deployment criterion.
-
-\textbf{Use execution-risk and business-context stress tests.} Favorita rankings change under DataCo-informed execution pressure, and Walmart shows that context, holiday, markdown, cadence, and switch-budget settings affect deployability. Model rollout should therefore include feasibility stress tests before approval.
+The protocol is intentionally not a single-method prescription. Flexible operations may approve an accuracy-first model or ensemble after feasibility screening. Constrained operations should consider ensemble or smoothing policies. High-governance environments should evaluate DP or budgeted DP because the timing and number of switches become part of the deployment decision.
 
 \subsection{Validation}
 
-\subsubsection{Baseline Validation: Do Planners Need to Care About Feasibility?}
+\subsubsection{Baseline Validation}
 
-Yes. The mismatch rate and PEG-rate contrast show that WAPE-best selection and deployable-best selection answer different questions. The study does not claim that feasibility-aware strategies always dominate; it shows that the operational deployment criterion is measurably different from the forecast-accuracy criterion.
+The mismatch rate and PEG-rate contrast show that WAPE-best selection and deployment-best selection answer different questions. The study does not claim that feasibility-aware strategies always dominate; it shows that the operational deployment criterion is measurably different from the forecast-accuracy criterion.
 
-\subsubsection{Scenario Validation: Does Execution Pressure Change Strategy Ranking?}
+\subsubsection{Scenario Validation}
 
-Yes. DataCo-informed scenarios validate whether execution-risk weights alter deployable ranking. The Favorita baseline-to-severe shift shows that a strategy attractive under lower execution pressure can become less attractive when execution-capacity violations are weighted more heavily.
+DataCo-informed scenarios validate whether execution pressure changes deployable ranking. The Favorita baseline-to-severe shift shows that a strategy attractive under lower execution pressure can become less attractive when execution-capacity violations are weighted more heavily.
 
-\subsubsection{Algorithmic Validation: What Does Planning Ahead Buy?}
+\subsubsection{Algorithmic Validation}
 
 The greedy-to-DP gap measures the cost of one-period selection. The DP-oracle gap measures selection suboptimality relative to a non-deployable realized-inventory DP benchmark over the same forecast candidates. These gaps show how much value comes from horizon-aware selection and how much value remains unavailable without realized inventory-outcome information.
 
-The perfect-demand reference gap serves a different purpose. It is diagnostic rather than a lower-bound oracle because exact demand tracking may create planning volatility that violates execution capacity. It therefore measures a total reference gap that includes forecast uncertainty and feasibility effects.
+The perfect-demand diagnostic reference serves a different purpose. It is not a lower-bound oracle because exact demand tracking may create planning volatility that violates execution capacity. It therefore measures a total reference gap that includes forecast uncertainty and feasibility effects.
 
-\subsubsection{Robustness Validation: Does the Finding Generalize Beyond One Retail Dataset?}
+\subsubsection{Robustness Validation}
 
-Yes, with context-specific mechanisms. Favorita provides the main forecast-to-plan proof of concept. M5 shows that hierarchy and intermittency change the preferred deployable method. Walmart shows that weekly cadence and business context also change deployable strategy comparisons. Together, these results support the thesis that feasibility-constrained planning is a tradeoff surface, not a single-method leaderboard.
+Favorita provides the main forecast-to-plan proof of concept. M5 shows that hierarchy and intermittency change the preferred deployable method. Walmart shows that weekly cadence and business context also change deployable strategy comparisons. Together, these results support the thesis that feasibility-constrained planning is a tradeoff surface, not a single-method leaderboard.

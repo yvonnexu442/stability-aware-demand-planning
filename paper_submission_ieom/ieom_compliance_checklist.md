@@ -9,7 +9,7 @@
 - [x] Objectives subsection is included.
 - [x] Literature review is organized by themes rather than paper-by-paper notes.
 - [x] Methods section includes equations and IEOM-style numbered steps.
-- [x] Methods section includes a four-layer framework figure and compact Algorithm 1.
+- [x] Methods section includes a four-block forecast-to-plan feasibility gate figure and compact Algorithm 1.
 - [x] Results and Discussion includes numerical results, graphical results, proposed improvements, and validation.
 - [x] Conclusion returns to the stated objectives.
 - [x] Acknowledgement and biography placeholders are included.
@@ -18,7 +18,7 @@
 
 - [x] No new experiments were run for this revision pass.
 - [x] Results are limited to generated DataCo, Favorita, M5, and Walmart outputs.
-- [x] Walmart is presented as a completed business-context robustness module.
+- [x] Walmart is presented as secondary completed business-context robustness evidence.
 - [x] Rossmann is not presented as a completed experiment.
 - [x] Numerical claims are tied to generated tables or summarized generated outputs.
 - [x] A claim-number audit is included for manuscript numerical values.
@@ -36,8 +36,8 @@
 - [x] Figures are numbered as Figure 1, Figure 2, and so on.
 - [x] Figure captions appear below figures.
 - [x] Every included table and figure is mentioned and interpreted in the text.
-- [x] Figure 1 presents a readable four-layer framework rather than a simple flowchart.
-- [x] The main paper uses a compact set of tables and figures instead of all generated artifacts.
+- [x] Figure 1 presents a readable four-block deployment gate rather than a metric-heavy workflow.
+- [x] The main paper uses three tables and three figures instead of all generated artifacts.
 
 ## References
 

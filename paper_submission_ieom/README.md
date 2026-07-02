@@ -4,14 +4,14 @@ This folder contains the IEOM-focused manuscript draft for:
 
 **Beyond Forecast Accuracy: Feasibility-Constrained Demand Planning**
 
-The current source of truth is `main.tex`. The draft uses DataCo, Favorita, M5, and Walmart evidence that was already generated in the main project. No new experiments were run for this revision pass.
+The current source of truth is `main.tex`. The draft uses DataCo, Favorita, M5, and verified secondary Walmart evidence that was already generated in the main project. No new experiments were run for this revision pass.
 
 ## Scope
 
 - DataCo is used as an empirical execution-risk anchor.
 - Favorita is used as the main forecast-to-plan proof of concept.
 - M5 is used for hierarchy and intermittent-demand robustness.
-- Walmart is used for weekly business-context robustness.
+- Walmart is used only as secondary weekly business-context robustness.
 - Rossmann is not treated as a completed IEOM experiment in this draft.
 
 ## Main Included Evidence
@@ -21,7 +21,7 @@ The current source of truth is `main.tex`. The draft uses DataCo, Favorita, M5, 
 - Best deployable operational-loss planning-execution gap rate: 2.7%.
 - DataCo-informed execution-risk scenarios from baseline to severe.
 - M5 robustness across planning grain and intermittency groups.
-- Walmart robustness across context-aware features, holiday and markdown windows, weekly cadence constraints, and switch-budget sensitivity.
+- Walmart secondary robustness across weekly business context and switch-budget sensitivity.
 
 ## Build
 
@@ -63,10 +63,12 @@ The draft was compiled successfully with `pdflatex` on July 2, 2026. The current
 
 ## Revision Notes
 
-- Figure 1 is a four-layer framework diagram covering candidate forecasts and policies, forecast-to-plan conversion, feasibility scoring, and decision/validation.
+- Figure 1 is a four-block forecast-to-plan feasibility gate covering candidate forecasts and policies, forecast-to-plan conversion, feasibility scoring, and deployment decision/validation.
 - Algorithm 1 summarizes the feasibility-constrained selection procedure in compact IEOM-style steps.
-- Section 5 is organized around six mechanism-level findings rather than dataset chronology.
-- Section 5.4 answers baseline, scenario, algorithmic, and robustness validation questions.
-- Walmart is now included as a completed robustness module, consistent with the generated Walmart tables and figures in the main paper asset folders.
+- Section 5 is organized around exactly four mechanism-level findings rather than dataset chronology.
+- Section 5.3 is a proposed model-rollout protocol rather than a generic improvement list.
+- Section 5.4 uses formal baseline, scenario, algorithmic, and robustness validation paragraphs.
+- Walmart is included as secondary robustness evidence, not as an abstract-level result.
+- The main manuscript uses three tables and three figures after the surgical tightening pass.
 - Phase 0 audit deliverables were added before the manuscript rewrite.
 - Output CSV audits are saved under `outputs/tables/`.
