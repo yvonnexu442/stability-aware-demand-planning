@@ -12,6 +12,10 @@
 
 \input{tables/m5_robustness_table}
 
+\textbf{Business-context robustness with Walmart.} Walmart provides a weekly robustness check with holiday, markdown, store, and economic context. The Walmart outputs are already included in the overall thesis quantification: Walmart robustness contributes 20 evaluation groups, with an 80.0\% accuracy-first mismatch rate in the main Walmart robustness summary. Table~\ref{tab:walmart-robustness} summarizes the most relevant Walmart findings. The results show that Global Best remains a strong accuracy-first and weekly-cadence baseline, but context features, holiday windows, and switch-budget limits alter the deployability comparison.
+
+\input{tables/walmart_business_context_table}
+
 \textbf{Myopic selection and oracle gaps.} The generated thesis summary provides algorithmic validation. The mean greedy-to-DP gap is 0.044, indicating that finite-horizon planning improves over one-step greedy selection where both are available. The mean gap to the realized-inventory DP oracle is 0.198, which measures selection suboptimality relative to non-deployable inventory-outcome information. The mean gap to the perfect-demand oracle is negative in the current combined outputs because a realized-demand signal can create high volatility and execution penalties; this confirms that the perfect-demand oracle is a diagnostic reference, not a deployable lower bound.
 
 \subsection{Graphical Results}
@@ -40,7 +44,7 @@ Figure~\ref{fig:scenario-loss} shows normalized planning loss across DataCo-info
 
 \textbf{Avoid WAPE-only model selection.} The accuracy-first deployable method differs from the operational-loss-optimal deployable method in 91.1\% of paper-facing evaluation groups. Planners should treat WAPE as diagnostic, not as the only deployment criterion.
 
-\textbf{Use execution-risk scenario testing.} Favorita rankings change between baseline and severe DataCo-informed scenarios. Before rollout, planning teams should test candidate strategies under plausible execution-capacity regimes.
+\textbf{Use execution-risk and business-context scenario testing.} Favorita rankings change between baseline and severe DataCo-informed scenarios, and Walmart rankings change across context, holiday, markdown, cadence, and switch-budget settings. Before rollout, planning teams should test candidate strategies under plausible execution-capacity and business-context regimes.
 
 \textbf{Use smoothing and ensembles selectively.} Smoothing can reduce execution burden, but it can also increase inventory exposure when adaptation is too slow. Ensembles can reduce abrupt model-specific movements, but they may sacrifice WAPE. These methods should be selected by stated operational tradeoffs rather than by a universal rule.
 
@@ -64,4 +68,4 @@ The benchmark gaps serve different validation purposes. The DP-oracle gap measur
 
 \subsubsection{Robustness Validation}
 
-Robustness validation asks whether the framework remains informative outside the main Favorita proof of concept. Favorita provides a context-rich retail demand panel with store-family planning units. M5 tests hierarchy and intermittency by changing planning grain and demand sparsity. The observed changes in preferred deployable method across M5 slices support the thesis that feasibility-constrained planning is a tradeoff surface, not a single-method leaderboard.
+Robustness validation asks whether the framework remains informative outside the main Favorita proof of concept. Favorita provides a context-rich retail demand panel with store-family planning units. M5 tests hierarchy and intermittency by changing planning grain and demand sparsity. Walmart tests weekly cadence, business context, holiday and markdown windows, and switch-budget sensitivity. The observed changes in preferred deployable method across M5 and Walmart slices support the thesis that feasibility-constrained planning is a tradeoff surface, not a single-method leaderboard.

@@ -4,14 +4,15 @@ This folder contains the IEOM-focused manuscript draft for:
 
 **From Accurate Forecasts to Feasible Plans: Feasibility-Constrained Model Selection for Operational Demand Planning**
 
-The current source of truth is `main.tex`. The draft uses only DataCo, Favorita, and M5 evidence that was already generated in the main project. No new experiments were run for this revision pass.
+The current source of truth is `main.tex`. The draft uses DataCo, Favorita, M5, and Walmart evidence that was already generated in the main project. No new experiments were run for this revision pass.
 
 ## Scope
 
 - DataCo is used as an empirical execution-risk anchor.
 - Favorita is used as the main forecast-to-plan proof of concept.
 - M5 is used for hierarchy and intermittent-demand robustness.
-- Walmart and Rossmann are not treated as completed IEOM experiments in this draft.
+- Walmart is used for weekly business-context robustness.
+- Rossmann is not treated as a completed IEOM experiment in this draft.
 
 ## Main Included Evidence
 
@@ -20,6 +21,7 @@ The current source of truth is `main.tex`. The draft uses only DataCo, Favorita,
 - Best deployable operational-loss planning-execution gap rate: 2.7%.
 - DataCo-informed execution-risk scenarios from baseline to severe.
 - M5 robustness across planning grain and intermittency groups.
+- Walmart robustness across context-aware features, holiday and markdown windows, weekly cadence constraints, and switch-budget sensitivity.
 
 ## Build
 
@@ -36,7 +38,7 @@ or, if available:
 latexmk -pdf main.tex
 ```
 
-The draft was compiled successfully with `pdflatex` on July 1, 2026. The current generated PDF is `main.pdf`.
+The draft was compiled successfully with `pdflatex` on July 2, 2026. The current generated PDF is `main.pdf`.
 
 ## Open Items Before Submission
 
@@ -59,3 +61,4 @@ The draft was compiled successfully with `pdflatex` on July 1, 2026. The current
 - Figure 1 is a framework architecture diagram covering inputs, forecast-to-plan conversion, feasibility evaluation, decision ranking, validation, and outputs.
 - Algorithm 1 summarizes the feasibility-constrained selection procedure in compact IEOM-style steps.
 - Section 5.4 separates baseline, scenario, algorithmic, and robustness validation.
+- Walmart is now included as a completed robustness module, consistent with the generated Walmart tables and figures in the main paper asset folders.

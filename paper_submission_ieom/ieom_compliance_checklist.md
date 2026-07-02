@@ -17,8 +17,9 @@
 ## Evidence and Claims
 
 - [x] No new experiments were run for this revision pass.
-- [x] Results are limited to generated DataCo, Favorita, and M5 outputs.
-- [x] Walmart and Rossmann are not presented as completed experiments.
+- [x] Results are limited to generated DataCo, Favorita, M5, and Walmart outputs.
+- [x] Walmart is presented as a completed business-context robustness module.
+- [x] Rossmann is not presented as a completed experiment.
 - [x] Numerical claims are tied to generated tables or summarized generated outputs.
 - [x] The paper does not claim that feasibility-aware methods always dominate.
 - [x] Oracle DP and Perfect-Demand Oracle are described as non-deployable benchmarks.
