@@ -3,9 +3,9 @@
 
 \subsection{Finding 1: The Planning-Execution Gap is Measurable and Structural}
 
-The analysis begins with a fundamental question: when accurate forecasts and operational feasibility diverge, how often does this matter? In 91.1\% of evaluation groups, the strategy that minimizes WAPE is not the strategy that minimizes operational planning loss. Accuracy-first strategies have a PEG rate of 15.4\% of periods, compared with 2.7\% for the best deployable operational-loss strategy, a 12.7-percentage-point gap. The planning-execution gap is therefore measurable and operationally consequential.
+The analysis begins with a fundamental question: when accurate forecasts and operational feasibility diverge, how often does this matter? In 91.1\% of 123 paper-facing scenario and robustness evaluation groups, the strategy that minimizes WAPE is not the strategy that minimizes operational planning loss. Accuracy-first strategies have a PEG rate of 15.4\% of periods, compared with 2.7\% for the best deployable operational-loss strategy, an approximately 12.6-percentage-point gap. The planning-execution gap is therefore measurable and operationally consequential.
 
-When accuracy-best and deployment-best strategies diverge, no single method is universally optimal; different strategy families serve different operational constraints, starting with ensemble methods.
+When accuracy-best and operational-loss-best strategies diverge, no single method is universally optimal; different strategy families serve different operational constraints, starting with ensemble methods.
 
 \subsection{Finding 2: Ensemble Methods Provide Low-Disruption Alternatives}
 
@@ -15,8 +15,8 @@ Figure~\ref{fig:frontier} places all nine baseline-scenario strategies on the sa
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.67\linewidth]{figures/favorita_accuracy_execution_frontier.pdf}
-\caption{Favorita accuracy-execution frontier, baseline scenario: WAPE versus execution penalty for all nine deployable strategies plus the non-deployable perfect-demand diagnostic reference, each labeled with its normalized planning loss.}
+\includegraphics[width=0.86\linewidth]{figures/favorita_accuracy_execution_frontier.pdf}
+\caption{Favorita baseline accuracy-execution frontier; the zero-WAPE marker is a non-deployable perfect-demand diagnostic reference.}
 \label{fig:frontier}
 \end{figure}
 
@@ -24,52 +24,52 @@ Figure~\ref{fig:frontier} places all nine baseline-scenario strategies on the sa
 
 When ensemble's improvement is insufficient, smoothing and dynamic programming cover the remaining operational constraints. \textbf{Smoothing} slows adaptation by blending the new plan with the previous period's, trading response speed for stability. In the Favorita baseline, Smoothed Alpha 0.25 retains WAPE 10.9\% and reduces the execution violation rate to 0.1\%, but its normalized loss rises to 1.646 because inventory exposure increases. The Best Stability reference reaches zero violations with WAPE 18.8\% and normalized loss 1.766. Smoothing is therefore valuable where execution capacity is tightly constrained, but it is not a free improvement; the tradeoff with inventory exposure and responsiveness must be explicit.
 
-\textbf{Dynamic programming} accounts for future switching costs that one-period greedy selection ignores: staying with an already-approved model can beat switching to a marginally better one once tomorrow's approval cost is counted. The greedy-to-DP gap (0.044, small when switching cost is low) and DP-oracle gap (0.198) quantify this myopia and the feasibility remaining after DP selection; DP is worth its complexity when changes require multi-step approval or system coordination, and budgeted DP adds a hard annual switching limit under strict change-control governance.
+\textbf{Dynamic programming} accounts for future switching costs that one-period greedy selection ignores: staying with an incumbent model can beat switching to a marginally better one once future coordination cost is counted. The greedy-to-DP gap (0.044, small when switching cost is low) and DP-oracle gap (0.198) quantify this myopia and the feasibility remaining after DP selection; DP is worth its complexity when changes require multi-step coordination or system synchronization, and budgeted DP adds a hard annual switching limit under strict change-control governance.
 
 \subsection{Finding 4: Planning Hierarchy Changes Optimal Strategy}
 
-The most striking finding is that different aggregation levels favor fundamentally different strategies, challenging the ``one global forecasting model'' paradigm. In the M5 hierarchy evaluation, the finest grain (item-store, sparse and volatile) favors Smoothed Alpha 0.25 (WAPE 36.8\%, violation 1.0\%, loss 1.223) because smoothing dampens noise without model changes; aggregating to department-store demand shifts the advantage to Operational Ensemble (WAPE 16.2\%, violation 10.0\%, loss 1.177), and category-store aggregation keeps it (WAPE 15.9\%, violation 6.3\%, loss 1.261), since ensembles can capture different models' information once demand is more stable. Supply chains should therefore not deploy one global model across all planning grains: item-level favors smoothing, department- and category-level favor ensemble, with DP added where governance matters. Planning-system architecture should be hierarchy-aware for exactly this reason.
+The most striking finding is that different aggregation levels favor fundamentally different strategies, challenging the ``one global forecasting model'' paradigm. In the M5 hierarchy evaluation, the finest grain (item-store, sparse and volatile) favors Smoothed Alpha 0.25 (WAPE 36.8\%, violation 1.0\%, loss 1.223) because smoothing dampens noise without model changes; aggregating to department-store demand shifts the advantage to Operational Ensemble (WAPE 16.2\%, violation 10.0\%, loss 1.177), and category-store aggregation keeps it (WAPE 15.9\%, violation 6.3\%, loss 1.261), since ensembles can capture different models' information once demand is more stable. The evidence argues against treating one global model as uniformly preferred across all planning grains: item-level favors smoothing, department- and category-level favor ensemble, with DP added where governance matters. Planning-system architecture should be hierarchy-aware for exactly this reason.
 
 \subsection{Strategy Selection Under Operational Constraints}
-\label{sec:protocol}
+\label{sec:strategy-constraints}
 
-Findings 1 to 4 above are diagnostic: they explain \emph{why} strategies diverge. This section turns that diagnosis into a five-step strategy-selection procedure that a planning team can follow to go from a set of candidate forecasts to a specific, defensible decision.
+Findings 1 to 4 above are diagnostic: they explain \emph{why} strategies diverge. This section turns that diagnosis into strategy-selection guidance for comparing candidate forecasts as operational planning decisions.
 
 \begin{figure}[H]
 \centering
-\resizebox{\linewidth}{!}{\input{figures/deployment_protocol_diagram}}
-\caption{Strategy-selection procedure under operational constraints.}
-\label{fig:protocol}
+\resizebox{\linewidth}{!}{\input{figures/strategy_selection_guide}}
+\caption{Decision-layer guidance for strategy selection under operational constraints.}
+\label{fig:strategy-guide}
 \end{figure}
 
-Steps 1 to 4, shown across the top of Figure~\ref{fig:protocol}, are a short mechanical pipeline: screen out clearly weak forecasts using a pre-specified WAPE threshold, convert each survivor into an inventory target using organization-specific policies, measure its PEG rate and normalized planning loss, and stress-test it across execution-risk scenarios from low to severe. Step 5 is the decision core, combining three operational readings that were each established by the findings above: execution flexibility (Findings 1 and 2) points toward accuracy-first or ensemble when flexible, ensemble or smoothing when constrained; governance maturity (Finding 3) points toward DP or budgeted DP when switching approval is costly, simpler policies otherwise; and planning hierarchy (Finding 4) points toward smoothing at fine grain, ensemble at coarser grain. Table~\ref{tab:deployment-guidance} gives the complete condition-to-policy mapping behind each leaf.
+Steps 1 to 4, shown across the top of Figure~\ref{fig:strategy-guide}, screen out weak forecasts, convert survivors into inventory targets, measure PEG rate and normalized planning loss, and stress-test candidates across execution-risk scenarios. Step 5 combines the three operational readings established by the findings: execution flexibility (Findings 1 and 2), governance maturity (Finding 3), and planning hierarchy (Finding 4). Table~\ref{tab:strategy-guidance} gives the condition-to-policy mapping behind each leaf.
 
-\input{tables/deployment_guidance_table}
+\input{tables/strategy_guidance_table}
 
-The procedure is structured evaluation, not single-method prescription; the final decision still depends on organizational constraints and risk tolerance. Section~\ref{sec:validation} tests whether the procedure holds outside the conditions it was built on.
+The framework is structured evaluation, not single-method prescription; the final decision still depends on organizational constraints and risk tolerance. Section~\ref{sec:validation} checks whether the evidence remains consistent outside the main Favorita proof of concept.
 
-Applying this decision layer requires the three organizational capabilities in Table~\ref{tab:implementation-agenda}. Success should be tracked across forecasting, planning, and operational metrics so feasibility gains are visible to the teams who approve and execute planning changes, not only to the team that built the forecast.
+Using this decision layer requires the three organizational capabilities in Table~\ref{tab:implementation-agenda}. Outcomes should be tracked across forecasting, planning, and operational metrics so feasibility tradeoffs are visible to the teams who select and execute planning changes, not only to the team that built the forecast.
 
 \input{tables/implementation_agenda_table}
 
 \subsection{Robustness and Validation}
 \label{sec:validation}
 
-Four complementary checks confirm that findings are structural, not data artifacts, and that the procedure in Section~\ref{sec:protocol} is trustworthy outside the conditions it was built on.
+Four complementary checks examine whether the findings are structural rather than data artifacts and whether the guidance in Section~\ref{sec:strategy-constraints} is consistent outside the conditions it was built on.
 
 \subsubsection{Baseline and External Validation: Is This a Real Problem?}
 
-The 91.1\% mismatch rate and 12.7pp PEG-rate gap demonstrate that WAPE-best selection and deployment-best selection answer different questions. This divergence is consistent with predict-then-optimize research showing that prediction-loss-minimizing models need not minimize downstream decision loss (Elmachtoub and Grigas 2022; Jia et al. 2025). This paper contributes a feasibility-specific metric, PEG rate, and an evaluation layer for demand planning.
+The 91.1\% mismatch rate and approximately 12.6pp PEG-rate gap demonstrate that WAPE-best and operationally best strategies answer different questions. This divergence is consistent with predict-then-optimize research showing that prediction-loss-minimizing models need not minimize downstream decision loss (Elmachtoub and Grigas 2022; Jia et al. 2025). This paper contributes a feasibility-specific metric, PEG rate, and an evaluation layer for demand planning.
 
 \subsubsection{Scenario Validation: Does Execution Pressure Change Rankings?}
 
-DataCo-informed execution-risk scenarios validate whether tighter execution constraints change strategy rankings. As execution-risk weights increase from low to severe, ensemble and smoothing methods become relatively more attractive than accuracy-first selection, supporting scenario testing before deployment.
+DataCo-informed execution-risk scenarios validate whether tighter execution constraints change strategy rankings. As execution-risk weights increase from low to severe, ensemble and smoothing methods become relatively more attractive than accuracy-first selection, supporting scenario testing before strategy selection.
 
-Figure~\ref{fig:scenario-loss} orders the five scenarios by increasing severity and tracks all nine strategies through each; the y-axis is broken because Feasibility-Aware, an early naive selector, sits nearly twice as high as everyone else and would otherwise compress the eight competitive strategies into an unreadable band. Among those eight, Global Best and Family Best rise fastest as execution risk tightens (1.55 at baseline to 2.00 at severe), while Simple Ensemble, Operational Ensemble, and the smoothing-based strategies stay comparatively flat. This is direct visual evidence that accuracy-first selection is the strategy most exposed to execution-risk escalation.
+Figure~\ref{fig:scenario-loss} orders the five scenarios by increasing severity and tracks all nine strategies through each; the y-axis is broken because Feasibility-Aware, an early naive selector, sits nearly twice as high as everyone else and would otherwise compress the eight competitive strategies into an unreadable band. Among those eight, Global Best and Family Best rise fastest as execution risk tightens (1.55 at baseline to 2.00 at severe), while Simple Ensemble, Operational Ensemble, and the smoothing-based strategies stay comparatively flat. This visual pattern supports the interpretation that accuracy-first selection is especially exposed to execution-risk escalation.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.67\linewidth]{figures/favorita_normalized_loss_by_execution_scenario.pdf}
+\includegraphics[width=0.78\linewidth]{figures/favorita_normalized_loss_by_execution_scenario.pdf}
 \caption{Favorita normalized planning loss across execution-risk scenarios, ordered by increasing severity. The broken y-axis separates Feasibility-Aware (top panel) from the eight competitive strategies (bottom panel).}
 \label{fig:scenario-loss}
 \end{figure}

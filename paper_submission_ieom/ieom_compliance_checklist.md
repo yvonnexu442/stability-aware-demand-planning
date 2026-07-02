@@ -44,7 +44,7 @@
 
 - [x] Author-year citation style is used.
 - [x] Numbered citations are not used.
-- [x] At least 15 references are included.
+- [x] 20 references are included.
 - [x] Several references are from 2022-2026.
 - [x] References are alphabetically ordered.
 - [x] Every listed reference is cited in the manuscript.

@@ -16,7 +16,7 @@ The current source of truth is `main.tex`. The draft uses DataCo, Favorita, M5, 
 
 ## Main Included Evidence
 
-- Accuracy-first mismatch rate: 91.1% across 123 paper-facing evaluation groups.
+- Accuracy-first mismatch rate: 91.1% across 123 paper-facing scenario and robustness evaluation groups.
 - Accuracy-first planning-execution gap rate: 15.4%.
 - Best deployable operational-loss planning-execution gap rate: 2.7%.
 - DataCo-informed execution-risk scenarios from baseline to severe.
