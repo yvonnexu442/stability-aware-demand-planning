@@ -33,7 +33,7 @@ Once all candidates are converted to planning signals, we measure the operationa
 IC_{i,t}^{m}=h[p_{i,t}^{m}-y_{i,t}]^{+}+b[y_{i,t}-p_{i,t}^{m}]^{+}
 \end{equation}
 
-Supply chains balance two costs: holding cost $h$ (overstocking, when $p_{i,t}^{m} > y_{i,t}$) and shortage cost $b$ (understocking, when $p_{i,t}^{m} < y_{i,t}$). A forecast that increases either cost increases operational exposure, which lets us show whether accuracy improvements come with hidden inventory cost increases.
+Supply chains balance two costs: holding cost $h$ (overstocking, when $p_{i,t}^{m} > y_{i,t}$) and shortage cost $b$ (understocking, when $p_{i,t}^{m} < y_{i,t}$), revealing whether accuracy improvements hide inventory cost increases. Realized demand $y_{i,t}$ enters only as this ex-post scoring outcome: $p_{i,t}^{m}$ is generated from the forecast alone (Equation~1) before $y_{i,t}$ is observed, and deployable strategies are selected on validation-period costs, never on test-period outcomes---the sole exception, the Realized-Inventory Oracle DP (Section~\ref{sec:oracles}), is non-deployable for exactly this reason.
 
 \textbf{2. Planning Volatility} (Equation 3)
 \begin{equation}
@@ -99,6 +99,7 @@ the greedy-to-DP gap measures the cost of this myopia, small when switching cost
 relevant when an organization imposes a fixed annual limit on model changes.
 
 \subsection{Validation Benchmarks: Non-Deployable Oracles}
+\label{sec:oracles}
 
 Two oracle benchmarks provide diagnostic references, neither deployable. The \textbf{Realized-Inventory Oracle DP} uses realized test-period inventory outcomes over the same forecast candidates---information no real planner has at decision time---and the DP-oracle gap (its normalized-loss distance from the best deployable strategy) shows how much planning value remains unavailable without that hindsight. The \textbf{Perfect-Demand Oracle} uses realized demand itself as the planning signal, yet is often not a lower bound: exact demand tracking can require plan changes faster than execution capacity allows, producing high execution violations. We call this the \emph{curse of accuracy}---a forecast that tracks demand perfectly can still yield an infeasible plan---and its reference gap is therefore diagnostic only, combining forecast uncertainty and feasibility effects to show that accuracy alone is insufficient.
 
